@@ -88,11 +88,25 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS — only allow our own domain
+// Trust Vercel's proxy so express-rate-limit can read the real client IP
+app.set('trust proxy', 1);
+
+// CORS — allow our own domain(s)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://delightmaker.ca',
+  'https://www.delightmaker.ca',
+  ...(process.env.APP_URL ? [process.env.APP_URL] : []),
+];
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? 'https://delightmaker.ca'
-    : 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow any vercel.app preview URL for this project
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 
