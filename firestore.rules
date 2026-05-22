@@ -1,0 +1,214 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+
+    // ── Helper functions ─────────────────────────────
+
+    function isAdmin() {
+      return request.auth != null &&
+             request.auth.token.role == 'admin';
+    }
+
+    function isCompanyUser() {
+      return request.auth != null &&
+             request.auth.token.role == 'company_user';
+    }
+
+    function isBaker() {
+      return request.auth != null &&
+             request.auth.token.role == 'baker';
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myCompany(companyId) {
+      return request.auth.token.companyId == companyId;
+    }
+
+    function myBakery(bakeryId) {
+      return request.auth.token.bakerId == bakeryId;
+    }
+
+
+    // ── Companies ────────────────────────────────────
+    // Admin: full access
+    // Company user: read their own company only
+
+    match /companies/{companyId} {
+      allow read:  if isAdmin() ||
+                     (isCompanyUser() && myCompany(companyId));
+      allow write: if isAdmin();
+    }
+
+
+    // ── Employees ────────────────────────────────────
+    // Admin: full access
+    // Company user: read/write their own company's employees
+
+    match /employees/{employeeId} {
+      allow read:  if isAdmin() ||
+                     (isCompanyUser() &&
+                      myCompany(resource.data.companyId));
+      allow create: if isAdmin() ||
+                      (isCompanyUser() &&
+                       myCompany(request.resource.data.companyId));
+      allow update: if isAdmin() ||
+                      (isCompanyUser() &&
+                       myCompany(resource.data.companyId));
+      allow delete: if isAdmin() ||
+                      (isCompanyUser() &&
+                       myCompany(resource.data.companyId));
+    }
+
+
+    // ── Orders ───────────────────────────────────────
+    // Admin: full access
+    // Company user: read their own company's orders
+    // Baker: read orders assigned to their bakery
+    //        update (mark delivered) their own orders
+
+    match /orders/{orderId} {
+      allow read:   if isAdmin() ||
+                      (isCompanyUser() &&
+                       myCompany(resource.data.companyId)) ||
+                      (isBaker() &&
+                       myBakery(resource.data.bakerId));
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+                      (isBaker() &&
+                       myBakery(resource.data.bakerId) &&
+                       // Bakers may only touch delivery-related fields
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'deliveredAt', 'deliveredBy',
+                                   'bakerNotes', 'exceptionReason',
+                                   'exceptionSince', 'flaggedAt',
+                                   'stripeChargeId', 'chargedAt',
+                                   'chargeStatus', 'chargeError']));
+      allow delete: if isAdmin();
+    }
+
+
+    // ── Bakeries ─────────────────────────────────────
+    // Admin: full access
+    // Baker: read their own bakery profile only
+
+    match /bakeries/{bakeryId} {
+      allow read:  if isAdmin() ||
+                     (isBaker() && myBakery(bakeryId));
+      allow write: if isAdmin();
+
+      // Products subcollection under each bakery
+      // Subcollections don't inherit parent rules in Firestore
+      match /products/{productId} {
+        allow read:  if isSignedIn();
+        allow write: if isAdmin();
+      }
+    }
+
+
+    // ── Products ─────────────────────────────────────
+    // Any signed-in user can read products
+    // Only admin can manage products
+
+    match /products/{productId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+
+    // ── Users ────────────────────────────────────────
+    // Admin: full access
+    // Any user: read their own profile only
+
+    match /users/{userId} {
+      allow read:  if isAdmin() ||
+                     request.auth.uid == userId;
+      allow write: if isAdmin();
+    }
+
+
+    // ── Gifting Rules ────────────────────────────────
+    // Admin: full access
+    // Company user: read/write their own company's rules
+    // Doc ID is the companyId — check path param directly
+    // so reads work even before the doc exists (first load)
+
+    match /giftingRules/{companyId} {
+      allow read:  if isAdmin() ||
+                     (isCompanyUser() && myCompany(companyId));
+      allow write: if isAdmin() ||
+                     (isCompanyUser() && myCompany(companyId));
+    }
+
+
+    // ── Invoices ─────────────────────────────────────
+    // Admin: full access
+    // Baker: read/create their own invoices
+
+    match /invoices/{invoiceId} {
+      allow read:   if isAdmin() ||
+                      (isBaker() &&
+                       myBakery(resource.data.bakerId));
+      allow create: if isAdmin() ||
+                      (isBaker() &&
+                       myBakery(request.resource.data.bakerId));
+      allow update,
+            delete: if isAdmin();
+    }
+
+
+    // ── Demo Requests ────────────────────────────────
+    // Anyone can submit a demo request (landing page form)
+    // Only admin can read/manage them
+
+    match /demoRequests/{requestId} {
+      allow create: if true;
+      allow read,
+            update,
+            delete: if isAdmin();
+    }
+
+
+    // ── Celebrations ─────────────────────────────────
+    // Admin: full access
+    // Company user: read/write their own company's celebrations
+
+    match /celebrations/{celebId} {
+      allow read:   if isAdmin() ||
+                      (isCompanyUser() &&
+                       myCompany(resource.data.companyId));
+      allow create: if isAdmin() ||
+                      (isCompanyUser() &&
+                       myCompany(request.resource.data.companyId));
+      allow update: if isAdmin() ||
+                      (isCompanyUser() &&
+                       myCompany(resource.data.companyId));
+      allow delete: if isAdmin() ||
+                      (isCompanyUser() &&
+                       myCompany(resource.data.companyId));
+    }
+
+
+    // ── Audit Log ────────────────────────────────────
+    // Server-side write only via Admin SDK
+    // Admin can read
+
+    match /auditLog/{logId} {
+      allow read:  if isAdmin();
+      allow write: if false;
+    }
+
+
+    // ── Used Tokens ──────────────────────────────────
+    // Server-side only — blocks all client access
+
+    match /usedTokens/{tokenId} {
+      allow read, write: if false;
+    }
+
+
+  }
+}

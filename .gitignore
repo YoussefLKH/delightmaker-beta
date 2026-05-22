@@ -1,0 +1,130 @@
+# ═══════════════════════════════════════════════════
+# DELIGHTMAKER — GITIGNORE
+# Files and folders Git will NEVER upload
+# ═══════════════════════════════════════════════════
+
+
+# ── MOST IMPORTANT — SECRET KEYS ──────────────────
+# Never ever upload these
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+*.env
+
+
+# ── NODE MODULES ──────────────────────────────────
+# Huge folder — never upload
+# npm install recreates it
+node_modules/
+npm-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+# ── FIREBASE ──────────────────────────────────────
+# Service account keys — top secret
+firebase-adminsdk-*.json
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+.firebase/
+firebase-debug.log
+
+
+# ── LOGS ──────────────────────────────────────────
+logs/
+*.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+
+# ── OPERATING SYSTEM ──────────────────────────────
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+
+# ── VS CODE ───────────────────────────────────────
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+*.code-workspace
+
+
+# ── UPLOADS ───────────────────────────────────────
+# Temporary uploaded CSV files
+# Never store these in Git
+uploads/
+temp/
+tmp/
+
+
+# ── BUILD OUTPUT ──────────────────────────────────
+dist/
+build/
+.cache/
+
+
+# ── MISC ──────────────────────────────────────────
+*.swp
+*.swo
+.nyc_output
+coverage/
+.env.test
+
+
+# ── LOGS & SERVER FILES ───────────────────────────
+*.log
+*.err
+server.log
+server.err
+
+
+# ── CLAUDE CODE / AI TOOLS ───────────────────────
+# These are local development tool files, not app code
+.claude/
+.agents/
+skills-lock.json
+
+
+# ── DEV / SETUP SCRIPTS ──────────────────────────
+# These contain test credentials and should never be
+# committed — run them locally only, then delete
+setup-admin.js
+setup-test-users.js
+cleanup-test-users.js
+seed-products.js
+scripts/
+
+
+# ── TEST DATA ────────────────────────────────────
+test-employees.csv
+*.test.csv
+
+
+# ── GENERATED FILES ──────────────────────────────
+# PDFs and generated outputs — recreate locally
+*.pdf
+generate_test_manual_pdf.py
+
+
+# ── DOCS ─────────────────────────────────────────
+# Test manuals and generated docs — local use only
+TEST_MANUAL.md
+*.md

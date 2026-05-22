@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Baker Invoices — Delightmaker Admin</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin/clients" class="nav-item">
+        <span class="nav-icon">🏢</span>
+        <span class="nav-label">Clients</span>
+      </a>
+      <a href="/admin/orders" class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+      </a>
+      <a href="/admin/bakeries" class="nav-item">
+        <span class="nav-icon">🧁</span>
+        <span class="nav-label">Bakeries</span>
+      </a>
+      <a href="/admin/revenue" class="nav-item">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Revenue</span>
+      </a>
+      <a href="/admin/applications" class="nav-item">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Applications</span>
+      </a>
+      <a href="/admin/invoices" class="nav-item active">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Invoices</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">C</div>
+        <div class="user-info">
+          <p class="user-name">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- Top bar -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn"
+                id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Baker Invoices</h1>
+          <p class="dash-subtitle"
+             id="invoiceSubtitle">Loading...</p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <select id="statusFilter"
+                class="filter-select"
+                onchange="applyFilter()">
+          <option value="all">All Invoices</option>
+          <option value="pending">Pending</option>
+          <option value="submitted">Submitted</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
+    </header>
+
+
+    <!-- ── STATS STRIP ──────────────────────────── -->
+    <section class="kpi-grid">
+
+      <div class="kpi-card">
+        <div class="kpi-icon">⏳</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Outstanding</p>
+          <p class="kpi-value" id="kpiOutstanding">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Paid This Year</p>
+          <p class="kpi-value" id="kpiPaidYear">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon">🧾</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Total Invoices</p>
+          <p class="kpi-value" id="kpiCount">—</p>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ── INVOICES TABLE ───────────────────────── -->
+    <section class="dash-card table-card">
+
+      <div class="card-header">
+        <h2 class="card-title">🧾 All Invoices</h2>
+        <span class="card-action"
+              id="tableCount"
+              style="color:#888;font-size:0.85rem">
+        </span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="invoicesTable">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Bakery</th>
+              <th>Period</th>
+              <th>Orders</th>
+              <th>Amount</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoicesBody">
+            <tr>
+              <td colspan="8" class="table-loading">
+                <div class="loading-rows">
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ──────────────────────────────────────
+    let allInvoices     = [];
+    let filteredInvoices = [];
+
+    const MONTH_NAMES = [
+      'January','February','March','April',
+      'May','June','July','August',
+      'September','October','November','December',
+    ];
+
+
+    // ── Auth guard ─────────────────────────────────
+    requireAuth('admin').then(() => {
+      loadInvoices();
+    });
+
+
+    /* ════════════════════════════════════════════
+       LOAD INVOICES
+    ════════════════════════════════════════════ */
+
+    async function loadInvoices() {
+      try {
+        // Fetch without orderBy to avoid composite-index
+        // requirement, then sort client-side
+        const snap = await db
+          .collection('invoices')
+          .get();
+
+        allInvoices = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        // Sort by generatedAt descending (newest first)
+        allInvoices.sort((a, b) => {
+          const aTime = a.generatedAt?.toDate
+            ? a.generatedAt.toDate().getTime()
+            : 0;
+          const bTime = b.generatedAt?.toDate
+            ? b.generatedAt.toDate().getTime()
+            : 0;
+          return bTime - aTime;
+        });
+
+        updateStats();
+        applyFilter();
+
+      } catch (err) {
+        console.error('Invoices load error:', err);
+        showToast('Failed to load invoices', 'error');
+
+        document.getElementById('invoicesBody')
+          .innerHTML = `
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <span>⚠️</span>
+                  <p>Error loading invoices. Please refresh.</p>
+                </div>
+              </td>
+            </tr>
+          `;
+      }
+    }
+
+
+    /* ── Compute and display stat cards ─────────── */
+    function updateStats() {
+      const now         = new Date();
+      const currentYear = now.getFullYear();
+
+      let outstanding = 0;
+      let paidYear    = 0;
+
+      allInvoices.forEach(inv => {
+        const amount = inv.totalAmount || 0;
+
+        if (inv.status === 'pending' ||
+            inv.status === 'submitted') {
+          outstanding += amount;
+        }
+
+        if (inv.status === 'paid' &&
+            inv.year === currentYear) {
+          paidYear += amount;
+        }
+      });
+
+      document.getElementById('kpiOutstanding')
+        .textContent = formatCurrency(outstanding);
+      document.getElementById('kpiPaidYear')
+        .textContent = formatCurrency(paidYear);
+      document.getElementById('kpiCount')
+        .textContent = allInvoices.length;
+    }
+
+
+    /* ── Apply status filter and re-render ──────── */
+    function applyFilter() {
+      const filter =
+        document.getElementById('statusFilter').value;
+
+      filteredInvoices = filter === 'all'
+        ? allInvoices
+        : allInvoices.filter(
+            inv => inv.status === filter
+          );
+
+      // Update subtitle
+      const total = allInvoices.length;
+      const shown = filteredInvoices.length;
+
+      document.getElementById('invoiceSubtitle')
+        .textContent =
+          filter === 'all'
+            ? `${total} invoice${total !== 1 ? 's' : ''}`
+            : `${shown} ${filter} · ${total} total`;
+
+      document.getElementById('tableCount')
+        .textContent =
+          `${shown} invoice${shown !== 1 ? 's' : ''}`;
+
+      renderTable();
+    }
+
+
+    /* ── Render invoice rows ─────────────────────── */
+    function renderTable() {
+      const tbody =
+        document.getElementById('invoicesBody');
+
+      if (filteredInvoices.length === 0) {
+        const allEmpty = allInvoices.length === 0;
+
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <span>🧾</span>
+                <p>${
+                  allEmpty
+                    ? 'No invoices yet — they auto-generate on the 1st of each month'
+                    : 'No invoices match this filter'
+                }</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filteredInvoices
+        .map(inv => buildRow(inv))
+        .join('');
+    }
+
+
+    /* ── Build a single table row ────────────────── */
+    function buildRow(inv) {
+      const invoiceNum  = inv.invoiceNumber || inv.id;
+      const bakeryName  = inv.bakeryName    || inv.bakerId || '—';
+      const period      = formatPeriod(inv.month, inv.year);
+      const orderCount  = inv.orderCount    || 0;
+      const amount      = inv.totalAmount   || 0;
+
+      const submittedStr = inv.submittedAt?.toDate
+        ? formatDateShort(inv.submittedAt.toDate())
+        : inv.generatedAt?.toDate
+          ? formatDateShort(inv.generatedAt.toDate())
+          : '—';
+
+      const badge     = buildStatusBadge(inv.status);
+      const typeChip  = buildTypeChip(inv.type);
+
+      const canMarkPaid =
+        inv.status === 'pending' ||
+        inv.status === 'submitted';
+
+      const markPaidBtn = canMarkPaid
+        ? `<button
+             class="btn-action btn-pay"
+             onclick="markAsPaid('${inv.id}')"
+             title="Mark as paid">
+             Mark Paid
+           </button>`
+        : '';
+
+      return `
+        <tr class="table-row" data-id="${inv.id}">
+          <td>
+            <span class="invoice-num">${invoiceNum}</span>
+            ${typeChip}
+          </td>
+          <td>
+            <strong>${bakeryName}</strong>
+          </td>
+          <td>${period}</td>
+          <td style="text-align:center">${orderCount}</td>
+          <td>
+            <strong>${formatCurrency(amount)}</strong>
+          </td>
+          <td style="color:#888;font-size:0.85rem">
+            ${submittedStr}
+          </td>
+          <td id="status-${inv.id}">
+            ${badge}
+          </td>
+          <td class="actions-cell">
+            ${markPaidBtn}
+            <button
+              class="btn-action btn-view"
+              onclick="viewInvoice('${inv.id}')"
+              title="Open printable invoice">
+              View
+            </button>
+          </td>
+        </tr>
+      `;
+    }
+
+
+    /* ── Status badge HTML ───────────────────────── */
+    function buildStatusBadge(status) {
+      switch (status) {
+        case 'pending':
+          return `<span class="status-badge badge-pending">⏳ Pending</span>`;
+        case 'submitted':
+          return `<span class="status-badge badge-submitted">📋 Submitted</span>`;
+        case 'paid':
+          return `<span class="status-badge badge-paid">✅ Paid</span>`;
+        default:
+          return `<span class="status-badge badge-pending">${status || '—'}</span>`;
+      }
+    }
+
+
+    /* ── Invoice type chip ───────────────────────── */
+    function buildTypeChip(type) {
+      if (!type) return '';
+      return type === 'auto'
+        ? `<span class="type-chip chip-auto">auto</span>`
+        : `<span class="type-chip chip-manual">manual</span>`;
+    }
+
+
+    /* ── Format month number + year as "April 2026" ─ */
+    function formatPeriod(month, year) {
+      if (!month || !year) return '—';
+      const name = MONTH_NAMES[month - 1] || '?';
+      return `${name} ${year}`;
+    }
+
+
+    /* ════════════════════════════════════════════
+       MARK AS PAID
+    ════════════════════════════════════════════ */
+
+    async function markAsPaid(invoiceId) {
+      const confirmed = await confirmDialog(
+        'Mark this invoice as paid?',
+        'This will update the invoice status to Paid.'
+      );
+      if (!confirmed) return;
+
+      // Optimistically update the badge
+      const statusCell =
+        document.getElementById(`status-${invoiceId}`);
+      if (statusCell) {
+        statusCell.innerHTML =
+          `<span class="status-badge badge-processing">⏳ Saving...</span>`;
+      }
+
+      // Disable the pay button for this row
+      const row = document.querySelector(
+        `tr[data-id="${invoiceId}"]`
+      );
+      if (row) {
+        const payBtn = row.querySelector('.btn-pay');
+        if (payBtn) payBtn.disabled = true;
+      }
+
+      try {
+        const res = await apiCall(
+          `/api/invoices/${invoiceId}/paid`,
+          { method: 'PATCH' }
+        );
+
+        if (res && res.ok) {
+          // Update local state
+          const inv = allInvoices.find(
+            i => i.id === invoiceId
+          );
+          if (inv) inv.status = 'paid';
+
+          // Update badge in-place
+          if (statusCell) {
+            statusCell.innerHTML =
+              buildStatusBadge('paid');
+          }
+
+          // Remove Mark Paid button
+          if (row) {
+            const payBtn = row.querySelector('.btn-pay');
+            if (payBtn) payBtn.remove();
+          }
+
+          // Refresh stats
+          updateStats();
+          showToast('Invoice marked as paid!', 'success');
+
+        } else {
+          throw new Error('API returned non-OK status');
+        }
+
+      } catch (err) {
+        console.error('Mark paid error:', err);
+
+        // Restore badge to previous state
+        const inv = allInvoices.find(
+          i => i.id === invoiceId
+        );
+        if (statusCell && inv) {
+          statusCell.innerHTML =
+            buildStatusBadge(inv.status);
+        }
+
+        // Re-enable pay button
+        if (row) {
+          const payBtn = row.querySelector('.btn-pay');
+          if (payBtn) payBtn.disabled = false;
+        }
+
+        showToast('Failed to mark invoice as paid', 'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       VIEW INVOICE (PRINTABLE)
+    ════════════════════════════════════════════ */
+
+    function viewInvoice(invoiceId) {
+      window.open(
+        `/admin/invoice-view?id=${invoiceId}`,
+        '_blank'
+      );
+    }
+
+
+    /* ── Mobile menu ────────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+  <style>
+
+    /* ── Invoice number ─────────────────────────── */
+    .invoice-num {
+      font-family:  monospace;
+      font-size:    0.82rem;
+      color:        var(--gray);
+      display:      block;
+      margin-bottom: 2px;
+    }
+
+    /* ── Type chip ──────────────────────────────── */
+    .type-chip {
+      display:       inline-block;
+      font-size:     0.68rem;
+      font-weight:   700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding:       2px 6px;
+      border-radius: var(--radius-sm, 4px);
+      margin-top:    2px;
+    }
+
+    .chip-auto {
+      background: rgba(33, 150, 243, 0.12);
+      color:      #1565C0;
+    }
+
+    .chip-manual {
+      background: rgba(156, 39, 176, 0.12);
+      color:      #6A1B9A;
+    }
+
+    /* ── Status badges ──────────────────────────── */
+    .status-badge {
+      display:       inline-flex;
+      align-items:   center;
+      gap:           4px;
+      font-size:     0.78rem;
+      font-weight:   600;
+      padding:       4px 10px;
+      border-radius: 100px;
+      white-space:   nowrap;
+    }
+
+    .badge-pending {
+      background: rgba(255, 193, 7, 0.15);
+      color:      #B8860B;
+    }
+
+    .badge-submitted {
+      background: rgba(33, 150, 243, 0.13);
+      color:      #1565C0;
+    }
+
+    .badge-paid {
+      background: rgba(76, 175, 80, 0.14);
+      color:      #2E7D32;
+    }
+
+    .badge-processing {
+      background: rgba(100, 100, 100, 0.1);
+      color:      #888;
+    }
+
+    /* ── Action buttons ─────────────────────────── */
+    .actions-cell {
+      display:    flex;
+      gap:        8px;
+      align-items: center;
+      flex-wrap:  wrap;
+    }
+
+    .btn-action {
+      display:       inline-flex;
+      align-items:   center;
+      font-size:     0.78rem;
+      font-weight:   600;
+      padding:       5px 12px;
+      border-radius: var(--radius-sm, 4px);
+      border:        none;
+      cursor:        pointer;
+      transition:    opacity 0.15s, transform 0.1s;
+      white-space:   nowrap;
+    }
+
+    .btn-action:hover {
+      opacity:   0.85;
+      transform: translateY(-1px);
+    }
+
+    .btn-action:active {
+      transform: translateY(0);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.45;
+      cursor:  not-allowed;
+      transform: none;
+    }
+
+    .btn-pay {
+      background: rgba(76, 175, 80, 0.15);
+      color:      #2E7D32;
+    }
+
+    .btn-pay:hover {
+      background: rgba(76, 175, 80, 0.25);
+    }
+
+    .btn-view {
+      background: rgba(255, 107, 107, 0.1);
+      color:      var(--coral, #FF6B6B);
+    }
+
+    .btn-view:hover {
+      background: rgba(255, 107, 107, 0.2);
+    }
+
+    /* ── Empty state ────────────────────────────── */
+    .empty-state {
+      display:        flex;
+      flex-direction: column;
+      align-items:    center;
+      justify-content: center;
+      padding:        48px 24px;
+      gap:            12px;
+      text-align:     center;
+    }
+
+    .empty-state span {
+      font-size: 2.4rem;
+    }
+
+    .empty-state p {
+      font-size: 0.95rem;
+      color:     var(--gray, #888);
+      max-width: 340px;
+      line-height: 1.5;
+    }
+
+    /* ── Loading rows ───────────────────────────── */
+    .table-loading {
+      padding: 0;
+    }
+
+    .loading-rows {
+      display:        flex;
+      flex-direction: column;
+      gap:            10px;
+      padding:        20px 16px;
+    }
+
+    .loading-row {
+      height:        18px;
+      border-radius: 6px;
+      background:    linear-gradient(
+                       90deg,
+                       rgba(0,0,0,0.05) 0%,
+                       rgba(0,0,0,0.08) 50%,
+                       rgba(0,0,0,0.05) 100%
+                     );
+      background-size: 200% 100%;
+      animation:      shimmer 1.4s infinite;
+    }
+
+    .loading-row:nth-child(2) { width: 80%; }
+    .loading-row:nth-child(3) { width: 65%; }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Responsive table ───────────────────────── */
+    @media (max-width: 768px) {
+      .actions-cell {
+        flex-direction: column;
+        align-items:    flex-start;
+        gap:            6px;
+      }
+
+      .btn-action {
+        font-size: 0.72rem;
+        padding:   4px 10px;
+      }
+    }
+
+  </style>
+
+</body>
+</html>

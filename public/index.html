@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Delightmaker — Employee Gifting for Halifax Businesses</title>
+  <meta name="description" content="Automated fresh treat delivery for 
+  your employees. Birthdays, anniversaries, and milestones — handled 
+  for Halifax businesses."/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="css/main.css"/>
+
+  <style>
+    /* Apply section toggle */
+    .apply-toggle {
+      display:         flex;
+      gap:             8px;
+      justify-content: center;
+      margin-bottom:   28px;
+    }
+    .apply-toggle-btn {
+      padding:       10px 24px;
+      border-radius: 100px;
+      border:        2px solid #FF6B6B;
+      background:    transparent;
+      color:         #FF6B6B;
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.95rem;
+      font-weight:   700;
+      cursor:        pointer;
+      transition:    all 0.2s;
+    }
+    .apply-toggle-btn.active {
+      background: #FF6B6B;
+      color:      white;
+    }
+    .apply-toggle-btn:hover:not(.active) {
+      background: rgba(255,107,107,0.08);
+    }
+    /* Textarea in apply form */
+    .demo-form textarea {
+      width:         100%;
+      padding:       12px 16px;
+      border:        1.5px solid #E8E0D8;
+      border-radius: 10px;
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.95rem;
+      color:         #2D2D2D;
+      background:    white;
+      resize:        vertical;
+      transition:    border-color 0.2s;
+      box-sizing:    border-box;
+    }
+    .demo-form textarea:focus {
+      outline:       none;
+      border-color:  #FF6B6B;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════
+       NAVBAR
+  ════════════════════════════════════════ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+
+      <!-- LOGO PLACEHOLDER — Replace src with real logo later -->
+      <a href="/" class="nav-logo" aria-label="Delightmaker Home">
+        <div class="logo-placeholder">
+          <span class="logo-icon">🧁</span>
+          <span class="logo-text">Delightmaker</span>
+        </div>
+      </a>
+
+      <!-- Nav Links -->
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#bakeries">Our Bakeries</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="/login" class="nav-login">Log In</a></li>
+        <li>
+          <a href="#apply" class="btn btn-primary nav-cta">
+            Apply Now
+          </a>
+        </li>
+      </ul>
+
+      <!-- Mobile Hamburger -->
+      <button class="hamburger" id="hamburger" 
+              aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+    </div>
+  </nav>
+
+
+  <!-- ═══════════════════════════════════════
+       SECTION 1 — HERO
+  ════════════════════════════════════════ -->
+  <section class="hero" id="home">
+    <div class="hero-container">
+
+      <!-- LEFT: Copy -->
+      <div class="hero-content">
+        <div class="hero-tag">
+          <span>🇨🇦</span>
+          Halifax's First Automated Employee Gifting Platform
+        </div>
+
+        <h1 class="hero-headline">
+          Your team shows up<br/>
+          every day.<br/>
+          <em>Show up for them.</em>
+        </h1>
+
+        <p class="hero-subtext">
+          Delightmaker automatically delivers fresh local treats to 
+          your employees on birthdays and work anniversaries. 
+          Upload your team once. We handle everything else.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#apply" class="btn btn-primary btn-large">
+            Apply Now →
+          </a>
+          <a href="#how-it-works" class="btn btn-ghost btn-large">
+            See How It Works
+          </a>
+        </div>
+
+        <div class="hero-trust">
+          <span>✅ No contracts</span>
+          <span>✅ Free delivery in HRM</span>
+          <span>✅ Cancel anytime</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: Visual -->
+      <div class="hero-visual">
+
+        <!-- Placeholder for food photo -->
+        <div class="hero-image-placeholder">
+          <span>🧁</span>
+          <p>Beautiful treat photo goes here</p>
+        </div>
+
+        <!-- Floating notification card -->
+        <div class="floating-card card-one">
+          <div class="card-icon">🎂</div>
+          <div class="card-body">
+            <p class="card-title">Sarah's Birthday</p>
+            <p class="card-sub">Tomorrow · Cupcake Box</p>
+            <span class="card-badge">✅ On its way</span>
+          </div>
+        </div>
+
+        <!-- Floating stat card -->
+        <div class="floating-card card-two">
+          <div class="card-stat">12</div>
+          <div class="card-stat-label">
+            celebrations this<br/>month 🎉
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator">
+      <span>Scroll to explore</span>
+      <div class="scroll-arrow">↓</div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════
+       SECTION 2 — SOCIAL PROOF BAR
+  ════════════════════════════════════════ -->
+  <section class="social-proof">
+    <div class="container">
+      <p class="proof-label">
+        Proudly serving Halifax businesses
+      </p>
+      <div class="proof-logos">
+        <!-- Replace these with real client logos later -->
+        <div class="proof-logo-placeholder">Your Logo</div>
+        <div class="proof-logo-placeholder">Your Logo</div>
+        <div class="proof-logo-placeholder">Your Logo</div>
+        <div class="proof-logo-placeholder">Your Logo</div>
+        <div class="proof-logo-placeholder">Your Logo</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════
+       SECTION 3 — THE PROBLEM
+  ════════════════════════════════════════ -->
+  <section class="problem" id="problem">
+    <div class="container">
+
+      <div class="section-label">Sound familiar?</div>
+      <h2 class="section-headline">
+        Employee celebrations shouldn't<br/>
+        <em>fall through the cracks.</em>
+      </h2>
+
+      <div class="problem-cards">
+
+        <div class="problem-card">
+          <div class="problem-emoji">😬</div>
+          <h3>"We forgot Sarah's birthday. Again."</h3>
+          <p>
+            Missed moments hurt morale more than 
+            people admit. Every forgotten birthday 
+            sends a message you didn't mean to send.
+          </p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-emoji">📋</div>
+          <h3>"HR is tracking 200 dates in a spreadsheet."</h3>
+          <p>
+            Manual tracking is a full-time job nobody 
+            signed up for. One wrong date and the whole 
+            thing falls apart.
+          </p>
+        </div>
+
+        <div class="problem-card">
+          <div class="problem-emoji">🎁</div>
+          <h3>"We sent a gift card. Nobody cared."</h3>
+          <p>
+            Generic gifts feel generic. A fresh, 
+            locally baked treat delivered to the office 
+            creates a real moment people remember.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════
+       SECTION 4 — HOW IT WORKS
+  ════════════════════════════════════════ -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+
+      <div class="section-label">How It Works</div>
+      <h2 class="section-headline">
+        Three steps to never missing<br/>
+        <em>a moment again.</em>
+      </h2>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-number">01</div>
+          <div class="step-content">
+            <div class="step-icon">📂</div>
+            <h3>Upload your team</h3>
+            <p>
+              Upload your employee list once — names, 
+              birthdays, anniversaries, and dietary needs. 
+              One CSV file. Takes five minutes.
+            </p>
+          </div>
+          <div class="step-visual">
+            <div class="ui-mockup csv-mockup">
+              <div class="mockup-bar">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="mockup-content">
+                <div class="csv-header">
+                  <span>Name</span>
+                  <span>Birthday</span>
+                  <span>Start Date</span>
+                </div>
+                <div class="csv-row valid">
+                  <span>Sarah J.</span>
+                  <span>Nov 28</span>
+                  <span>Mar 2022</span>
+                </div>
+                <div class="csv-row valid">
+                  <span>Mike T.</span>
+                  <span>Apr 15</span>
+                  <span>Nov 2019</span>
+                </div>
+                <div class="csv-row valid">
+                  <span>Lisa K.</span>
+                  <span>Dec 3</span>
+                  <span>Dec 2023</span>
+                </div>
+                <div class="csv-upload-btn">
+                  ✅ 45 employees imported
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step step-reverse">
+          <div class="step-number">02</div>
+          <div class="step-content">
+            <div class="step-icon">⚙️</div>
+            <h3>Set your gifting rules</h3>
+            <p>
+              Choose what treat goes to who and when. 
+              Cupcakes for birthdays. Cake for five-year 
+              anniversaries. Set it once, never touch it again.
+            </p>
+          </div>
+          <div class="step-visual">
+            <div class="ui-mockup rules-mockup">
+              <div class="mockup-bar">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="mockup-content">
+                <div class="rule-row">
+                  <span class="rule-event">🎂 Birthday</span>
+                  <span class="rule-treat">Cupcake Box</span>
+                  <span class="rule-toggle on">ON</span>
+                </div>
+                <div class="rule-row">
+                  <span class="rule-event">🎉 1 Year</span>
+                  <span class="rule-treat">Cookie Box</span>
+                  <span class="rule-toggle on">ON</span>
+                </div>
+                <div class="rule-row">
+                  <span class="rule-event">🏆 5 Years</span>
+                  <span class="rule-treat">Custom Cake</span>
+                  <span class="rule-toggle on">ON</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-number">03</div>
+          <div class="step-content">
+            <div class="step-icon">✅</div>
+            <h3>We handle everything else</h3>
+            <p>
+              Seven days before each delivery, you get 
+              one email. Click approve. That's it. 
+              Fresh local treats, baked and delivered 
+              to your office by Halifax's best bakeries.
+            </p>
+          </div>
+          <div class="step-visual">
+            <div class="ui-mockup email-mockup">
+              <div class="mockup-bar">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="mockup-content">
+                <div class="email-from">
+                  📧 From: hello@delightmaker.ca
+                </div>
+                <div class="email-subject">
+                  🎂 Sarah's birthday is in 7 days!
+                </div>
+                <div class="email-body">
+                  We're sending a Cupcake Box (12) 
+                  to your office on Nov 28.
+                </div>
+                <button class="email-approve-btn">
+                  ✅ Approve Delivery
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════
+       SECTION 5 — FEATURES
+  ════════════════════════════════════════ -->
+  <section class="features" id="features">
+    <div class="container">
+
+      <div class="section-label">Why Delightmaker</div>
+      <h2 class="section-headline">
+        Built for busy HR teams.<br/>
+        <em>Runs itself.</em>
+      </h2>
+
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <h3>One-click approvals</h3>
+          <p>
+            Get a simple email 7 days before every 
+            delivery. Approve without even logging in. 
+            Or turn on auto-approve and forget it exists.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🧁</div>
+          <h3>Baked fresh in Halifax</h3>
+          <p>
+            No frozen packages. No gift cards. 
+            Real treats baked fresh by local Halifax 
+            bakeries and delivered directly to your office.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🌿</div>
+          <h3>Dietary needs covered</h3>
+          <p>
+            Gluten-free, nut-free, vegan, kosher — 
+            we route every order to the right bakery 
+            automatically. No employee left behind.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Full spend visibility</h3>
+          <p>
+            See exactly what you've spent, per employee, 
+            per month. Export CSV reports for 
+            expense tracking anytime.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Secure and private</h3>
+          <p>
+            Your employee data is encrypted and 
+            protected under PIPEDA. We never share 
+            or sell your team's information. Ever.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">💳</div>
+          <h3>Simple Pricing</h3>
+          <p>
+            No subscriptions, no surprises. You only pay per treat delivered — pricing is built into each order.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════
+       SECTION 6 — BAKERY PARTNERS
+  ════════════════════════════════════════ -->
+  <section class="bakeries" id="bakeries">
+    <div class="container">
+
+      <div class="section-label">Our Bakery Partners</div>
+      <h2 class="section-headline">
+        Made by Halifax's<br/>
+        <em>finest bakers.</em>
+      </h2>
+      <p class="section-subtext">
+        We partner exclusively with local Halifax bakeries. 
+        Every treat is baked fresh and delivered with care.
+      </p>
+
+      <div class="bakery-grid">
+
+        <div class="bakery-card">
+          <div class="bakery-logo-placeholder">24C</div>
+          <h3>24 Carrots</h3>
+          <p class="bakery-specialty">
+            🍪 Cookies · Brownies · Muffins
+          </p>
+          <p class="bakery-desc">
+            Our primary partner. Free delivery across 
+            HRM on orders over \$30. 
+            The go-to for everyday celebrations.
+          </p>
+          <span class="bakery-badge">Tier 1 Partner</span>
+        </div>
+
+        <div class="bakery-card">
+          <div class="bakery-logo-placeholder">DD</div>
+          <h3>Delectable Desserts</h3>
+          <p class="bakery-specialty">
+            🎂 Cakes · Cupcakes · Treat Boxes
+          </p>
+          <p class="bakery-desc">
+            Burnside and Dartmouth specialist. 
+            Same-day delivery available on larger orders. 
+            Beautiful custom treat boxes.
+          </p>
+          <span class="bakery-badge">Tier 1 Partner</span>
+        </div>
+
+        <div class="bakery-card">
+          <div class="bakery-logo-placeholder">TB</div>
+          <h3>Temi Bakes</h3>
+          <p class="bakery-specialty">
+            ✨ Custom Branded Treats
+          </p>
+          <p class="bakery-desc">
+            Company logos on treats. Perfect for 
+            milestone anniversaries and premium 
+            gifting moments your team won't forget.
+          </p>
+          <span class="bakery-badge premium">
+            Premium Partner
+          </span>
+        </div>
+
+        <div class="bakery-card">
+          <div class="bakery-logo-placeholder">NE</div>
+          <h3>North End Baking Co.</h3>
+          <p class="bakery-specialty">
+            🌿 100% Gluten-Free
+          </p>
+          <p class="bakery-desc">
+            A social enterprise by the Prescott Group. 
+            Fully allergen-free facility. 
+            The right choice for GF team members.
+          </p>
+          <span class="bakery-badge allergen">
+            Allergen-Free
+          </span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════
+       SECTION 8 — FAQ
+  ════════════════════════════════════════ -->
+  <section class="faq" id="faq">
+    <div class="container">
+
+      <div class="section-label">FAQ</div>
+      <h2 class="section-headline">
+        Questions?<br/>
+        <em>We've got answers.</em>
+      </h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <button class="faq-question">
+            Do I need to do anything after the initial setup?
+            <span class="faq-arrow">↓</span>
+          </button>
+          <div class="faq-answer">
+            <p>
+              Almost nothing. Once you've uploaded your team 
+              and set your gifting rules, we take it from there. 
+              You'll get a one-click approval email 7 days before 
+              each delivery — or turn on auto-approve and 
+              you won't even need to do that.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            What if an employee has allergies or 
+            dietary restrictions?
+            <span class="faq-arrow">↓</span>
+          </button>
+          <div class="faq-answer">
+            <p>
+              Just note their dietary needs when you upload 
+              your team — gluten-free, nut-free, vegan, kosher. 
+              We automatically route those orders to the 
+              appropriate specialist bakery. Every employee 
+              gets a treat that's safe for them.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            Which areas do you deliver to?
+            <span class="faq-arrow">↓</span>
+          </button>
+          <div class="faq-answer">
+            <p>
+              We currently serve the Halifax Regional Municipality 
+              (HRM) — including Halifax, Dartmouth, Bedford, 
+              Sackville, and surrounding areas. 
+              Delivery is always free within HRM.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            Can I cancel or modify an order?
+            <span class="faq-arrow">↓</span>
+          </button>
+          <div class="faq-answer">
+            <p>
+              Yes. From the approval email or your dashboard, 
+              you can modify or cancel any upcoming order 
+              up to 48 hours before the delivery date. 
+              No charge for cancelled orders.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            How does billing work?
+            <span class="faq-arrow">↓</span>
+          </button>
+          <div class="faq-answer">
+            <p>
+              You pay per treat delivered. Pricing is included
+              in each order — no monthly fees or subscriptions.
+              All payments are processed securely through Stripe.
+            </p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            Is our employee data safe?
+            <span class="faq-arrow">↓</span>
+          </button>
+          <div class="faq-answer">
+            <p>
+              Absolutely. We take privacy seriously. 
+              All employee data is encrypted and stored 
+              securely in compliance with PIPEDA — 
+              Canada's federal privacy law. We never 
+              sell or share your team's information. 
+              You can request full data deletion at any time.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════
+       SECTION 9 — APPLY / GET STARTED
+  ════════════════════════════════════════ -->
+  <section class="demo-cta" id="apply">
+    <div class="container">
+
+      <div class="cta-content">
+
+        <!-- Type toggle -->
+        <div class="apply-toggle">
+          <button class="apply-toggle-btn active"
+                  id="toggleCompany"
+                  onclick="switchApplyType('company')">
+            🏢 I'm a Company
+          </button>
+          <button class="apply-toggle-btn"
+                  id="toggleBaker"
+                  onclick="switchApplyType('baker')">
+            🧁 I'm a Bakery Partner
+          </button>
+        </div>
+
+        <!-- Company headline -->
+        <div id="applyHeadlineCompany">
+          <h2>Your team deserves to feel celebrated. 🧁</h2>
+          <p>
+            Apply to join Delightmaker. We'll review your
+            application within 1 business day and send you
+            a link to set up your account.
+          </p>
+        </div>
+
+        <!-- Baker headline -->
+        <div id="applyHeadlineBaker" style="display:none">
+          <h2>Partner with Halifax's gifting platform. 🤝</h2>
+          <p>
+            Join our bakery network and receive pre-scheduled
+            corporate treat orders delivered right to your
+            production schedule.
+          </p>
+        </div>
+
+        <!-- Application Form -->
+        <form class="demo-form" id="applyForm">
+          <input type="hidden" id="applyType" value="company"/>
+
+          <!-- Row 1: Name + Org -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="applyName">Your Name</label>
+              <input type="text" id="applyName"
+                     placeholder="Jane Smith" required/>
+            </div>
+            <div class="form-group">
+              <label for="applyOrg" id="applyOrgLabel">Company Name</label>
+              <input type="text" id="applyOrg"
+                     placeholder="Acme Corp" required/>
+            </div>
+          </div>
+
+          <!-- Row 2: Email + Phone -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="applyEmail">Work Email</label>
+              <input type="email" id="applyEmail"
+                     placeholder="jane@acmecorp.com" required/>
+            </div>
+            <div class="form-group">
+              <label for="applyPhone">Phone Number</label>
+              <input type="tel" id="applyPhone"
+                     placeholder="(902) 555-0123" required/>
+            </div>
+          </div>
+
+          <!-- Row 3: Password + Confirm -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="applyPassword">Create a Password</label>
+              <input type="password" id="applyPassword"
+                     placeholder="Min. 8 characters" required minlength="8"/>
+            </div>
+            <div class="form-group">
+              <label for="applyPasswordConfirm">Confirm Password</label>
+              <input type="password" id="applyPasswordConfirm"
+                     placeholder="Repeat your password" required/>
+            </div>
+          </div>
+
+          <!-- Address -->
+          <div class="form-group">
+            <label for="applyAddress" id="applyAddressLabel">
+              Office Address (Halifax area)
+            </label>
+            <input type="text" id="applyAddress"
+                   placeholder="123 Barrington St, Halifax, NS"
+                   autocomplete="off" required/>
+            <input type="hidden" id="applyLat"/>
+            <input type="hidden" id="applyLng"/>
+            <p id="addressVerified"
+               style="display:none;
+                      color:#2E7D32;
+                      font-size:0.78rem;
+                      margin:4px 0 0;
+                      font-weight:600">
+              📍 Address verified
+            </p>
+          </div>
+
+          <!-- COMPANY ONLY fields -->
+          <div id="applyCompanyFields">
+          </div>
+
+          <!-- BAKER ONLY fields -->
+          <div id="applyBakerFields" style="display:none">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="applySpecialty">What do you bake?</label>
+                <input type="text" id="applySpecialty"
+                       placeholder="e.g. Cupcakes, Cookies, Custom Cakes"/>
+              </div>
+              <div class="form-group">
+                <label for="applyAllergen">Allergen-free options?</label>
+                <select id="applyAllergen">
+                  <option value="no">No</option>
+                  <option value="yes">Yes — gluten-free / nut-free</option>
+                  <option value="dedicated">Yes — dedicated allergen-free facility</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="applyCapacity">Weekly order capacity</label>
+                <select id="applyCapacity">
+                  <option value="">Select capacity</option>
+                  <option value="1-10">1–10 orders/week</option>
+                  <option value="11-25">11–25 orders/week</option>
+                  <option value="26-50">26–50 orders/week</option>
+                  <option value="50+">50+ orders/week</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="applyWebsite">
+                  Website or Instagram
+                  <span style="font-weight:400;color:#999">(optional)</span>
+                </label>
+                <input type="text" id="applyWebsite"
+                       placeholder="instagram.com/yourbakery"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- Message (both) -->
+          <div class="form-group">
+            <label for="applyMessage">
+              Anything else you'd like us to know?
+              <span style="font-weight:400;color:#999">(optional)</span>
+            </label>
+            <textarea id="applyMessage" rows="3"
+                      placeholder="Tell us about your team, your bakery, any special requirements..."></textarea>
+          </div>
+
+          <!-- Password mismatch error -->
+          <div id="applyPwError"
+               style="display:none;color:#ef4444;font-size:.85rem;
+                      margin-bottom:12px;font-weight:600">
+            ⚠️ Passwords don't match.
+          </div>
+
+          <button type="submit"
+                  class="btn btn-primary btn-large"
+                  id="applyBtn">
+            Create Account &amp; Apply →
+          </button>
+          <p class="form-note">
+            We review every application personally and respond within 1 business day.
+            You'll get a confirmation email right away.
+          </p>
+        </form>
+
+        <!-- Success state -->
+        <div class="form-success" id="applySuccess" style="display:none">
+          <div class="success-icon">🎉</div>
+          <h3>Account created! Application submitted.</h3>
+          <p>
+            Your account is ready but needs Colton's approval
+            before you can log in. You'll get an email once
+            you're approved — usually within 1 business day.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="container">
+
+      <div class="footer-top">
+
+        <!-- Brand -->
+        <div class="footer-brand">
+          <a href="/" class="nav-logo">
+            <div class="logo-placeholder footer-logo">
+              <span class="logo-icon">🧁</span>
+              <span class="logo-text">Delightmaker</span>
+            </div>
+          </a>
+          <p>
+            Automated employee gifting for 
+            Halifax businesses. Fresh treats, 
+            local bakeries, zero effort.
+          </p>
+          <p class="footer-location">
+            📍 Halifax, Nova Scotia 🇨🇦
+          </p>
+        </div>
+
+        <!-- Links -->
+        <div class="footer-links">
+          <div class="footer-col">
+            <h4>Platform</h4>
+            <ul>
+              <li><a href="#how-it-works">How It Works</a></li>
+              <li><a href="#bakeries">Our Bakeries</a></li>
+              <li><a href="/login">Log In</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Company</h4>
+            <ul>
+              <li><a href="#apply">Apply Now</a></li>
+              <li><a href="#faq">FAQ</a></li>
+              <li>
+                <a href="mailto:hello@delightmaker.ca">
+                  Contact Us
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Legal</h4>
+            <ul>
+              <li><a href="/privacy">Privacy Policy</a></li>
+              <li><a href="/terms">Terms of Service</a></li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="footer-bottom">
+        <p>
+          © 2024 Delightmaker. All rights reserved. 
+          Proudly local. 🧁
+        </p>
+        <p>
+          <a href="mailto:hello@delightmaker.ca">
+            hello@delightmaker.ca
+          </a>
+        </p>
+      </div>
+
+    </div>
+  </footer>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script>
+
+    // ── Navbar scroll effect ──────────────────
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+
+    // ── Mobile hamburger menu ─────────────────
+    const hamburger = document.getElementById('hamburger');
+    const navLinks = document.getElementById('navLinks');
+    hamburger.addEventListener('click', () => {
+      navLinks.classList.toggle('open');
+      hamburger.classList.toggle('active');
+    });
+
+    // ── FAQ accordion ─────────────────────────
+    const faqItems = document.querySelectorAll('.faq-item');
+    faqItems.forEach(item => {
+      const question = item.querySelector('.faq-question');
+      question.addEventListener('click', () => {
+        const isOpen = item.classList.contains('open');
+        // Close all
+        faqItems.forEach(i => i.classList.remove('open'));
+        // Open clicked if it was closed
+        if (!isOpen) item.classList.add('open');
+      });
+    });
+
+    // ── Apply type toggle ─────────────────────
+    function switchApplyType(type) {
+      const isCompany = type === 'company';
+      document.getElementById('applyType').value = type;
+
+      document.getElementById('toggleCompany')
+        .classList.toggle('active', isCompany);
+      document.getElementById('toggleBaker')
+        .classList.toggle('active', !isCompany);
+
+      document.getElementById('applyHeadlineCompany')
+        .style.display = isCompany ? 'block' : 'none';
+      document.getElementById('applyHeadlineBaker')
+        .style.display = isCompany ? 'none' : 'block';
+
+      document.getElementById('applyCompanyFields')
+        .style.display = isCompany ? 'block' : 'none';
+      document.getElementById('applyBakerFields')
+        .style.display = isCompany ? 'none' : 'block';
+
+      document.getElementById('applyOrgLabel').textContent =
+        isCompany ? 'Company Name' : 'Bakery Name';
+      document.getElementById('applyOrg').placeholder =
+        isCompany ? 'Acme Corp' : '24 Carrots';
+
+      document.getElementById('applyAddressLabel').textContent =
+        isCompany ? 'Office Address (Halifax area)' : 'Bakery Address (Halifax area)';
+      document.getElementById('applyAddress').placeholder =
+        isCompany ? '123 Barrington St, Halifax, NS' : '456 Agricola St, Halifax, NS';
+    }
+
+    // ── Application form submit ───────────────
+    const applyForm    = document.getElementById('applyForm');
+    const applySuccess = document.getElementById('applySuccess');
+    const applyBtn     = document.getElementById('applyBtn');
+
+    applyForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const type     = document.getElementById('applyType').value;
+      const password = document.getElementById('applyPassword').value;
+      const confirm  = document.getElementById('applyPasswordConfirm').value;
+      const pwError  = document.getElementById('applyPwError');
+
+      // Password match check
+      if (password !== confirm) {
+        pwError.style.display = 'block';
+        document.getElementById('applyPasswordConfirm').focus();
+        return;
+      }
+      pwError.style.display = 'none';
+
+      const data = {
+        type,
+        name:         document.getElementById('applyName').value.trim(),
+        orgName:      document.getElementById('applyOrg').value.trim(),
+        email:        document.getElementById('applyEmail').value.trim(),
+        password,
+        phone:        document.getElementById('applyPhone').value.trim(),
+        address:      document.getElementById('applyAddress').value.trim(),
+        addressLat:   parseFloat(document.getElementById('applyLat').value)  || null,
+        addressLng:   parseFloat(document.getElementById('applyLng').value)  || null,
+        specialty:    type === 'baker'
+                        ? document.getElementById('applySpecialty').value.trim()
+                        : null,
+        allergenFree: type === 'baker'
+                        ? document.getElementById('applyAllergen').value
+                        : null,
+        capacity:     type === 'baker'
+                        ? document.getElementById('applyCapacity').value
+                        : null,
+        website:      type === 'baker'
+                        ? document.getElementById('applyWebsite').value.trim()
+                        : null,
+        message:      document.getElementById('applyMessage').value.trim(),
+      };
+
+      applyBtn.disabled    = true;
+      applyBtn.textContent = 'Creating account...';
+
+      try {
+        const res = await fetch('/api/applications', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(data),
+        });
+
+        const json = await res.json();
+
+        if (res.ok) {
+          applyForm.style.display    = 'none';
+          applySuccess.style.display = 'block';
+          document.querySelector('.apply-toggle').style.display = 'none';
+          document.getElementById('applyHeadlineCompany').style.display = 'none';
+          document.getElementById('applyHeadlineBaker').style.display   = 'none';
+        } else {
+          applyBtn.disabled    = false;
+          applyBtn.textContent = 'Create Account & Apply →';
+          alert(json.error || 'Something went wrong. Please email hello@delightmaker.ca');
+        }
+      } catch (err) {
+        applyBtn.disabled    = false;
+        applyBtn.textContent = 'Create Account & Apply →';
+        alert('Something went wrong. Please email hello@delightmaker.ca');
+      }
+    });
+
+    // ── Scroll reveal animation ───────────────
+    const reveals = document.querySelectorAll(
+      '.problem-card, .step, .feature-card, ' +
+      '.bakery-card, .faq-item'
+    );
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    reveals.forEach(el => observer.observe(el));
+
+    // ── Smooth scroll for anchor links ────────
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.querySelector(
+          anchor.getAttribute('href')
+        );
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+          // Close mobile menu if open
+          navLinks.classList.remove('open');
+          hamburger.classList.remove('active');
+        }
+      });
+    });
+
+  </script>
+
+  <!-- ── Google Places Autocomplete ──────────────── -->
+  <script>
+    // Fetch our Maps API key from the server, then load
+    // the Maps JS SDK and initialise Places autocomplete
+    (async () => {
+      try {
+        const cfg = await fetch('/api/config').then(r => r.json());
+        if (!cfg.mapsApiKey) return;
+
+        const script = document.createElement('script');
+        script.src =
+          `https://maps.googleapis.com/maps/api/js` +
+          `?key=${cfg.mapsApiKey}` +
+          `&libraries=places` +
+          `&callback=initPlacesAutocomplete`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      } catch (e) {
+        console.warn('Maps config unavailable:', e);
+      }
+    })();
+
+    function initPlacesAutocomplete() {
+      const input = document.getElementById('applyAddress');
+      if (!input) return;
+
+      const ac = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'ca' },
+        fields:  ['formatted_address', 'geometry'],
+        types:   ['address'],
+      });
+
+      // User picked a suggestion → capture lat/lng
+      ac.addListener('place_changed', () => {
+        const place = ac.getPlace();
+        if (place.geometry?.location) {
+          document.getElementById('applyLat').value =
+            place.geometry.location.lat();
+          document.getElementById('applyLng').value =
+            place.geometry.location.lng();
+          input.value =
+            place.formatted_address || input.value;
+          document.getElementById('addressVerified')
+            .style.display = 'block';
+        } else {
+          // User typed but didn't pick — clear coords
+          document.getElementById('applyLat').value = '';
+          document.getElementById('applyLng').value = '';
+          document.getElementById('addressVerified')
+            .style.display = 'none';
+        }
+      });
+
+      // If user edits the field after picking, clear verified state
+      input.addEventListener('input', () => {
+        if (document.getElementById('applyLat').value) {
+          document.getElementById('applyLat').value = '';
+          document.getElementById('applyLng').value = '';
+          document.getElementById('addressVerified')
+            .style.display = 'none';
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>

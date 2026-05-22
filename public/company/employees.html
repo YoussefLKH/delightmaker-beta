@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Team — Delightmaker</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a href="employees.html"
+         class="nav-item active">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Team</span>
+      </a>
+      <a href="celebrations.html" class="nav-item">
+        <span class="nav-icon">🎉</span>
+        <span class="nav-label">Celebrations</span>
+      </a>
+      <a href="approvals.html" class="nav-item">
+        <span class="nav-icon">✅</span>
+        <span class="nav-label">Approvals</span>
+      </a>
+      <a href="rules.html" class="nav-item">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Rules</span>
+      </a>
+      <a href="spending.html" class="nav-item">
+        <span class="nav-icon">💳</span>
+        <span class="nav-label">Spending</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"
+             id="userAvatarLetter">?</div>
+        <div class="user-info">
+          <p class="user-name"
+             id="userDisplayName">Loading...</p>
+          <p class="user-role"
+             id="companyDisplayName">—</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <div id="impersonationBanner" style="display:none;
+         background:#1a1a2e;color:#fff;padding:10px 24px;
+         align-items:center;justify-content:space-between;
+         font-family:inherit;font-size:0.88rem;font-weight:600;gap:12px">
+      <span>👁 Admin view — you are browsing as <span id="impersonatingAs"></span></span>
+      <button onclick="exitImpersonation()"
+              style="background:rgba(255,255,255,0.15);border:none;
+                     color:#fff;padding:6px 14px;border-radius:8px;
+                     cursor:pointer;font-size:0.82rem;font-weight:700;font-family:inherit">
+        ✕ Exit &amp; Close
+      </button>
+    </div>
+
+    <!-- Top bar -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn"
+                id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Team</h1>
+          <p class="dash-subtitle"
+             id="employeeCount">Loading...</p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <button class="btn btn-outline"
+                onclick="showCSVModal()">
+          📥 Import CSV
+        </button>
+        <button class="btn btn-primary"
+                onclick="showAddModal()">
+          + Add Employee
+        </button>
+      </div>
+    </header>
+
+
+    <!-- ── FILTERS ────────────────────────── -->
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search employees..."
+        />
+      </div>
+      <select id="dietaryFilter"
+              class="filter-select">
+        <option value="">All Dietary</option>
+        <option value="nut-free">Nut-Free</option>
+        <option value="gluten-free">Gluten-Free</option>
+        <option value="vegan">Vegan</option>
+        <option value="dairy-free">Dairy-Free</option>
+        <option value="halal">Halal</option>
+        <option value="kosher">Kosher</option>
+      </select>
+      <select id="nextEventFilter"
+              class="filter-select">
+        <option value="">All Events</option>
+        <option value="7">Next 7 days</option>
+        <option value="30">Next 30 days</option>
+        <option value="birthday">
+          Upcoming Birthdays
+        </option>
+      </select>
+    </div>
+
+
+    <!-- ── EMPLOYEES TABLE ────────────────── -->
+    <section class="dash-card table-card">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Birthday</th>
+              <th>Start Date</th>
+              <th>Dietary</th>
+              <th>Next Event</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="employeesTableBody">
+            <tr>
+              <td colspan="7"
+                  class="table-loading">
+                <div class="loading-rows">
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       ADD / EDIT EMPLOYEE MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="employeeModal"
+       style="display:none">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2 id="employeeModalTitle">
+          Add Employee
+        </h2>
+        <button class="modal-close"
+                onclick="hideEmployeeModal()">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>First Name *</label>
+            <input type="text"
+                   id="empFirstName"
+                   placeholder="Jane"
+                   required/>
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text"
+                   id="empLastName"
+                   placeholder="Smith"
+                   required/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Birthday *</label>
+          <input type="date"
+                 id="empBirthday"
+                 required/>
+          <p class="form-hint">
+            Year is not used for gifting —
+            only month & day matter.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label>Dietary Restrictions</label>
+          <div class="dietary-pills"
+               id="dietaryPills">
+            <button type="button"
+                    class="diet-pill"
+                    data-value="nut-free">
+              🥜 Nut-Free
+            </button>
+            <button type="button"
+                    class="diet-pill"
+                    data-value="gluten-free">
+              🌾 Gluten-Free
+            </button>
+            <button type="button"
+                    class="diet-pill"
+                    data-value="vegan">
+              🌱 Vegan
+            </button>
+            <button type="button"
+                    class="diet-pill"
+                    data-value="dairy-free">
+              🥛 Dairy-Free
+            </button>
+            <button type="button"
+                    class="diet-pill"
+                    data-value="halal">
+              ☪️ Halal
+            </button>
+            <button type="button"
+                    class="diet-pill"
+                    data-value="kosher">
+              ✡️ Kosher
+            </button>
+            <button type="button"
+                    class="diet-pill"
+                    data-value="__other__"
+                    id="dietOtherToggle">
+              ✏️ Other
+            </button>
+          </div>
+          <input type="text"
+                 id="empDietaryOther"
+                 placeholder="e.g. Shellfish allergy, low-sodium..."
+                 style="margin-top:10px;display:none"/>
+        </div>
+
+        <div class="form-group">
+          <label>Work Email</label>
+          <input type="email"
+                 id="empEmail"
+                 placeholder="jane@company.com"/>
+          <p class="form-hint">
+            Used to notify the employee of
+            upcoming treats (optional).
+          </p>
+        </div>
+
+        <!-- Warning for dietary change -->
+        <div class="dietary-change-warning"
+             id="dietaryChangeWarning"
+             style="display:none">
+          <span>⚠️</span>
+          <span>
+            Changing dietary restrictions will
+            flag any pending orders for this
+            employee for review.
+          </span>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost"
+                onclick="hideEmployeeModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary"
+                id="saveEmployeeBtn"
+                onclick="saveEmployee()">
+          Save Employee →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       CSV IMPORT MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="csvModal"
+       style="display:none">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2>Import CSV</h2>
+        <button class="modal-close"
+                onclick="hideCSVModal()">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="csv-info-banner">
+          <span>ℹ️</span>
+          <span>
+            Re-uploading updates existing
+            employees and adds new ones.
+            Existing employees are matched
+            by name.
+          </span>
+        </div>
+
+        <!-- Drop zone -->
+        <div class="csv-dropzone"
+             id="csvDropzone2"
+             onclick="document.getElementById('csvInput2').click()"
+             ondragover="handleDragOver2(event)"
+             ondragleave="handleDragLeave2(event)"
+             ondrop="handleDrop2(event)">
+          <div class="dropzone-icon">📄</div>
+          <p class="dropzone-title">
+            Drop your CSV here or click to browse
+          </p>
+          <input type="file"
+                 id="csvInput2"
+                 accept=".csv"
+                 style="display:none"
+                 onchange="handleCSVSelect(event)"/>
+        </div>
+
+        <button class="link-btn"
+                onclick="downloadTemplate()"
+                style="margin-top:8px;display:block;text-align:center">
+          📥 Download template
+        </button>
+
+        <!-- Preview after upload -->
+        <div id="csvPreview2"
+             style="display:none;margin-top:16px">
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost"
+                onclick="hideCSVModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary"
+                id="importCSVBtn"
+                onclick="importCSV()"
+                disabled>
+          Import Employees →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       REMOVE CONFIRM MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="removeModal"
+       style="display:none">
+    <div class="modal modal-sm">
+
+      <div class="modal-header">
+        <h2>Remove Employee</h2>
+        <button class="modal-close"
+                onclick="hideRemoveModal()">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="color:var(--gray);
+                  line-height:1.7;
+                  font-size:0.95rem">
+          Remove
+          <strong id="removeEmpName">
+            this employee
+          </strong>
+          from your team?
+        </p>
+        <p style="color:var(--gray);
+                  font-size:0.85rem;
+                  margin-top:8px;
+                  line-height:1.6">
+          Their order history is kept for
+          records. No future treats will
+          be scheduled.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost"
+                onclick="hideRemoveModal()">
+          Cancel
+        </button>
+        <button class="btn"
+                style="background:#C62828;
+                       color:white"
+                onclick="confirmRemove()">
+          Remove Employee
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ─────────────────────────────────────
+    let companyId      = null;
+    let allEmployees   = [];
+    let editEmployeeId = null;
+    let removeEmpId    = null;
+    let csvParsed      = [];
+
+
+    // ── Dietary pill toggle setup ─────────────────
+    document.querySelectorAll('.diet-pill')
+      .forEach(pill => {
+        pill.addEventListener('click', () => {
+          const isOther =
+            pill.dataset.value === '__other__';
+          pill.classList.toggle('active');
+          if (isOther) {
+            const input =
+              document.getElementById('empDietaryOther');
+            const show =
+              pill.classList.contains('active');
+            input.style.display = show ? '' : 'none';
+            if (!show) input.value = '';
+          }
+        });
+      });
+
+
+    // ── Impersonation banner ──────────────────────
+    (function checkImpersonation() {
+      const company = sessionStorage.getItem('impersonatingCompany');
+      if (sessionStorage.getItem('impersonating') && company) {
+        const banner = document.getElementById('impersonationBanner');
+        document.getElementById('impersonatingAs').textContent = company;
+        banner.style.display = 'flex';
+      }
+    })();
+    function exitImpersonation() {
+      sessionStorage.removeItem('impersonating');
+      sessionStorage.removeItem('impersonatingCompany');
+      firebase.auth().signOut().then(() => window.close());
+    }
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('company_user').then(async user => {
+      companyId = user.companyId;
+
+      document.getElementById('userAvatarLetter')
+        .textContent =
+          (user.name || user.email || 'H')
+            .charAt(0).toUpperCase();
+      document.getElementById('userDisplayName')
+        .textContent = user.name || 'HR Manager';
+
+      // Load company name
+      const doc = await db
+        .collection('companies')
+        .doc(companyId)
+        .get();
+      document.getElementById('companyDisplayName')
+        .textContent = doc.data()?.name || '—';
+
+      loadEmployees();
+    });
+
+
+    /* ════════════════════════════════════════════
+       LOAD EMPLOYEES
+    ════════════════════════════════════════════ */
+
+    async function loadEmployees() {
+      try {
+        const snap = await db
+          .collection('employees')
+          .where('companyId', '==', companyId)
+          .where('active', '==', true)
+          .orderBy('name', 'asc')
+          .get();
+
+        allEmployees = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        document.getElementById('employeeCount')
+          .textContent =
+            `${allEmployees.length} employee${
+              allEmployees.length !== 1 ? 's' : ''
+            }`;
+
+        applyFilters();
+
+      } catch (err) {
+        console.error('Load employees error:', err);
+        document.getElementById('employeesTableBody')
+          .innerHTML = `
+            <tr>
+              <td colspan="7"
+                  style="text-align:center;
+                         padding:40px;
+                         color:#888">
+                Failed to load employees.
+              </td>
+            </tr>
+          `;
+      }
+    }
+
+
+    /* ── Render table ──────────────────────────── */
+    function renderEmployeesTable(employees) {
+      const tbody =
+        document.getElementById('employeesTableBody');
+
+      if (employees.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7"
+                class="table-empty">
+              <div class="empty-state">
+                <span>👥</span>
+                <p>No employees found.
+                   <button class="link-btn"
+                           onclick="showAddModal()">
+                     Add your first employee →
+                   </button>
+                </p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = employees.map(emp => {
+        const nextEvent = getNextEvent(emp);
+        const dietary   = emp.dietaryFlags || [];
+
+        const dietaryEmoji = {
+          'nut-free':    '🥜',
+          'gluten-free': '🌾',
+          'vegan':       '🌱',
+          'dairy-free':  '🥛',
+          'halal':       '☪️',
+          'kosher':      '✡️',
+        };
+        const dietaryHtml = dietary.length > 0
+          ? dietary.map(f => {
+              const emoji =
+                dietaryEmoji[f.toLowerCase()] || '⚠️';
+              return `<span class="dietary-tag">
+                        ${emoji} ${f}
+                      </span>`;
+            }).join(' ')
+          : '<span style="color:#bbb;font-size:0.85rem">'
+            + '—</span>';
+
+        const nextEventHtml = nextEvent
+          ? `<div style="white-space:nowrap">
+               <span style="font-size:0.9rem">
+                 ${nextEvent.icon}
+               </span>
+               <span style="font-size:0.82rem;
+                            color:#888">
+                 ${nextEvent.label}
+               </span>
+               ${nextEvent.soon
+                 ? `<span style="
+                     font-size:   0.75rem;
+                     font-weight: 700;
+                     color:       var(--coral);
+                   ">
+                     Soon!
+                   </span>`
+                 : ''}
+             </div>`
+          : '<span style="color:#bbb">—</span>';
+
+        const birthday = emp.birthday?.toDate
+          ? emp.birthday.toDate()
+              .toLocaleDateString('en-CA', {
+                month: 'short',
+                day:   'numeric',
+              })
+          : emp.birthday
+          ? new Date(emp.birthday)
+              .toLocaleDateString('en-CA', {
+                month: 'short',
+                day:   'numeric',
+              })
+          : '—';
+
+        const startDate = emp.startDate?.toDate
+          ? emp.startDate.toDate()
+              .toLocaleDateString('en-CA', {
+                month: 'short',
+                year:  'numeric',
+              })
+          : emp.startDate
+          ? new Date(emp.startDate)
+              .toLocaleDateString('en-CA', {
+                month: 'short',
+                year:  'numeric',
+              })
+          : '—';
+
+        return `
+          <tr class="table-row">
+            <td>
+              <div class="client-name-cell">
+                <div class="employee-avatar">
+                  ${(emp.name || '?')
+                    .charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p class="client-name">
+                    ${emp.name || '—'}
+                  </p>
+                  ${emp.email
+                    ? `<p class="client-email">
+                         ${emp.email}
+                       </p>`
+                    : ''}
+                </div>
+              </div>
+            </td>
+            <td style="font-size:0.85rem;
+                       white-space:nowrap">
+              🎂 ${birthday}
+            </td>
+            <td style="font-size:0.85rem;
+                       color:#888;
+                       white-space:nowrap">
+              ${startDate}
+            </td>
+            <td>${dietaryHtml}</td>
+            <td>${nextEventHtml}</td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-sm btn-outline"
+                        onclick="showEditModal(
+                          '${emp.id}'
+                        )">
+                  Edit
+                </button>
+                <button class="btn-sm btn-ghost"
+                        onclick="showRemoveModal(
+                          '${emp.id}',
+                          '${(emp.name || '')
+                              .replace(/'/g, "\\'")}'
+                        )"
+                        style="color:#C62828">
+                  Remove
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+
+    /* ── Get next upcoming event for employee ──── */
+    function getNextEvent(emp) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const events = [];
+
+      // Birthday
+      if (emp.birthday) {
+        const bd = emp.birthday?.toDate
+          ? emp.birthday.toDate()
+          : new Date(emp.birthday);
+
+        const nextBd = new Date(
+          today.getFullYear(),
+          bd.getMonth(),
+          bd.getDate()
+        );
+        if (nextBd < today) {
+          nextBd.setFullYear(today.getFullYear() + 1);
+        }
+        const days = Math.ceil(
+          (nextBd - today) / (1000 * 60 * 60 * 24)
+        );
+        events.push({
+          type:  'birthday',
+          icon:  '🎂',
+          days,
+          label: days === 0
+            ? 'Birthday Today!'
+            : days <= 7
+            ? `Birthday in ${days}d`
+            : `Birthday ${nextBd.toLocaleDateString(
+                'en-CA', { month: 'short', day: 'numeric' }
+              )}`,
+          soon:  days <= 30,
+        });
+      }
+
+      // Return soonest event
+      if (events.length === 0) return null;
+      return events.sort((a, b) => a.days - b.days)[0];
+    }
+
+
+    /* ── Filters ───────────────────────────────── */
+    function applyFilters() {
+      const search   = document
+        .getElementById('searchInput')
+        .value.toLowerCase().trim();
+      const dietary  = document
+        .getElementById('dietaryFilter').value;
+      const nextEvt  = document
+        .getElementById('nextEventFilter').value;
+
+      let filtered = [...allEmployees];
+
+      if (search) {
+        filtered = filtered.filter(e =>
+          (e.name || '').toLowerCase()
+            .includes(search) ||
+          (e.email || '').toLowerCase()
+            .includes(search)
+        );
+      }
+
+      if (dietary) {
+        filtered = filtered.filter(e =>
+          (e.dietaryFlags || [])
+            .some(f =>
+              f.toLowerCase() === dietary.toLowerCase()
+            )
+        );
+      }
+
+      if (nextEvt === '7' || nextEvt === '30') {
+        const days = parseInt(nextEvt);
+        filtered = filtered.filter(e => {
+          const next = getNextEvent(e);
+          return next && next.days <= days;
+        });
+      } else if (nextEvt === 'birthday') {
+        filtered = filtered.filter(e =>
+          e.birthday != null
+        );
+        filtered.sort((a, b) => {
+          const na = getNextEvent(a);
+          const nb = getNextEvent(b);
+          return (na?.days || 999) - (nb?.days || 999);
+        });
+      }
+
+      renderEmployeesTable(filtered);
+    }
+
+    document.getElementById('searchInput')
+      .addEventListener('input', applyFilters);
+    document.getElementById('dietaryFilter')
+      .addEventListener('change', applyFilters);
+    document.getElementById('nextEventFilter')
+      .addEventListener('change', applyFilters);
+
+
+    /* ════════════════════════════════════════════
+       ADD / EDIT MODAL
+    ════════════════════════════════════════════ */
+
+    function showAddModal() {
+      editEmployeeId = null;
+      document.getElementById('employeeModalTitle')
+        .textContent = 'Add Employee';
+      document.getElementById('saveEmployeeBtn')
+        .textContent = 'Add Employee →';
+      clearEmployeeForm();
+      document.getElementById('dietaryChangeWarning')
+        .style.display = 'none';
+      document.getElementById('employeeModal')
+        .style.display = 'flex';
+    }
+
+    function showEditModal(empId) {
+      const emp = allEmployees.find(
+        e => e.id === empId
+      );
+      if (!emp) return;
+
+      editEmployeeId = empId;
+      document.getElementById('employeeModalTitle')
+        .textContent = 'Edit Employee';
+      document.getElementById('saveEmployeeBtn')
+        .textContent = 'Save Changes →';
+
+      // Fill form
+      const nameParts = (emp.name || '').split(' ');
+      document.getElementById('empFirstName')
+        .value = nameParts[0] || '';
+      document.getElementById('empLastName')
+        .value = nameParts.slice(1).join(' ') || '';
+
+      // Birthday — use month/day only for display
+      if (emp.birthday) {
+        const bd = emp.birthday?.toDate
+          ? emp.birthday.toDate()
+          : new Date(emp.birthday);
+        const y  = bd.getFullYear();
+        const m  = String(bd.getMonth() + 1)
+                     .padStart(2, '0');
+        const d  = String(bd.getDate())
+                     .padStart(2, '0');
+        document.getElementById('empBirthday')
+          .value = `${y}-${m}-${d}`;
+      }
+
+      // Dietary pills — set active state
+      const knownValues = [
+        'nut-free','gluten-free','vegan',
+        'dairy-free','halal','kosher',
+      ];
+      const flags = (emp.dietaryFlags || [])
+        .map(f => f.toLowerCase());
+      const otherFlags = flags.filter(
+        f => !knownValues.includes(f)
+      );
+
+      document.querySelectorAll('.diet-pill')
+        .forEach(pill => {
+          pill.classList.remove('active');
+          const val = pill.dataset.value;
+          if (val === '__other__') {
+            if (otherFlags.length > 0) {
+              pill.classList.add('active');
+            }
+          } else if (flags.includes(val)) {
+            pill.classList.add('active');
+          }
+        });
+
+      const otherInput =
+        document.getElementById('empDietaryOther');
+      if (otherFlags.length > 0) {
+        otherInput.value   = otherFlags.join(', ');
+        otherInput.style.display = '';
+      } else {
+        otherInput.value   = '';
+        otherInput.style.display = 'none';
+      }
+
+      document.getElementById('empEmail')
+        .value = emp.email || '';
+
+      // Show dietary warning on any pill change
+      document.querySelectorAll('.diet-pill')
+        .forEach(pill => {
+          pill.addEventListener('click', () => {
+            document
+              .getElementById('dietaryChangeWarning')
+              .style.display = 'flex';
+          }, { once: true });
+        });
+
+      document.getElementById('dietaryChangeWarning')
+        .style.display = 'none';
+      document.getElementById('employeeModal')
+        .style.display = 'flex';
+    }
+
+    function hideEmployeeModal() {
+      document.getElementById('employeeModal')
+        .style.display = 'none';
+      editEmployeeId = null;
+    }
+
+    function clearEmployeeForm() {
+      ['empFirstName', 'empLastName',
+       'empBirthday',
+       'empDietaryOther',
+       'empEmail'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.querySelectorAll('.diet-pill')
+        .forEach(pill => pill.classList.remove('active'));
+      document.getElementById('empDietaryOther')
+        .style.display = 'none';
+    }
+
+
+    /* ── Save employee ─────────────────────────── */
+    async function saveEmployee() {
+      const firstName =
+        document.getElementById('empFirstName')
+          .value.trim();
+      const lastName =
+        document.getElementById('empLastName')
+          .value.trim();
+      const birthday =
+        document.getElementById('empBirthday').value;
+
+      if (!firstName || !lastName) {
+        showToast('Name is required', 'error');
+        return;
+      }
+      if (!birthday) {
+        showToast('Birthday is required', 'error');
+        return;
+      }
+
+      // Collect dietary flags from active pills
+      const dietaryFlags = [];
+      document.querySelectorAll('.diet-pill.active')
+        .forEach(pill => {
+          if (pill.dataset.value !== '__other__') {
+            dietaryFlags.push(pill.dataset.value);
+          }
+        });
+
+      const otherDietary =
+        document.getElementById('empDietaryOther')
+          .value.trim();
+      if (otherDietary) {
+        otherDietary.split(',').forEach(v => {
+          const t = v.trim();
+          if (t) dietaryFlags.push(t);
+        });
+      }
+
+      const empData = {
+        name:     `${firstName} ${lastName}`,
+        birthday: new Date(birthday),
+        dietaryFlags,
+        email:
+          document.getElementById('empEmail')
+            .value.trim() || null,
+        companyId,
+        active:          true,
+      };
+
+      const btn =
+        document.getElementById('saveEmployeeBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        if (editEmployeeId) {
+          // Check if birthday changed
+          const oldEmp = allEmployees.find(
+            e => e.id === editEmployeeId
+          );
+          const oldBd = oldEmp?.birthday?.toDate
+            ? oldEmp.birthday.toDate()
+            : oldEmp?.birthday
+            ? new Date(oldEmp.birthday)
+            : null;
+          const newBd = new Date(birthday);
+          const birthdayChanged = !oldBd ||
+            oldBd.getMonth()  !== newBd.getMonth() ||
+            oldBd.getDate()   !== newBd.getDate();
+
+          // Update existing employee
+          await db
+            .collection('employees')
+            .doc(editEmployeeId)
+            .update({
+              ...empData,
+              updatedAt:
+                firebase.firestore
+                  .FieldValue.serverTimestamp(),
+            });
+
+          // If birthday changed, cancel old orders
+          // and re-schedule via server (needs admin SDK
+          // to write orders — client rules block it)
+          if (birthdayChanged) {
+            apiCall(
+              '/api/orders/reschedule-employee',
+              {
+                method: 'POST',
+                body:   JSON.stringify({
+                  employeeId: editEmployeeId,
+                  companyId,
+                }),
+              }
+            ).catch(err =>
+              console.warn('Reschedule failed:', err)
+            );
+
+            showToast(
+              'Birthday updated! Old order removed ' +
+              'and rescheduled. 🎂',
+              'success',
+              5000
+            );
+          } else {
+            showToast('Employee updated!', 'success');
+          }
+
+        } else {
+          // Create new
+          const docRef = await db
+            .collection('employees')
+            .add({
+              ...empData,
+              createdAt:
+                firebase.firestore
+                  .FieldValue.serverTimestamp(),
+            });
+
+          // Trigger order scheduling check
+          apiCall(
+            '/api/orders/reschedule-employee',
+            {
+              method: 'POST',
+              body:   JSON.stringify({
+                employeeId: docRef.id,
+                companyId,
+              }),
+            }
+          ).catch(err =>
+            console.warn(
+              'Schedule check failed:', err
+            )
+          );
+
+          showToast(
+            'Employee added! Checking for ' +
+            'upcoming events...',
+            'success'
+          );
+        }
+
+        hideEmployeeModal();
+        await loadEmployees();
+
+      } catch (err) {
+        console.error('Save employee error:', err);
+        showToast('Failed to save employee', 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = editEmployeeId
+          ? 'Save Changes →'
+          : 'Add Employee →';
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       REMOVE EMPLOYEE
+    ════════════════════════════════════════════ */
+
+    function showRemoveModal(empId, empName) {
+      removeEmpId = empId;
+      document.getElementById('removeEmpName')
+        .textContent = empName;
+      document.getElementById('removeModal')
+        .style.display = 'flex';
+    }
+
+    function hideRemoveModal() {
+      document.getElementById('removeModal')
+        .style.display = 'none';
+      removeEmpId = null;
+    }
+
+    async function confirmRemove() {
+      if (!removeEmpId) return;
+
+      showLoading();
+
+      try {
+        // Soft delete — keep record, mark inactive
+        await db
+          .collection('employees')
+          .doc(removeEmpId)
+          .update({
+            active:    false,
+            removedAt: firebase.firestore
+                         .FieldValue.serverTimestamp(),
+          });
+
+        hideLoading();
+        hideRemoveModal();
+        showToast('Employee removed', 'success');
+        await loadEmployees();
+
+      } catch (err) {
+        hideLoading();
+        console.error('Remove error:', err);
+        showToast('Failed to remove employee', 'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       CSV IMPORT
+    ════════════════════════════════════════════ */
+
+    function showCSVModal() {
+      document.getElementById('csvModal')
+        .style.display = 'flex';
+    }
+
+    function hideCSVModal() {
+      document.getElementById('csvModal')
+        .style.display = 'none';
+      csvParsed = [];
+      document.getElementById('csvPreview2')
+        .style.display = 'none';
+      document.getElementById('importCSVBtn')
+        .disabled = true;
+
+      // Reset dropzone
+      document.getElementById('csvDropzone2')
+        .innerHTML = `
+          <div class="dropzone-icon">📄</div>
+          <p class="dropzone-title">
+            Drop your CSV here or click to browse
+          </p>
+          <input type="file"
+                 id="csvInput2"
+                 accept=".csv"
+                 style="display:none"
+                 onchange="handleCSVSelect(event)"/>
+        `;
+    }
+
+    function handleDragOver2(e) {
+      e.preventDefault();
+      document.getElementById('csvDropzone2')
+        .classList.add('dropzone-active');
+    }
+
+    function handleDragLeave2(e) {
+      document.getElementById('csvDropzone2')
+        .classList.remove('dropzone-active');
+    }
+
+    function handleDrop2(e) {
+      e.preventDefault();
+      document.getElementById('csvDropzone2')
+        .classList.remove('dropzone-active');
+      const file = e.dataTransfer.files[0];
+      if (file) processCSV2(file);
+    }
+
+    function handleCSVSelect(e) {
+      const file = e.target.files[0];
+      if (file) processCSV2(file);
+    }
+
+    function processCSV2(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        csvParsed  = parseSimpleCSV(text);
+        renderCSVPreview2(csvParsed, file.name);
+      };
+      reader.readAsText(file);
+    }
+
+    function parseSimpleCSV(text) {
+      const lines   = text.trim().split('\n');
+      const headers = lines[0]
+        .split(',')
+        .map(h => h.trim().replace(/^"|"$/g, ''));
+      const rows    = lines.slice(1).filter(l =>
+        l.trim().length > 0
+      );
+
+      return rows.map(row => {
+        const cols = row.split(',').map(c =>
+          c.trim().replace(/^"|"$/g, '')
+        );
+        const obj = {};
+        headers.forEach((h, i) => {
+          obj[h.toLowerCase()] = cols[i] || '';
+        });
+        return obj;
+      });
+    }
+
+    function renderCSVPreview2(rows, fileName) {
+      const preview =
+        document.getElementById('csvPreview2');
+
+      preview.style.display = 'block';
+      preview.innerHTML = `
+        <div class="validation-row validation-ok">
+          <span>✅</span>
+          <span>
+            ${rows.length} employee${
+              rows.length !== 1 ? 's' : ''
+            } found in ${fileName}
+          </span>
+        </div>
+        <p style="font-size:0.82rem;
+                  color:#888;
+                  margin-top:8px">
+          Existing employees will be updated
+          by name match. New employees will
+          be added.
+        </p>
+      `;
+
+      document.getElementById('csvDropzone2')
+        .innerHTML = `
+          <div class="dropzone-icon">✅</div>
+          <p class="dropzone-title">${fileName}</p>
+          <input type="file" id="csvInput2"
+                 accept=".csv" style="display:none"
+                 onchange="handleCSVSelect(event)"/>
+        `;
+
+      document.getElementById('importCSVBtn')
+        .disabled = rows.length === 0;
+    }
+
+    async function importCSV() {
+      if (csvParsed.length === 0) return;
+
+      const btn =
+        document.getElementById('importCSVBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Importing...';
+
+      try {
+        const res = await apiCall(
+          '/api/orders/import-employees',
+          {
+            method: 'POST',
+            body:   JSON.stringify({
+              companyId,
+              employees: csvParsed,
+            }),
+          }
+        );
+
+        if (res && res.ok) {
+          const data = await res.json();
+          const hasErrors =
+            data.errors && data.errors.length > 0;
+
+          // ── Show results report in the modal ──────
+          const preview =
+            document.getElementById('csvPreview2');
+
+          let html = '';
+
+          if (data.created || data.updated) {
+            html += `
+              <div class="validation-row validation-ok">
+                <span>✅</span>
+                <span>
+                  ${data.created || 0} added,
+                  ${data.updated || 0} updated
+                  successfully
+                </span>
+              </div>`;
+          }
+
+          if (hasErrors) {
+            html += `
+              <div class="validation-row validation-warn"
+                   style="margin-top:8px">
+                <span>⚠️</span>
+                <span>
+                  ${data.errors.length} row
+                  ${data.errors.length !== 1
+                    ? 's were' : ' was'} skipped:
+                </span>
+              </div>`;
+            data.errors.forEach(err => {
+              html += `
+                <div class="validation-row
+                            validation-error"
+                     style="margin-top:4px;
+                            font-size:0.82rem">
+                  <span>✕</span>
+                  <span>${err}</span>
+                </div>`;
+            });
+            html += `
+              <div style="margin-top:12px;
+                          padding:10px 14px;
+                          background:rgba(234,179,8,0.08);
+                          border-radius:var(--radius-sm);
+                          font-size:0.83rem;
+                          color:#854d0e;
+                          line-height:1.6">
+                Please fix the rows above in your
+                spreadsheet and re-upload the file.
+                The employees listed above were
+                <strong>not</strong> imported.
+              </div>`;
+          }
+
+          preview.style.display = 'block';
+          preview.innerHTML     = html;
+
+          // Change footer button to "Done"
+          btn.disabled    = false;
+          btn.textContent = 'Done';
+          btn.onclick     = () => {
+            hideCSVModal();
+            btn.textContent = 'Import Employees →';
+            btn.onclick     = importCSV;
+          };
+
+          if (!hasErrors) {
+            // No errors — close automatically
+            hideCSVModal();
+            showToast(
+              `${data.count || csvParsed.length} ` +
+              `employee${
+                (data.count || csvParsed.length) !== 1
+                  ? 's' : ''
+              } imported!`,
+              'success'
+            );
+          } else {
+            showToast(
+              `${data.count} imported, ` +
+              `${data.errors.length} skipped — ` +
+              `see details`,
+              'warning'
+            );
+          }
+
+          await loadEmployees();
+
+        } else {
+          showToast('Import failed', 'error');
+          btn.disabled    = false;
+          btn.textContent = 'Import Employees →';
+        }
+      } catch (err) {
+        console.error('CSV import error:', err);
+        showToast('Import failed', 'error');
+        btn.disabled    = false;
+        btn.textContent = 'Import Employees →';
+      }
+    }
+
+    function downloadTemplate() {
+      const t =
+        'First Name,Last Name,Birthday,Start Date,' +
+        'Dietary Restrictions,Email\n' +
+        'Jane,Smith,1990-04-15,2022-03-01,None,' +
+        'jane@co.com\n' +
+        'Mike,Taylor,1985-11-28,2019-06-15,' +
+        'Nut-free,,mike@co.com\n';
+
+      const blob = new Blob([t], {type:'text/csv'});
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'employees-template.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+
+    /* ── Mobile menu ───────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+  <style>
+    /* ── Employee avatar ────────────────────── */
+    .employee-avatar {
+      width:           36px;
+      height:          36px;
+      border-radius:   50%;
+      background:      linear-gradient(
+                         135deg,
+                         var(--coral-light),
+                         var(--yellow)
+                       );
+      display:         flex;
+      align-items:     center;
+      justify-content: center;
+      font-weight:     700;
+      font-size:       0.9rem;
+      color:           var(--dark);
+      flex-shrink:     0;
+    }
+
+    /* ── Dietary pills ──────────────────────── */
+    .dietary-pills {
+      display:   flex;
+      flex-wrap: wrap;
+      gap:       8px;
+    }
+
+    .diet-pill {
+      padding:       6px 16px;
+      border-radius: 999px;
+      border:        1.5px solid rgba(0,0,0,0.10);
+      background:    var(--bg);
+      font-size:     0.84rem;
+      font-family:   inherit;
+      color:         var(--gray);
+      cursor:        pointer;
+      transition:    var(--transition);
+      user-select:   none;
+    }
+
+    .diet-pill:hover {
+      border-color: var(--coral);
+      color:        var(--coral);
+      background:   rgba(196,98,29,0.04);
+    }
+
+    .diet-pill.active {
+      background:   var(--coral);
+      border-color: var(--coral);
+      color:        #fff;
+      font-weight:  600;
+    }
+
+    /* ── Dietary change warning ─────────────── */
+    .dietary-change-warning {
+      display:       flex;
+      align-items:   center;
+      gap:           10px;
+      padding:       12px 16px;
+      background:    #FFF3E0;
+      border:        1px solid #FFE0B2;
+      border-radius: var(--radius-sm);
+      font-size:     0.85rem;
+      color:         #E65100;
+      margin-top:    8px;
+    }
+
+    /* ── CSV info banner ────────────────────── */
+    .csv-info-banner {
+      display:       flex;
+      align-items:   flex-start;
+      gap:           10px;
+      padding:       12px 16px;
+      background:    var(--caramel-light);
+      border-radius: var(--radius-sm);
+      font-size:     0.85rem;
+      color:         var(--caramel);
+      margin-bottom: 16px;
+      line-height:   1.5;
+    }
+
+    /* ── Dropzone (reuse from onboarding) ───── */
+    .csv-dropzone {
+      border:        2px dashed rgba(196,98,29,0.12);
+      border-radius: var(--radius-md);
+      padding:       36px 24px;
+      text-align:    center;
+      cursor:        pointer;
+      transition:    var(--transition);
+      background:    var(--bg);
+    }
+
+    .csv-dropzone:hover,
+    .dropzone-active {
+      border-color: var(--coral);
+      background:   rgba(255,107,107,0.04);
+    }
+
+    .dropzone-icon {
+      font-size:     2rem;
+      margin-bottom: 8px;
+    }
+
+    .dropzone-title {
+      font-size:   0.9rem;
+      font-weight: 600;
+      color:       var(--dark);
+    }
+
+    /* ── CSV validation result rows ─────────── */
+    .validation-row {
+      display:       flex;
+      align-items:   flex-start;
+      gap:           8px;
+      padding:       8px 12px;
+      border-radius: var(--radius-sm);
+      font-size:     0.85rem;
+      line-height:   1.5;
+    }
+
+    .validation-ok {
+      background: rgba(34,197,94,0.08);
+      color:      #166534;
+    }
+
+    .validation-warn {
+      background: rgba(234,179,8,0.10);
+      color:      #854d0e;
+    }
+
+    .validation-error {
+      background: rgba(239,68,68,0.08);
+      color:      #991b1b;
+    }
+  </style>
+
+</body>
+</html>

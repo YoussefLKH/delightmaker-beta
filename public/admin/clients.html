@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clients — Delightmaker Admin</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin/clients"
+         class="nav-item active">
+        <span class="nav-icon">🏢</span>
+        <span class="nav-label">Clients</span>
+      </a>
+      <a href="/admin/orders" class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+      </a>
+      <a href="/admin/bakeries" class="nav-item">
+        <span class="nav-icon">🧁</span>
+        <span class="nav-label">Bakeries</span>
+      </a>
+      <a href="/admin/revenue" class="nav-item">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Revenue</span>
+      </a>
+      <a href="/admin/applications" class="nav-item">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Applications</span>
+      </a>
+      <a href="/admin/invoices" class="nav-item">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Invoices</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">C</div>
+        <div class="user-info">
+          <p class="user-name">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- ── LIST VIEW ─────────────────────── -->
+    <div id="listView">
+
+      <!-- Top bar -->
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <button class="mobile-menu-btn"
+                  id="mobileMenuBtn">☰</button>
+          <div>
+            <h1 class="dash-title">Clients</h1>
+            <p class="dash-subtitle"
+               id="clientCount">
+              Loading...
+            </p>
+          </div>
+        </div>
+        <div class="dash-header-right">
+          <button class="btn btn-primary"
+                  onclick="showAddClientModal()">
+            + Add Client
+          </button>
+        </div>
+      </header>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Search clients..."
+          />
+        </div>
+        <select id="statusFilter"
+                class="filter-select">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <!-- Clients table -->
+      <section class="dash-card table-card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Staff</th>
+                <th>Status</th>
+                <th>Since</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="clientsTableBody">
+              <tr>
+                <td colspan="5"
+                    class="table-loading">
+                  <div class="loading-rows">
+                    <div class="loading-row"></div>
+                    <div class="loading-row"></div>
+                    <div class="loading-row"></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div><!-- /listView -->
+
+
+    <!-- ── CLIENT DETAIL VIEW ────────────── -->
+    <div id="detailView" style="display:none">
+
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <button class="back-btn"
+                  onclick="showListView()">
+            ← Back
+          </button>
+          <div>
+            <h1 class="dash-title"
+                id="detailCompanyName">
+              Loading...
+            </h1>
+            <p class="dash-subtitle"
+               id="detailCompanyStatus">
+            </p>
+          </div>
+        </div>
+        <div class="dash-header-right">
+          <button class="btn btn-outline"
+                  id="pauseBtn"
+                  onclick="pauseAccount()">
+            Pause Account
+          </button>
+        </div>
+      </header>
+
+      <!-- Detail grid -->
+      <div class="detail-grid">
+
+        <!-- Info card -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              Account Details
+            </h2>
+          </div>
+          <div class="detail-fields"
+               id="detailFields">
+            <!-- Populated by JS -->
+          </div>
+        </section>
+
+        <!-- Upcoming orders -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              Upcoming Orders
+            </h2>
+            <a href="/admin/orders"
+               class="card-action">
+              View All
+            </a>
+          </div>
+          <div id="detailOrders">
+            <div class="empty-state">
+              <p>Loading orders...</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Employees -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              Employees
+            </h2>
+            <button class="card-action"
+                    onclick="downloadEmployeeCSV()">
+              Download CSV
+            </button>
+          </div>
+          <div id="detailEmployees">
+            <div class="empty-state">
+              <p>Loading employees...</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Notes -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              📝 Private Notes
+            </h2>
+            <span class="card-action"
+                  id="notesSaveStatus"
+                  style="color:#888;
+                         font-size:0.8rem">
+            </span>
+          </div>
+          <textarea
+            id="clientNotes"
+            class="notes-textarea"
+            placeholder="Add private notes about this client..."
+            oninput="scheduleNotesSave()"
+          ></textarea>
+        </section>
+
+      </div>
+
+    </div><!-- /detailView -->
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       ADD CLIENT MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="addClientModal"
+       style="display:none">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2>Add New Client</h2>
+        <button class="modal-close"
+                onclick="hideAddClientModal()">
+          ✕
+        </button>
+      </div>
+
+      <form id="addClientForm"
+            onsubmit="submitAddClient(event)">
+
+        <div class="modal-body">
+
+          <!-- Company info -->
+          <div class="form-section-label">
+            Company Information
+          </div>
+
+          <div class="form-group">
+            <label>Company Name *</label>
+            <input type="text"
+                   id="newCompanyName"
+                   placeholder="Acme Corp"
+                   required/>
+          </div>
+
+          <div class="form-group">
+            <label>Employee Count</label>
+            <input type="number"
+                   id="newEmployeeCount"
+                   placeholder="45"
+                   min="1"/>
+          </div>
+
+          <!-- HR Contact -->
+          <div class="form-section-label"
+               style="margin-top:20px">
+            HR Contact (Portal Login)
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Contact Name *</label>
+              <input type="text"
+                     id="newContactName"
+                     placeholder="Jane Smith"
+                     required/>
+            </div>
+            <div class="form-group">
+              <label>Contact Email *</label>
+              <input type="email"
+                     id="newContactEmail"
+                     placeholder="jane@acme.com"
+                     required/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Temporary Password *</label>
+            <input type="text"
+                   id="newTempPassword"
+                   placeholder="Min 8 characters"
+                   required
+                   minlength="8"/>
+            <p class="form-hint">
+              They will be asked to change this
+              on first login.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label>Default Delivery Address</label>
+            <input type="text"
+                   id="newDeliveryAddress"
+                   placeholder="123 Barrington St, Halifax, NS"/>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button"
+                  class="btn btn-ghost"
+                  onclick="hideAddClientModal()">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="btn btn-primary"
+                  id="addClientBtn">
+            Create Client →
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ─────────────────────────────────────
+    let allClients     = [];
+    let currentClient  = null;
+    let notesSaveTimer = null;
+
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('admin').then(() => {
+      loadClients();
+      checkUrlParams();
+    });
+
+
+    // ── Check if URL has client ID param ──────────
+    function checkUrlParams() {
+      const params = new URLSearchParams(
+        window.location.search
+      );
+      const clientId = params.get('client');
+      if (clientId) {
+        showDetailView(clientId);
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       LOAD CLIENTS LIST
+    ════════════════════════════════════════════ */
+
+    async function loadClients() {
+      try {
+        const snapshot = await db
+          .collection('companies')
+          .orderBy('createdAt', 'desc')
+          .get();
+
+        allClients = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        document.getElementById('clientCount')
+          .textContent =
+            `${allClients.length} total clients`;
+
+        renderClientsTable(allClients);
+
+      } catch (err) {
+        console.error('Load clients error:', err);
+        document.getElementById('clientsTableBody')
+          .innerHTML = `
+            <tr>
+              <td colspan="7"
+                  style="text-align:center;
+                         padding:40px;
+                         color:#888">
+                Failed to load clients.
+              </td>
+            </tr>
+          `;
+      }
+    }
+
+
+    /* ── Render table ──────────────────────────── */
+    function renderClientsTable(clients) {
+      const tbody =
+        document.getElementById('clientsTableBody');
+
+      if (clients.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5"
+                class="table-empty">
+              <div class="empty-state">
+                <span>🏢</span>
+                <p>No clients yet. Add your first client!</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const statusColors = {
+        active:    {
+          bg: '#E8F5E9', color: '#2E7D32',
+          dot: '#4CAF50'
+        },
+        paused:    {
+          bg: '#FFF3E0', color: '#E65100',
+          dot: '#FF9800'
+        },
+        cancelled: {
+          bg: '#FFEBEE', color: '#C62828',
+          dot: '#F44336'
+        },
+        payment_failed: {
+          bg: '#FFEBEE', color: '#C62828',
+          dot: '#F44336'
+        },
+      };
+
+      tbody.innerHTML = clients.map(client => {
+        const status = statusColors[client.status]
+                       || statusColors.active;
+
+        const since = client.createdAt?.toDate
+          ? client.createdAt.toDate()
+              .toLocaleDateString('en-CA', {
+                month: 'short',
+                year:  'numeric',
+              })
+          : '—';
+
+        return `
+          <tr class="table-row"
+              onclick="showDetailView('${client.id}')">
+            <td>
+              <div class="client-name-cell">
+                <div class="client-avatar">
+                  ${(client.name || 'C')
+                    .charAt(0)
+                    .toUpperCase()}
+                </div>
+                <div>
+                  <p class="client-name">
+                    ${client.name || '—'}
+                  </p>
+                  <p class="client-email">
+                    ${client.contactEmail || '—'}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              ${client.stats?.employeeCount || '—'}
+            </td>
+            <td>
+              <span class="status-pill"
+                    style="background:${status.bg};
+                           color:${status.color}">
+                <span class="status-dot-sm"
+                      style="background:${status.dot}">
+                </span>
+                ${(client.status || 'active')
+                    .charAt(0).toUpperCase() +
+                  (client.status || 'active')
+                    .slice(1)}
+              </span>
+            </td>
+            <td style="color:#888;
+                       font-size:0.85rem">
+              ${since}
+            </td>
+            <td>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn-sm btn-outline"
+                        onclick="event.stopPropagation();
+                                 showDetailView('${client.id}')">
+                  View →
+                </button>
+                <button class="btn-sm"
+                        style="background:#1a1a2e;color:#fff;
+                               border:none;border-radius:8px;
+                               padding:6px 12px;font-size:0.8rem;
+                               cursor:pointer;white-space:nowrap;
+                               font-family:inherit;font-weight:600;
+                               transition:opacity 0.15s"
+                        onmouseover="this.style.opacity='0.8'"
+                        onmouseout="this.style.opacity='1'"
+                        onclick="event.stopPropagation();
+                                 impersonateCompany('${client.id}',
+                                   '${(client.name || '').replace(/'/g, "\\'")}')">
+                  👁 View as
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+
+    /* ── Impersonate company ───────────────────── */
+    async function impersonateCompany(companyId, companyName) {
+      try {
+        showImpersonateToast(`Opening ${companyName}'s portal…`);
+
+        const token = await firebase.auth().currentUser.getIdToken();
+        const res   = await fetch(
+          `/api/auth/impersonate/${companyId}`,
+          {
+            method:  'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type':  'application/json',
+            },
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error('Impersonate error response:', data);
+          showImpersonateToast(data.error || 'Failed to impersonate', true);
+          return;
+        }
+
+        // Open relay page in new tab — it signs in and redirects
+        const url = `/impersonate.html?token=${encodeURIComponent(data.customToken)}&company=${encodeURIComponent(companyName)}`;
+        window.open(url, '_blank');
+
+      } catch (err) {
+        console.error('Impersonate error:', err);
+        showImpersonateToast('Failed to open company portal', true);
+      }
+    }
+
+    function showImpersonateToast(msg, isError = false) {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      Object.assign(t.style, {
+        position:     'fixed',
+        bottom:       '24px',
+        right:        '24px',
+        background:   isError ? '#C62828' : '#1a1a2e',
+        color:        '#fff',
+        padding:      '12px 20px',
+        borderRadius: '10px',
+        fontSize:     '0.9rem',
+        fontFamily:   'Nunito, sans-serif',
+        fontWeight:   '600',
+        zIndex:       '9999',
+        boxShadow:    '0 4px 16px rgba(0,0,0,0.2)',
+      });
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+
+    /* ── Filters ───────────────────────────────── */
+    function applyFilters() {
+      const search = document
+        .getElementById('searchInput')
+        .value.toLowerCase().trim();
+      const status = document
+        .getElementById('statusFilter').value;
+
+      let filtered = allClients;
+
+      if (search) {
+        filtered = filtered.filter(c =>
+          (c.name || '')
+            .toLowerCase().includes(search) ||
+          (c.contactEmail || '')
+            .toLowerCase().includes(search) ||
+          (c.contactName || '')
+            .toLowerCase().includes(search)
+        );
+      }
+
+      if (status) {
+        filtered = filtered.filter(
+          c => c.status === status
+        );
+      }
+
+      renderClientsTable(filtered);
+    }
+
+    // Wire up filter inputs
+    document.getElementById('searchInput')
+      .addEventListener('input', applyFilters);
+    document.getElementById('statusFilter')
+      .addEventListener('change', applyFilters);
+
+
+    /* ════════════════════════════════════════════
+       CLIENT DETAIL VIEW
+    ════════════════════════════════════════════ */
+
+    async function showDetailView(clientId) {
+      // Switch views
+      document.getElementById('listView')
+        .style.display = 'none';
+      document.getElementById('detailView')
+        .style.display = 'block';
+
+      showLoading();
+
+      try {
+        // Load client data
+        const clientDoc = await db
+          .collection('companies')
+          .doc(clientId)
+          .get();
+
+        if (!clientDoc.exists) {
+          hideLoading();
+          showToast('Client not found', 'error');
+          showListView();
+          return;
+        }
+
+        currentClient = {
+          id: clientDoc.id,
+          ...clientDoc.data(),
+        };
+
+        renderDetailView(currentClient);
+
+        // Load related data in parallel
+        await Promise.all([
+          loadClientOrders(clientId),
+          loadClientEmployees(clientId),
+        ]);
+
+        hideLoading();
+
+      } catch (err) {
+        hideLoading();
+        console.error('Load client detail error:', err);
+        showToast('Failed to load client', 'error');
+      }
+    }
+
+
+    function showListView() {
+      document.getElementById('detailView')
+        .style.display = 'none';
+      document.getElementById('listView')
+        .style.display = 'block';
+      currentClient = null;
+    }
+
+
+    /* ── Render detail fields ──────────────────── */
+    function renderDetailView(client) {
+      document.getElementById('detailCompanyName')
+        .textContent = client.name || '—';
+
+      const statusLabels = {
+        active:         '🟢 Active',
+        paused:         '🟡 Paused',
+        cancelled:      '🔴 Cancelled',
+        payment_failed: '🔴 Payment Failed',
+      };
+
+      document.getElementById('detailCompanyStatus')
+        .textContent =
+          statusLabels[client.status] ||
+          client.status || '—';
+
+      const fields = [
+        {
+          label: 'HR Contact',
+          value: client.contactName || '—',
+        },
+        {
+          label: 'Contact Email',
+          value: client.contactEmail || '—',
+        },
+        {
+          label: 'Employees',
+          value: client.stats?.employeeCount || '—',
+        },
+        {
+          label: 'Default Address',
+          value: client.defaultDeliveryAddress || '—',
+        },
+        {
+          label: 'Auto-Approve',
+          value: client.autoApprove
+                   ? '✅ On'
+                   : '❌ Off',
+        },
+        {
+          label: 'Member Since',
+          value: client.createdAt?.toDate
+            ? client.createdAt.toDate()
+                .toLocaleDateString('en-CA', {
+                  month: 'long',
+                  year:  'numeric',
+                })
+            : '—',
+        },
+      ];
+
+      document.getElementById('detailFields')
+        .innerHTML = fields.map(f => `
+          <div class="detail-field-row">
+            <span class="detail-field-label">
+              ${f.label}
+            </span>
+            <span class="detail-field-value">
+              ${f.value}
+            </span>
+          </div>
+        `).join('');
+
+      // Load notes
+      document.getElementById('clientNotes')
+        .value = client.notes || '';
+
+      // Update pause button
+      const pauseBtn =
+        document.getElementById('pauseBtn');
+      if (client.status === 'paused') {
+        pauseBtn.textContent = 'Resume Account';
+      } else {
+        pauseBtn.textContent = 'Pause Account';
+      }
+    }
+
+
+    /* ── Load client orders ────────────────────── */
+    async function loadClientOrders(clientId) {
+      const container =
+        document.getElementById('detailOrders');
+
+      try {
+        const res = await apiCall(
+          `/api/orders?companyId=${clientId}` +
+          `&days=30&limit=5`
+        );
+
+        if (!res || !res.ok) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <p>Could not load orders</p>
+            </div>
+          `;
+          return;
+        }
+
+        const data = await res.json();
+
+        if (!data.orders ||
+            data.orders.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <span>📦</span>
+              <p>No upcoming orders</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = data.orders
+          .map(order => {
+            const badge =
+              getStatusBadge(order.status);
+            return `
+              <div class="mini-order-row">
+                <div>
+                  <p class="mini-order-name">
+                    ${order.employeeName}
+                  </p>
+                  <p class="mini-order-meta">
+                    ${formatDateShort(
+                      order.deliveryDate
+                    )} · ${order.productName}
+                  </p>
+                </div>
+                <span style="
+                  font-size:   0.75rem;
+                  font-weight: 600;
+                  color:       ${badge.color};
+                  background:  ${badge.bg};
+                  padding:     3px 8px;
+                  border-radius: 100px;
+                ">
+                  ${badge.icon} ${badge.label}
+                </span>
+              </div>
+            `;
+          }).join('');
+
+      } catch (err) {
+        console.error('Load orders error:', err);
+      }
+    }
+
+
+    /* ── Load client employees ─────────────────── */
+    async function loadClientEmployees(clientId) {
+      const container =
+        document.getElementById('detailEmployees');
+
+      try {
+        const snapshot = await db
+          .collection('employees')
+          .where('companyId', '==', clientId)
+          .where('active', '==', true)
+          .orderBy('name')
+          .limit(10)
+          .get();
+
+        if (snapshot.empty) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <span>👥</span>
+              <p>No employees uploaded yet</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="employee-mini-list">
+            ${snapshot.docs.map(doc => {
+              const e = doc.data();
+              return `
+                <div class="employee-mini-row">
+                  <div class="employee-mini-avatar">
+                    ${(e.name || '?')
+                      .charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p class="employee-mini-name">
+                      ${e.name || '—'}
+                    </p>
+                    <p class="employee-mini-meta">
+                      🎂 ${e.birthday
+                        ? formatDateShort(
+                            e.birthday.toDate
+                            ? e.birthday.toDate()
+                            : new Date(e.birthday)
+                          )
+                        : '—'}
+                      ${e.dietaryFlags?.length > 0
+                        ? `· ⚠️ ${
+                            e.dietaryFlags.join(', ')
+                          }`
+                        : ''}
+                    </p>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+            ${snapshot.size >= 10
+              ? `<p class="employee-mini-more">
+                   + more employees
+                 </p>`
+              : ''}
+          </div>
+        `;
+
+      } catch (err) {
+        console.error('Load employees error:', err);
+      }
+    }
+
+
+    /* ── Download employee CSV ─────────────────── */
+    async function downloadEmployeeCSV() {
+      if (!currentClient) return;
+
+      try {
+        showLoading();
+
+        const snapshot = await db
+          .collection('employees')
+          .where('companyId', '==', currentClient.id)
+          .where('active', '==', true)
+          .get();
+
+        hideLoading();
+
+        if (snapshot.empty) {
+          showToast('No employees to export', 'info');
+          return;
+        }
+
+        // Build CSV
+        const headers = [
+          'Name', 'Birthday', 'Start Date',
+          'Dietary Restrictions', 'Delivery Address',
+          'Email',
+        ];
+
+        const rows = snapshot.docs.map(doc => {
+          const e = doc.data();
+          return [
+            e.name || '',
+            e.birthday?.toDate
+              ? e.birthday.toDate()
+                  .toISOString().split('T')[0]
+              : e.birthday || '',
+            e.startDate?.toDate
+              ? e.startDate.toDate()
+                  .toISOString().split('T')[0]
+              : e.startDate || '',
+            (e.dietaryFlags || []).join('; '),
+            e.deliveryAddress || '',
+            e.email || '',
+          ].map(v =>
+            `"${String(v).replace(/"/g, '""')}"`
+          ).join(',');
+        });
+
+        const csv = [
+          headers.join(','),
+          ...rows,
+        ].join('\n');
+
+        // Download
+        const blob = new Blob([csv], {
+          type: 'text/csv'
+        });
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download =
+          `${currentClient.name}-employees.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast('CSV downloaded!', 'success');
+
+      } catch (err) {
+        hideLoading();
+        console.error('CSV download error:', err);
+        showToast('Download failed', 'error');
+      }
+    }
+
+
+    /* ── Notes auto-save ───────────────────────── */
+    function scheduleNotesSave() {
+      const status =
+        document.getElementById('notesSaveStatus');
+      status.textContent = 'Unsaved...';
+
+      clearTimeout(notesSaveTimer);
+      notesSaveTimer = setTimeout(
+        saveNotes, 1500
+      );
+    }
+
+    async function saveNotes() {
+      if (!currentClient) return;
+
+      const notes =
+        document.getElementById('clientNotes')
+          .value;
+      const status =
+        document.getElementById('notesSaveStatus');
+
+      try {
+        await db
+          .collection('companies')
+          .doc(currentClient.id)
+          .update({ notes });
+
+        status.textContent = '✅ Saved';
+        setTimeout(() => {
+          status.textContent = '';
+        }, 2000);
+
+      } catch (err) {
+        console.error('Save notes error:', err);
+        status.textContent = '❌ Save failed';
+      }
+    }
+
+
+    /* ── Account actions ───────────────────────── */
+    async function pauseAccount() {
+      if (!currentClient) return;
+
+      const isPaused = currentClient.status === 'paused';
+      const action   = isPaused ? 'resume' : 'pause';
+      const newStatus = isPaused ? 'active' : 'paused';
+
+      const confirmed = await confirmDialog(
+        `Are you sure you want to ${action} ` +
+        `${currentClient.name}'s account?`,
+        `${action.charAt(0).toUpperCase() + action.slice(1)} Account`
+      );
+      if (!confirmed) return;
+
+      showLoading();
+
+      try {
+        await db.collection('companies')
+          .doc(currentClient.id)
+          .update({ status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+        hideLoading();
+        showToast(`Account ${action}d successfully`, 'success');
+        await showDetailView(currentClient.id);
+      } catch (err) {
+        hideLoading();
+        showToast('Action failed', 'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       ADD CLIENT MODAL
+    ════════════════════════════════════════════ */
+
+    function showAddClientModal() {
+      document.getElementById('addClientModal')
+        .style.display = 'flex';
+    }
+
+    function hideAddClientModal() {
+      document.getElementById('addClientModal')
+        .style.display = 'none';
+      document.getElementById('addClientForm')
+        .reset();
+    }
+
+    async function submitAddClient(e) {
+      e.preventDefault();
+
+      const btn =
+        document.getElementById('addClientBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Creating...';
+
+      const companyName =
+        document.getElementById('newCompanyName')
+          .value.trim();
+      const contactName =
+        document.getElementById('newContactName')
+          .value.trim();
+      const contactEmail=
+        document.getElementById('newContactEmail')
+          .value.trim().toLowerCase();
+      const tempPassword=
+        document.getElementById('newTempPassword')
+          .value;
+      const deliveryAddress =
+        document.getElementById('newDeliveryAddress')
+          .value.trim();
+      const employeeCount =
+        parseInt(
+          document.getElementById('newEmployeeCount')
+            .value
+        ) || 0;
+
+      try {
+
+        // Step 1: Create company in Firestore
+        const companyRef = await db
+          .collection('companies')
+          .add({
+            name:                   companyName,
+            status:                 'active',
+            contactName,
+            contactEmail,
+            defaultDeliveryAddress: deliveryAddress,
+            autoApprove:            false,
+            notes:                  '',
+            stats: {
+              employeeCount,
+              pendingOrders:   0,
+              confirmedOrders: 0,
+              deliveredOrders: 0,
+              totalSpend:      0,
+            },
+            createdAt: firebase.firestore
+                         .FieldValue.serverTimestamp(),
+          });
+
+        const companyId = companyRef.id;
+
+        // Step 2: Create portal user account
+        const authRes = await apiCall(
+          '/api/auth/create-company-user',
+          {
+            method: 'POST',
+            body:   JSON.stringify({
+              email:       contactEmail,
+              password:    tempPassword,
+              displayName: contactName,
+              companyId,
+              companyName,
+            }),
+          }
+        );
+
+        if (!authRes || !authRes.ok) {
+          const err = await authRes.json();
+          throw new Error(
+            err.error || 'Failed to create user'
+          );
+        }
+
+        hideAddClientModal();
+        showToast(
+          `${companyName} added! ` +
+          `Welcome email sent to ${contactEmail}`,
+          'success'
+        );
+
+        // Reload list
+        await loadClients();
+
+        // Open detail view for new client
+        showDetailView(companyId);
+
+      } catch (err) {
+        console.error('Add client error:', err);
+        showToast(
+          err.message || 'Failed to create client',
+          'error'
+        );
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Create Client →';
+      }
+    }
+
+
+    /* ── Mobile menu ───────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+</body>
+</html>

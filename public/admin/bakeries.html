@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bakeries — Delightmaker Admin</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin/clients" class="nav-item">
+        <span class="nav-icon">🏢</span>
+        <span class="nav-label">Clients</span>
+      </a>
+      <a href="/admin/orders" class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+      </a>
+      <a href="/admin/bakeries"
+         class="nav-item active">
+        <span class="nav-icon">🧁</span>
+        <span class="nav-label">Bakeries</span>
+      </a>
+      <a href="/admin/revenue" class="nav-item">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Revenue</span>
+      </a>
+      <a href="/admin/applications" class="nav-item">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Applications</span>
+      </a>
+      <a href="/admin/invoices" class="nav-item">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Invoices</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">C</div>
+        <div class="user-info">
+          <p class="user-name">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- ── LIST VIEW ─────────────────────── -->
+    <div id="listView">
+
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <button class="mobile-menu-btn"
+                  id="mobileMenuBtn">☰</button>
+          <div>
+            <h1 class="dash-title">Bakeries</h1>
+            <p class="dash-subtitle"
+               id="bakeryCount">
+              Loading...
+            </p>
+          </div>
+        </div>
+        <div class="dash-header-right">
+          <button class="btn btn-primary"
+                  onclick="showAddBakeryModal()">
+            + Add Bakery
+          </button>
+        </div>
+      </header>
+
+      <!-- Bakery cards grid -->
+      <div id="bakeriesGrid"
+           class="bakeries-grid">
+        <!-- Loading state -->
+        <div class="bakery-card-admin loading-card">
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+        </div>
+        <div class="bakery-card-admin loading-card">
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+        </div>
+      </div>
+
+    </div><!-- /listView -->
+
+
+    <!-- ── BAKERY DETAIL VIEW ─────────────── -->
+    <div id="detailView" style="display:none">
+
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <button class="back-btn"
+                  onclick="showListView()">
+            ← Back
+          </button>
+          <div>
+            <h1 class="dash-title"
+                id="detailBakeryName">
+              Loading...
+            </h1>
+            <p class="dash-subtitle"
+               id="detailBakeryStatus">
+            </p>
+          </div>
+        </div>
+        <div class="dash-header-right">
+          <button class="btn btn-outline"
+                  onclick="editCurrentBakery()">
+            Edit Details
+          </button>
+          <button class="btn"
+                  id="toggleActiveBtn"
+                  onclick="toggleBakeryActive()">
+            Deactivate
+          </button>
+          <button class="btn"
+                  style="background:#C62828;color:#fff"
+                  onclick="deleteBakery(currentBakery?.id)">
+            🗑 Delete
+          </button>
+        </div>
+      </header>
+
+      <!-- Detail layout -->
+      <div class="detail-grid">
+
+        <!-- Info card -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              Bakery Details
+            </h2>
+          </div>
+          <div id="detailFields">
+            <!-- Populated by JS -->
+          </div>
+        </section>
+
+        <!-- Stats card -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              📊 This Month
+            </h2>
+          </div>
+          <div class="stats-grid-2"
+               id="bakeryStats">
+            <!-- Populated by JS -->
+          </div>
+        </section>
+
+        <!-- Active orders -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              Active Orders
+            </h2>
+            <a href="/admin/orders"
+               class="card-action">
+              View All
+            </a>
+          </div>
+          <div id="bakeryOrders">
+            <div class="empty-state">
+              <p>Loading orders...</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Invoice tracking -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              💰 Invoice Tracking
+            </h2>
+          </div>
+          <div id="invoiceTracking">
+            <!-- Populated by JS -->
+          </div>
+        </section>
+
+      </div>
+
+    </div><!-- /detailView -->
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       ADD / EDIT BAKERY MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="bakeryModal"
+       style="display:none">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2 id="bakeryModalTitle">
+          Add Bakery
+        </h2>
+        <button class="modal-close"
+                onclick="hideBakeryModal()">
+          ✕
+        </button>
+      </div>
+
+      <form id="bakeryForm"
+            onsubmit="submitBakery(event)">
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label>Bakery Name *</label>
+            <input type="text"
+                   id="bName"
+                   placeholder="24 Carrots"
+                   required/>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Contact Name</label>
+              <input type="text"
+                     id="bContactName"
+                     placeholder="Jane Baker"/>
+            </div>
+            <div class="form-group">
+              <label>Contact Email *</label>
+              <input type="email"
+                     id="bContactEmail"
+                     placeholder="orders@bakery.ca"
+                     required/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel"
+                   id="bPhone"
+                   placeholder="902-555-0123"/>
+          </div>
+
+          <div class="form-group">
+            <label>Address</label>
+            <input type="text"
+                   id="bAddress"
+                   placeholder="123 Baker St, Halifax, NS"/>
+          </div>
+
+          <!-- Specialties -->
+          <div class="form-group">
+            <label>Specialties</label>
+            <div class="checkbox-grid">
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       name="specialty"
+                       value="Cupcakes"/>
+                🧁 Cupcakes
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       name="specialty"
+                       value="Cookies"/>
+                🍪 Cookies
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       name="specialty"
+                       value="Cakes"/>
+                🎂 Cakes
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       name="specialty"
+                       value="Brownies"/>
+                🍫 Brownies
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       name="specialty"
+                       value="Muffins"/>
+                🫐 Muffins
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       name="specialty"
+                       value="Treat Boxes"/>
+                📦 Treat Boxes
+              </label>
+            </div>
+          </div>
+
+          <!-- Dietary capabilities -->
+          <div class="form-group">
+            <label>Dietary Capabilities</label>
+            <div class="checkbox-grid">
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       id="bGlutenFree"/>
+                🌿 Gluten-Free
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       id="bNutFree"/>
+                ⚠️ Nut-Free
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       id="bVegan"/>
+                🌱 Vegan
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       id="bKosher"/>
+                ✡️ Kosher
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       id="bAllergenFree"/>
+                🏥 Allergen-Free Facility
+              </label>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Service Area</label>
+              <input type="text"
+                     id="bServiceArea"
+                     placeholder="Halifax HRM"
+                     value="Halifax HRM"/>
+            </div>
+            <div class="form-group">
+              <label>Wholesale Rate Notes</label>
+              <input type="text"
+                     id="bRateNotes"
+                     placeholder="e.g. 40% off retail"/>
+            </div>
+          </div>
+
+          <!-- Portal access -->
+          <div class="form-section-label"
+               style="margin-top:16px">
+            Baker Portal Login
+          </div>
+          <div class="form-row-2"
+               id="portalFields">
+            <div class="form-group">
+              <label>Login Email</label>
+              <input type="email"
+                     id="bPortalEmail"
+                     placeholder="portal@bakery.ca"/>
+              <p class="form-hint">
+                Leave blank to skip portal access
+              </p>
+            </div>
+            <div class="form-group">
+              <label>Temp Password</label>
+              <input type="text"
+                     id="bPortalPassword"
+                     placeholder="Min 8 chars"/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Internal Notes</label>
+            <textarea id="bNotes"
+                      class="dash-textarea"
+                      rows="2"
+                      placeholder="Pickup instructions, preferences...">
+            </textarea>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button"
+                  class="btn btn-ghost"
+                  onclick="hideBakeryModal()">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="btn btn-primary"
+                  id="bakerySubmitBtn">
+            Add Bakery →
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <style>
+    /* ═══════════════════════════════════════════
+       BAKERIES GRID
+    ═══════════════════════════════════════════ */
+    .bakeries-grid {
+      display:               grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:                   20px;
+      padding-bottom:        32px;
+    }
+
+    @media (max-width: 1100px) {
+      .bakeries-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 680px) {
+      .bakeries-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Card shell ── */
+    .bk-card {
+      background:    var(--white);
+      border-radius: 16px;
+      border:        1px solid rgba(0,0,0,0.07);
+      overflow:      hidden;
+      transition:    box-shadow 0.2s, transform 0.15s;
+      display:       flex;
+      flex-direction: column;
+    }
+    .bk-card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+      transform:  translateY(-2px);
+    }
+    .bk-card.bk-inactive {
+      opacity: 0.65;
+    }
+
+    /* ── Coloured top banner ── */
+    .bk-card-top {
+      padding:         20px 20px 16px;
+      position:        relative;
+      display:         flex;
+      align-items:     flex-start;
+      justify-content: space-between;
+    }
+
+    .bk-avatar {
+      width:          52px;
+      height:         52px;
+      border-radius:  14px;
+      background:     rgba(255,255,255,0.25);
+      display:        flex;
+      align-items:    center;
+      justify-content: center;
+      font-size:      1.3rem;
+      font-weight:    800;
+      color:          white;
+      letter-spacing: -0.02em;
+      backdrop-filter: blur(4px);
+      flex-shrink:    0;
+    }
+
+    .bk-status-chip {
+      font-size:      0.68rem;
+      font-weight:    700;
+      padding:        4px 10px;
+      border-radius:  20px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .bk-status-active {
+      background: rgba(255,255,255,0.25);
+      color:      white;
+    }
+    .bk-status-inactive {
+      background: rgba(0,0,0,0.15);
+      color:      rgba(255,255,255,0.8);
+    }
+
+    /* ── Card body ── */
+    .bk-card-body {
+      padding:        16px 20px 20px;
+      flex:           1;
+      display:        flex;
+      flex-direction: column;
+      gap:            12px;
+    }
+
+    .bk-name {
+      font-family:   var(--font-head);
+      font-size:     1.05rem;
+      font-weight:   700;
+      color:         var(--dark);
+      margin:        0;
+      line-height:   1.2;
+    }
+
+    .bk-contact {
+      font-size:  0.8rem;
+      color:      var(--gray);
+      margin:     0;
+      overflow:   hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Specialty tags ── */
+    .bk-tags {
+      display:   flex;
+      flex-wrap: wrap;
+      gap:       5px;
+    }
+
+    .bk-tag {
+      font-size:     0.72rem;
+      font-weight:   600;
+      padding:       3px 9px;
+      border-radius: 20px;
+      background:    rgba(255,107,107,0.08);
+      color:         var(--coral);
+      border:        1px solid rgba(255,107,107,0.15);
+    }
+
+    .bk-tag-green {
+      background: rgba(46,125,50,0.08);
+      color:      #2E7D32;
+      border-color: rgba(46,125,50,0.15);
+    }
+
+    .bk-tag-yellow {
+      background: rgba(255,160,0,0.08);
+      color:      #E65100;
+      border-color: rgba(255,160,0,0.15);
+    }
+
+    /* ── Stats row ── */
+    .bk-stats {
+      display:       grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:           8px;
+      background:    rgba(0,0,0,0.02);
+      border-radius: 10px;
+      padding:       12px 8px;
+      border:        1px solid rgba(0,0,0,0.04);
+    }
+
+    .bk-stat {
+      display:        flex;
+      flex-direction: column;
+      align-items:    center;
+      gap:            2px;
+    }
+
+    .bk-stat-n {
+      font-size:   1rem;
+      font-weight: 700;
+      color:       var(--dark);
+      line-height: 1;
+    }
+
+    .bk-stat-n.green { color: #2E7D32; }
+    .bk-stat-n.red   { color: #FF6B6B; }
+
+    .bk-stat-l {
+      font-size:   0.65rem;
+      font-weight: 600;
+      color:       var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align:  center;
+    }
+
+    /* ── Action buttons ── */
+    .bk-actions {
+      display:   flex;
+      gap:       8px;
+      margin-top: auto;
+      padding-top: 4px;
+    }
+
+    .bk-btn {
+      flex:          1;
+      padding:       8px 12px;
+      border-radius: 8px;
+      font-size:     0.78rem;
+      font-weight:   600;
+      cursor:        pointer;
+      border:        none;
+      transition:    background 0.15s, transform 0.1s;
+    }
+    .bk-btn:hover { transform: translateY(-1px); }
+
+    .bk-btn-primary {
+      background: var(--coral);
+      color:      white;
+    }
+    .bk-btn-primary:hover { background: #e85555; }
+
+    .bk-btn-outline {
+      background: rgba(0,0,0,0.04);
+      color:      var(--dark);
+      border:     1px solid rgba(0,0,0,0.08);
+    }
+    .bk-btn-outline:hover { background: rgba(0,0,0,0.07); }
+
+    .bk-btn-danger {
+      background: rgba(198,40,40,0.07);
+      color:      #C62828;
+    }
+    .bk-btn-danger:hover { background: rgba(198,40,40,0.13); }
+
+    .bk-btn-success {
+      background: rgba(46,125,50,0.07);
+      color:      #2E7D32;
+    }
+    .bk-btn-success:hover { background: rgba(46,125,50,0.13); }
+
+    /* ── Loading card ── */
+    .loading-card {
+      background:    var(--white);
+      border-radius: 16px;
+      padding:       24px;
+      border:        1px solid rgba(0,0,0,0.07);
+      min-height:    200px;
+      display:       flex;
+      flex-direction: column;
+      gap:           10px;
+    }
+  </style>
+
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ─────────────────────────────────────
+    let allBakeries    = [];
+    let currentBakery  = null;
+    let editingBakery  = false;
+
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('admin').then(() => {
+      loadBakeries();
+    });
+
+
+    /* ════════════════════════════════════════════
+       LOAD BAKERIES
+    ════════════════════════════════════════════ */
+
+    async function loadBakeries() {
+      try {
+        const snap = await db
+          .collection('bakeries')
+          .orderBy('name')
+          .get();
+
+        allBakeries = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        const active = allBakeries.filter(
+          b => b.active !== false
+        ).length;
+
+        document.getElementById('bakeryCount')
+          .textContent =
+            `${allBakeries.length} bakeries · ` +
+            `${active} active`;
+
+        renderBakeriesGrid(allBakeries);
+
+      } catch (err) {
+        console.error('Load bakeries error:', err);
+        document.getElementById('bakeriesGrid')
+          .innerHTML = `
+            <div class="empty-state"
+                 style="grid-column:1/-1">
+              <p>Failed to load bakeries</p>
+            </div>
+          `;
+      }
+    }
+
+
+    /* ── Render bakery cards ───────────────────── */
+    function renderBakeriesGrid(bakeries) {
+      const grid =
+        document.getElementById('bakeriesGrid');
+
+      if (bakeries.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state"
+               style="grid-column:1/-1;
+                      padding:60px">
+            <span>🧁</span>
+            <p>No bakeries yet.</p>
+            <button class="btn btn-primary"
+                    style="margin-top:16px"
+                    onclick="showAddBakeryModal()">
+              Add Your First Bakery
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // Palette for gradient banners (cycles by index)
+      const palettes = [
+        'linear-gradient(135deg,#FF6B6B 0%,#FF8E53 100%)',
+        'linear-gradient(135deg,#667EEA 0%,#764BA2 100%)',
+        'linear-gradient(135deg,#11998E 0%,#38EF7D 100%)',
+        'linear-gradient(135deg,#F093FB 0%,#F5576C 100%)',
+        'linear-gradient(135deg,#4FACFE 0%,#00F2FE 100%)',
+        'linear-gradient(135deg,#FA709A 0%,#FEE140 100%)',
+      ];
+
+      grid.innerHTML = bakeries.map((b, idx) => {
+        const isActive = b.active !== false;
+        const gradient = palettes[idx % palettes.length];
+
+        // Stats
+        const delivered  = b.stats?.deliveredOrders || 0;
+        const onTime     = b.stats?.onTimeDeliveries || delivered;
+        const onTimeRate = delivered > 0
+          ? Math.round((onTime / delivered) * 100)
+          : 100;
+        const monthOrders = b.stats?.activeOrders || 0;
+        const amountOwed  = b.stats?.unpaidAmount  || 0;
+
+        // Initials (up to 2 chars)
+        const initials = (b.name || 'B')
+          .split(' ').map(w => w[0]).join('')
+          .slice(0, 2).toUpperCase();
+
+        // Specialty tags
+        const specialtyHtml = (b.specialty || [])
+          .slice(0, 4)
+          .map(s => `<span class="bk-tag">${s}</span>`)
+          .join('');
+
+        // Dietary tags
+        const dietaryHtml = [
+          b.allergenFree ? '<span class="bk-tag bk-tag-green">🏥 Allergen-Free</span>' : '',
+          b.glutenFree   ? '<span class="bk-tag bk-tag-green">🌿 GF</span>'            : '',
+          b.nutFree      ? '<span class="bk-tag bk-tag-yellow">⚠️ Nut-Free</span>'    : '',
+          b.vegan        ? '<span class="bk-tag bk-tag-green">🌱 Vegan</span>'         : '',
+        ].filter(Boolean).join('');
+
+        const allTags = specialtyHtml + dietaryHtml;
+
+        return `
+          <div class="bk-card ${isActive ? '' : 'bk-inactive'}">
+
+            <div class="bk-card-top" style="background:${gradient}">
+              <div class="bk-avatar">${initials}</div>
+              <span class="bk-status-chip ${
+                isActive ? 'bk-status-active' : 'bk-status-inactive'
+              }">
+                ${isActive ? '● Active' : '● Inactive'}
+              </span>
+            </div>
+
+            <div class="bk-card-body">
+
+              <div>
+                <h3 class="bk-name">${b.name}</h3>
+                <p class="bk-contact">
+                  ${b.contactEmail || b.contactName || '—'}
+                </p>
+              </div>
+
+              ${allTags
+                ? `<div class="bk-tags">${allTags}</div>`
+                : ''}
+
+              <div class="bk-stats">
+                <div class="bk-stat">
+                  <span class="bk-stat-n">${monthOrders}</span>
+                  <span class="bk-stat-l">Orders</span>
+                </div>
+                <div class="bk-stat">
+                  <span class="bk-stat-n green">${onTimeRate}%</span>
+                  <span class="bk-stat-l">On-Time</span>
+                </div>
+                <div class="bk-stat">
+                  <span class="bk-stat-n ${amountOwed > 0 ? 'red' : ''}">
+                    $${amountOwed.toFixed(0)}
+                  </span>
+                  <span class="bk-stat-l">Owed</span>
+                </div>
+              </div>
+
+              <div class="bk-actions">
+                <button class="bk-btn bk-btn-primary"
+                        onclick="showDetailView('${b.id}')">
+                  View Details
+                </button>
+                <button class="bk-btn bk-btn-outline"
+                        onclick="editBakery('${b.id}')">
+                  Edit
+                </button>
+                <button class="bk-btn ${isActive ? 'bk-btn-danger' : 'bk-btn-success'}"
+                        onclick="toggleActive('${b.id}', ${isActive})">
+                  ${isActive ? 'Deactivate' : 'Activate'}
+                </button>
+                <button class="bk-btn"
+                        style="background:rgba(198,40,40,0.1);
+                               color:#C62828;flex:0;padding:8px 10px"
+                        title="Delete bakery"
+                        onclick="deleteBakery('${b.id}')">
+                  🗑
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+
+    /* ════════════════════════════════════════════
+       BAKERY DETAIL VIEW
+    ════════════════════════════════════════════ */
+
+    async function showDetailView(bakeryId) {
+      document.getElementById('listView')
+        .style.display = 'none';
+      document.getElementById('detailView')
+        .style.display = 'block';
+
+      showLoading();
+
+      try {
+        const bakeryDoc = await db
+          .collection('bakeries')
+          .doc(bakeryId)
+          .get();
+
+        if (!bakeryDoc.exists) {
+          hideLoading();
+          showToast('Bakery not found', 'error');
+          showListView();
+          return;
+        }
+
+        currentBakery = {
+          id: bakeryDoc.id,
+          ...bakeryDoc.data(),
+        };
+
+        renderBakeryDetail(currentBakery);
+
+        await Promise.all([
+          loadBakeryOrders(bakeryId),
+          loadInvoiceTracking(bakeryId),
+        ]);
+
+        hideLoading();
+
+      } catch (err) {
+        hideLoading();
+        console.error('Load bakery detail:', err);
+        showToast('Failed to load bakery', 'error');
+      }
+    }
+
+    function showListView() {
+      document.getElementById('detailView')
+        .style.display = 'none';
+      document.getElementById('listView')
+        .style.display = 'block';
+      currentBakery = null;
+    }
+
+
+    /* ── Render bakery detail ──────────────────── */
+    function renderBakeryDetail(b) {
+      const isActive = b.active !== false;
+
+      document.getElementById('detailBakeryName')
+        .textContent = b.name;
+      document.getElementById('detailBakeryStatus')
+        .textContent = isActive
+          ? '🟢 Active'
+          : '🔴 Inactive';
+
+      const toggleBtn =
+        document.getElementById('toggleActiveBtn');
+      toggleBtn.textContent = isActive
+        ? 'Deactivate'
+        : 'Activate';
+      toggleBtn.style.background = isActive
+        ? '#C62828'
+        : '#2E7D32';
+      toggleBtn.style.color = 'white';
+
+      // Fields
+      const fields = [
+        {
+          label: 'Contact Name',
+          value: b.contactName || '—'
+        },
+        {
+          label: 'Email',
+          value: b.contactEmail || '—'
+        },
+        {
+          label: 'Phone',
+          value: b.phone || '—'
+        },
+        {
+          label: 'Address',
+          value: b.address || '—'
+        },
+        {
+          label: 'Service Area',
+          value: b.serviceArea || 'Halifax HRM'
+        },
+        {
+          label: 'Specialties',
+          value: (b.specialty || []).join(', ') || '—'
+        },
+        {
+          label: 'Allergen-Free',
+          value: b.allergenFree ? '✅ Yes' : '❌ No'
+        },
+        {
+          label: 'Gluten-Free',
+          value: b.glutenFree ? '✅ Yes' : '❌ No'
+        },
+        {
+          label: 'Nut-Free',
+          value: b.nutFree ? '✅ Yes' : '❌ No'
+        },
+        {
+          label: 'Rate Notes',
+          value: b.wholesaleRateNotes || '—'
+        },
+        {
+          label: 'Notes',
+          value: b.notes || '—'
+        },
+      ];
+
+      document.getElementById('detailFields')
+        .innerHTML = fields.map(f => `
+          <div class="detail-field-row">
+            <span class="detail-field-label">
+              ${f.label}
+            </span>
+            <span class="detail-field-value">
+              ${f.value}
+            </span>
+          </div>
+        `).join('');
+
+      // Stats
+      const delivered =
+        b.stats?.deliveredOrders || 0;
+      const onTime    =
+        b.stats?.onTimeDeliveries || delivered;
+      const onTimeRate = delivered > 0
+        ? Math.round((onTime / delivered) * 100)
+        : 100;
+
+      document.getElementById('bakeryStats')
+        .innerHTML = `
+          <div class="stat-box">
+            <p class="stat-box-val">
+              ${b.stats?.activeOrders || 0}
+            </p>
+            <p class="stat-box-label">
+              Active Orders
+            </p>
+          </div>
+          <div class="stat-box">
+            <p class="stat-box-val">
+              ${delivered}
+            </p>
+            <p class="stat-box-label">
+              Delivered All Time
+            </p>
+          </div>
+          <div class="stat-box">
+            <p class="stat-box-val"
+               style="color:#2E7D32">
+              ${onTimeRate}%
+            </p>
+            <p class="stat-box-label">
+              On-Time Rate
+            </p>
+          </div>
+          <div class="stat-box">
+            <p class="stat-box-val"
+               style="color:#FF6B6B">
+$$
+{(
+                b.stats?.unpaidAmount || 0
+              ).toFixed(0)}
+            </p>
+            <p class="stat-box-label">
+              Amount Owed
+            </p>
+          </div>
+        `;
+    }
+
+
+    /* ── Load bakery orders ────────────────────── */
+    async function loadBakeryOrders(bakeryId) {
+      const container =
+        document.getElementById('bakeryOrders');
+
+      try {
+        const snap = await db
+          .collection('orders')
+          .where('bakerId', '==', bakeryId)
+          .where('status', 'not-in', [
+            'delivered', 'cancelled'
+          ])
+          .orderBy('deliveryDate', 'asc')
+          .limit(8)
+          .get();
+
+        if (snap.empty) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <span>📦</span>
+              <p>No active orders</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = snap.docs.map(doc => {
+          const o     = doc.data();
+          const badge = getStatusBadge(o.status);
+          const days  = o.deliveryDate?.toDate
+            ? daysUntil(o.deliveryDate.toDate())
+            : '—';
+
+          const dietaryWarn =
+            o.dietaryFlags?.length > 0
+            ? `<span style="
+                 color:     #C62828;
+                 font-size: 0.75rem;
+                 font-weight:700
+               ">
+                 ⚠️ ${o.dietaryFlags.join(', ')}
+               </span>`
+            : '';
+
+          return `
+            <div class="mini-order-row">
+              <div>
+                <p class="mini-order-name">
+                  ${o.employeeName || '—'}
+                  ${dietaryWarn}
+                </p>
+                <p class="mini-order-meta">
+                  ${o.productName || '—'} ·
+                  ${o.deliveryDate?.toDate
+                    ? formatDateShort(
+                        o.deliveryDate.toDate()
+                      )
+                    : '—'}
+                  ${typeof days === 'number'
+                    ? `(${days === 0
+                        ? 'today'
+                        : `${days}d`})`
+                    : ''}
+                </p>
+              </div>
+              <span style="
+                font-size:    0.75rem;
+                font-weight:  600;
+                color:        ${badge.color};
+                background:   ${badge.bg};
+                padding:      3px 8px;
+                border-radius:100px;
+              ">
+                ${badge.icon} ${badge.label}
+              </span>
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('Load bakery orders:', err);
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>Could not load orders</p>
+          </div>
+        `;
+      }
+    }
+
+
+    /* ── Invoice tracking ──────────────────────── */
+    async function loadInvoiceTracking(bakeryId) {
+      const container =
+        document.getElementById('invoiceTracking');
+
+      try {
+        // Get delivered orders this month
+        const now        = new Date();
+        const monthStart = new Date(
+          now.getFullYear(), now.getMonth(), 1
+        );
+        const monthStartTs =
+          firebase.firestore.Timestamp
+            .fromDate(monthStart);
+
+        const snap = await db
+          .collection('orders')
+          .where('bakerId',    '==', bakeryId)
+          .where('status',     '==', 'delivered')
+          .where('deliveredAt','>=', monthStartTs)
+          .get();
+
+        let totalOwed = 0;
+        snap.docs.forEach(doc => {
+          totalOwed +=
+            doc.data().wholesaleCost || 0;
+        });
+
+        // Get unpaid invoices
+        const invoiceSnap = await db
+          .collection('invoices')
+          .where('bakeryId', '==', bakeryId)
+          .where('status',   '==', 'pending')
+          .orderBy('createdAt', 'desc')
+          .limit(5)
+          .get();
+
+        const invoicesHtml = invoiceSnap.empty
+          ? '<p style="color:#888;font-size:0.9rem;' +
+            'padding:12px 0">' +
+            'No pending invoices</p>'
+          : invoiceSnap.docs.map(doc => {
+              const inv = doc.data();
+              return `
+                <div class="invoice-row">
+                  <div>
+                    <p class="invoice-label">
+                      Invoice #${
+                        doc.id.slice(-6).toUpperCase()
+                      }
+                    </p>
+                    <p class="invoice-date">
+                      ${inv.createdAt?.toDate
+                        ? formatDateShort(
+                            inv.createdAt.toDate()
+                          )
+                        : '—'}
+                    </p>
+                  </div>
+                  <div class="invoice-right">
+                    <p class="invoice-amount">
+                      
+$$
+{(inv.amount || 0).toFixed(2)}
+                    </p>
+                    <button class="btn-sm"
+                            style="background:#E8F5E9;
+                                   color:#2E7D32"
+                            onclick="markInvoicePaid(
+                              '${doc.id}'
+                            )">
+                      Mark Paid
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('');
+
+        container.innerHTML = `
+          <div class="invoice-summary">
+            <div class="invoice-total-box">
+              <p class="invoice-total-label">
+                Owed This Month
+              </p>
+              <p class="invoice-total-val">
+$$
+{totalOwed.toFixed(2)} CAD
+              </p>
+              <p style="font-size:0.78rem;
+                        color:#888;
+                        margin-top:4px">
+                Based on ${snap.size} deliveries
+              </p>
+            </div>
+          </div>
+
+          <div style="margin-top:16px">
+            <p class="detail-field-label"
+               style="margin-bottom:8px">
+              Pending Invoices
+            </p>
+            ${invoicesHtml}
+          </div>
+        `;
+
+      } catch (err) {
+        console.error('Invoice tracking error:', err);
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>Could not load invoice data</p>
+          </div>
+        `;
+      }
+    }
+
+
+    /* ── Mark invoice paid ─────────────────────── */
+    async function markInvoicePaid(invoiceId) {
+      const confirmed = await confirmDialog(
+        'Mark this invoice as paid?',
+        'Mark as Paid'
+      );
+      if (!confirmed) return;
+
+      try {
+        await db
+          .collection('invoices')
+          .doc(invoiceId)
+          .update({
+            status:  'paid',
+            paidAt:  firebase.firestore
+                       .FieldValue.serverTimestamp(),
+          });
+
+        showToast('Invoice marked as paid!', 'success');
+
+        if (currentBakery) {
+          await loadInvoiceTracking(currentBakery.id);
+        }
+
+      } catch (err) {
+        console.error('Mark paid error:', err);
+        showToast('Failed to update invoice', 'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       TOGGLE ACTIVE
+    ════════════════════════════════════════════ */
+
+    async function toggleActive(bakeryId, isActive) {
+      const action = isActive
+        ? 'deactivate'
+        : 'activate';
+
+      const bakery = allBakeries.find(
+        b => b.id === bakeryId
+      );
+      const name   = bakery?.name || 'this bakery';
+
+      const confirmed = await confirmDialog(
+        isActive
+        ? `Deactivating ${name} will remove it ` +
+          `from routing options and reset any ` +
+          `orders currently assigned to them.`
+        : `Activate ${name}? They will appear ` +
+          `in routing options again.`,
+        `${action.charAt(0).toUpperCase() +
+           action.slice(1)} Bakery`
+      );
+      if (!confirmed) return;
+
+      showLoading();
+
+      try {
+        await db
+          .collection('bakeries')
+          .doc(bakeryId)
+          .update({
+            active:    !isActive,
+            updatedAt: firebase.firestore
+                         .FieldValue.serverTimestamp(),
+          });
+
+        // If deactivating — trigger re-routing
+        if (isActive && bakery) {
+          // Call trigger via API
+          // (server-side handles order resets)
+          console.log(
+            'Bakery deactivated — ' +
+            'orders will be reset server-side'
+          );
+        }
+
+        hideLoading();
+        showToast(
+          `Bakery ${action}d!`,
+          'success'
+        );
+        await loadBakeries();
+
+      } catch (err) {
+        hideLoading();
+        showToast(`Failed to ${action}`, 'error');
+      }
+    }
+
+    async function toggleBakeryActive() {
+      if (!currentBakery) return;
+      const isActive = currentBakery.active !== false;
+      await toggleActive(currentBakery.id, isActive);
+      if (currentBakery) {
+        await showDetailView(currentBakery.id);
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       DELETE BAKERY
+    ════════════════════════════════════════════ */
+
+    async function deleteBakery(bakeryId) {
+      if (!bakeryId) return;
+
+      const bakery = allBakeries.find(b => b.id === bakeryId)
+                  || currentBakery;
+      const name   = bakery?.name || 'this bakery';
+
+      // Check for active orders first
+      let activeOrderCount = 0;
+      try {
+        const activeSnap = await db
+          .collection('orders')
+          .where('bakerId', '==', bakeryId)
+          .where('status', 'not-in', ['delivered', 'cancelled'])
+          .get();
+        activeOrderCount = activeSnap.size;
+      } catch (e) { /* non-fatal */ }
+
+      const warningLine = activeOrderCount > 0
+        ? `⚠️ ${activeOrderCount} active order${activeOrderCount !== 1 ? 's are' : ' is'} currently assigned to this bakery.\n\n`
+        : '';
+
+      const confirmed = await confirmDialog(
+        `${warningLine}Permanently delete "${name}"?\n\nThis will remove the bakery and all their products. This cannot be undone.`,
+        '🗑 Delete Bakery'
+      );
+      if (!confirmed) return;
+
+      showLoading();
+
+      try {
+        // Delete products subcollection first
+        const productsSnap = await db
+          .collection('bakeries')
+          .doc(bakeryId)
+          .collection('products')
+          .get();
+
+        if (!productsSnap.empty) {
+          const batch = db.batch();
+          productsSnap.docs.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
+
+        // Delete the bakery doc itself
+        await db.collection('bakeries').doc(bakeryId).delete();
+
+        hideLoading();
+        showToast(`"${name}" deleted.`, 'success');
+
+        // If we were in detail view, go back to list
+        if (currentBakery?.id === bakeryId) {
+          showListView();
+        }
+
+        await loadBakeries();
+
+      } catch (err) {
+        hideLoading();
+        console.error('Delete bakery error:', err);
+        showToast('Failed to delete bakery', 'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       ADD / EDIT BAKERY MODAL
+    ════════════════════════════════════════════ */
+
+    function showAddBakeryModal() {
+      editingBakery = false;
+      document.getElementById('bakeryModalTitle')
+        .textContent = 'Add Bakery';
+      document.getElementById('bakerySubmitBtn')
+        .textContent = 'Add Bakery →';
+      document.getElementById('bakeryForm').reset();
+      document.getElementById('portalFields')
+        .style.display = 'block';
+      document.getElementById('bakeryModal')
+        .style.display = 'flex';
+    }
+
+    function editBakery(bakeryId) {
+      const b = allBakeries.find(
+        b => b.id === bakeryId
+      );
+      if (!b) return;
+
+      editingBakery = b;
+
+      document.getElementById('bakeryModalTitle')
+        .textContent = 'Edit Bakery';
+      document.getElementById('bakerySubmitBtn')
+        .textContent = 'Save Changes →';
+
+      // Populate fields
+      document.getElementById('bName').value =
+        b.name || '';
+      document.getElementById('bContactName').value =
+        b.contactName || '';
+      document.getElementById('bContactEmail').value =
+        b.contactEmail || '';
+      document.getElementById('bPhone').value =
+        b.phone || '';
+      document.getElementById('bAddress').value =
+        b.address || '';
+      document.getElementById('bServiceArea').value =
+        b.serviceArea || 'Halifax HRM';
+      document.getElementById('bRateNotes').value =
+        b.wholesaleRateNotes || '';
+      document.getElementById('bNotes').value =
+        b.notes || '';
+
+      // Specialties
+      document.querySelectorAll(
+        'input[name="specialty"]'
+      ).forEach(cb => {
+        cb.checked =
+          (b.specialty || []).includes(cb.value);
+      });
+
+      // Dietary
+      document.getElementById('bGlutenFree').checked =
+        !!b.glutenFree;
+      document.getElementById('bNutFree').checked =
+        !!b.nutFree;
+      document.getElementById('bVegan').checked =
+        !!b.vegan;
+      document.getElementById('bKosher').checked =
+        !!b.kosher;
+      document.getElementById('bAllergenFree').checked =
+        !!b.allergenFree;
+
+      // Hide portal fields when editing
+      document.getElementById('portalFields')
+        .style.display = 'none';
+
+      document.getElementById('bakeryModal')
+        .style.display = 'flex';
+    }
+
+    function editCurrentBakery() {
+      if (!currentBakery) return;
+      showListView();
+      setTimeout(() => {
+        editBakery(currentBakery.id);
+      }, 100);
+    }
+
+    function hideBakeryModal() {
+      document.getElementById('bakeryModal')
+        .style.display = 'none';
+      editingBakery = false;
+    }
+
+
+    /* ── Submit bakery form ────────────────────── */
+    async function submitBakery(e) {
+      e.preventDefault();
+
+      const btn =
+        document.getElementById('bakerySubmitBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Saving...';
+
+      // Collect specialties
+      const specialties = Array.from(
+        document.querySelectorAll(
+          'input[name="specialty"]:checked'
+        )
+      ).map(cb => cb.value);
+
+      const bakeryData = {
+        name:         document
+          .getElementById('bName').value.trim(),
+        contactName:  document
+          .getElementById('bContactName').value.trim(),
+        contactEmail: document
+          .getElementById('bContactEmail')
+          .value.trim().toLowerCase(),
+        phone:        document
+          .getElementById('bPhone').value.trim(),
+        address:      document
+          .getElementById('bAddress').value.trim(),
+        serviceArea:  document
+          .getElementById('bServiceArea').value.trim()
+          || 'Halifax HRM',
+        wholesaleRateNotes: document
+          .getElementById('bRateNotes').value.trim(),
+        notes:        document
+          .getElementById('bNotes').value.trim(),
+        specialty:    specialties,
+        glutenFree:   document
+          .getElementById('bGlutenFree').checked,
+        nutFree:      document
+          .getElementById('bNutFree').checked,
+        vegan:        document
+          .getElementById('bVegan').checked,
+        kosher:       document
+          .getElementById('bKosher').checked,
+        allergenFree: document
+          .getElementById('bAllergenFree').checked,
+        active:       true,
+        updatedAt:    firebase.firestore
+                        .FieldValue.serverTimestamp(),
+      };
+
+      try {
+
+        if (editingBakery) {
+          // Update existing
+          await db
+            .collection('bakeries')
+            .doc(editingBakery.id)
+            .update(bakeryData);
+
+          showToast('Bakery updated!', 'success');
+
+        } else {
+          // Create new
+          bakeryData.createdAt =
+            firebase.firestore
+              .FieldValue.serverTimestamp();
+          bakeryData.stats = {
+            activeOrders:      0,
+            deliveredOrders:   0,
+            onTimeDeliveries:  0,
+            totalEarned:       0,
+            unpaidAmount:      0,
+          };
+
+          const bakeryRef = await db
+            .collection('bakeries')
+            .add(bakeryData);
+
+          // Create portal user if email provided
+          const portalEmail = document
+            .getElementById('bPortalEmail')
+            .value.trim().toLowerCase();
+          const portalPwd   = document
+            .getElementById('bPortalPassword')
+            .value;
+
+          if (portalEmail && portalPwd.length >= 8) {
+            try {
+              await apiCall(
+                '/api/auth/create-baker-user',
+                {
+                  method: 'POST',
+                  body:   JSON.stringify({
+                    email:       portalEmail,
+                    password:    portalPwd,
+                    displayName: bakeryData.name,
+                    bakerId:     bakeryRef.id,
+                    bakeryName:  bakeryData.name,
+                  }),
+                }
+              );
+              showToast(
+                'Bakery added + portal access created!',
+                'success'
+              );
+            } catch (authErr) {
+              showToast(
+                'Bakery added but portal setup failed.',
+                'info'
+              );
+            }
+          } else {
+            showToast('Bakery added!', 'success');
+          }
+        }
+
+        hideBakeryModal();
+        await loadBakeries();
+
+      } catch (err) {
+        console.error('Submit bakery error:', err);
+        showToast(
+          err.message || 'Failed to save bakery',
+          'error'
+        );
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = editingBakery
+          ? 'Save Changes →'
+          : 'Add Bakery →';
+      }
+    }
+
+
+    /* ── Mobile menu ───────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+</body>
+</html>

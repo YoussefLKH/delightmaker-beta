@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/daily-scan",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-invoices",
+      "schedule": "0 13 1 * *"
+    }
+  ]
+}

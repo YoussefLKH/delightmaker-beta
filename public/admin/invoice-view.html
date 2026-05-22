@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Invoice — Delightmaker</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background:  #FFFAF5;
+      color:       #2D2D2D;
+      min-height:  100vh;
+    }
+
+    /* ── Screen layout ─────────────────────────── */
+    .screen-wrapper {
+      max-width:  860px;
+      margin:     0 auto;
+      padding:    32px 24px 60px;
+    }
+
+    .screen-toolbar {
+      display:         flex;
+      align-items:     center;
+      justify-content: space-between;
+      margin-bottom:   28px;
+      gap:             12px;
+      flex-wrap:       wrap;
+    }
+
+    .screen-back {
+      display:         flex;
+      align-items:     center;
+      gap:             8px;
+      color:           #888;
+      text-decoration: none;
+      font-size:       0.88rem;
+      font-weight:     600;
+      transition:      color 0.15s;
+    }
+
+    .screen-back:hover { color: #FF6B6B; }
+
+    .toolbar-actions {
+      display: flex;
+      gap:     10px;
+    }
+
+    .btn {
+      display:         inline-flex;
+      align-items:     center;
+      gap:             7px;
+      padding:         10px 20px;
+      border-radius:   100px;
+      font-size:       0.88rem;
+      font-weight:     700;
+      cursor:          pointer;
+      border:          none;
+      transition:      all 0.15s;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: #FF6B6B;
+      color:      white;
+    }
+
+    .btn-primary:hover {
+      background:  #E85555;
+      transform:   translateY(-1px);
+      box-shadow:  0 4px 14px rgba(255,107,107,0.35);
+    }
+
+    .btn-outline {
+      background:  white;
+      color:       #2D2D2D;
+      border:      2px solid #E0E0E0;
+    }
+
+    .btn-outline:hover {
+      border-color: #FF6B6B;
+      color:        #FF6B6B;
+    }
+
+    .btn-paid {
+      background: #E8F5E9;
+      color:      #2E7D32;
+      border:     2px solid #A5D6A7;
+    }
+
+    /* ── Status badge ──────────────────────────── */
+    .status-badge {
+      display:       inline-flex;
+      align-items:   center;
+      gap:           5px;
+      padding:       4px 12px;
+      border-radius: 100px;
+      font-size:     0.78rem;
+      font-weight:   700;
+    }
+
+    .status-pending  {
+      background: #FFF8E1;
+      color:      #F57F17;
+      border:     1px solid #FFE082;
+    }
+
+    .status-submitted {
+      background: #E3F2FD;
+      color:      #1565C0;
+      border:     1px solid #90CAF9;
+    }
+
+    .status-paid {
+      background: #E8F5E9;
+      color:      #2E7D32;
+      border:     1px solid #A5D6A7;
+    }
+
+    /* ── Loading / Error ───────────────────────── */
+    .page-loading,
+    .page-error {
+      display:         flex;
+      flex-direction:  column;
+      align-items:     center;
+      justify-content: center;
+      padding:         80px 24px;
+      text-align:      center;
+      gap:             12px;
+      color:           #888;
+    }
+
+    .page-loading-spinner {
+      width:  36px;
+      height: 36px;
+      border: 3px solid #F0E6D2;
+      border-top-color: #FF6B6B;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+
+    /* ══════════════════════════════════════════
+       INVOICE DOCUMENT
+       Everything inside .invoice-doc is what
+       gets printed — keep it clean
+    ═══════════════════════════════════════════ */
+
+    .invoice-doc {
+      background:    white;
+      border-radius: 16px;
+      box-shadow:    0 4px 24px rgba(0,0,0,0.08);
+      overflow:      hidden;
+    }
+
+    /* ── Invoice header ────────────────────────── */
+    .inv-header {
+      background:  #2D2D2D;
+      padding:     28px 36px;
+      display:     flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .inv-logo {
+      font-size:   1.3rem;
+      font-weight: 700;
+      color:       white;
+    }
+
+    .inv-meta {
+      text-align: right;
+    }
+
+    .inv-meta-label {
+      font-size:      0.68rem;
+      font-weight:    700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color:          #FFD93D;
+      margin-bottom:  4px;
+    }
+
+    .inv-number {
+      font-size:   0.95rem;
+      font-weight: 700;
+      color:       white;
+    }
+
+    /* ── Invoice body ──────────────────────────── */
+    .inv-body {
+      padding: 36px;
+    }
+
+    /* Bill to / From */
+    .inv-parties {
+      display:     flex;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      gap:         24px;
+    }
+
+    .inv-party-label {
+      font-size:      0.68rem;
+      font-weight:    700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color:          #888;
+      margin-bottom:  6px;
+    }
+
+    .inv-party-name {
+      font-family:   'Libre Baskerville', serif;
+      font-size:     1.1rem;
+      font-weight:   700;
+      color:         #2D2D2D;
+      margin-bottom: 3px;
+    }
+
+    .inv-party-sub {
+      font-size: 0.83rem;
+      color:     #888;
+    }
+
+    /* Total highlight box */
+    .inv-total-box {
+      background:    #FFFAF5;
+      border:        2px solid #FFD93D;
+      border-radius: 12px;
+      padding:       20px 24px;
+      margin-bottom: 28px;
+    }
+
+    .inv-total-label {
+      font-size:      0.68rem;
+      font-weight:    700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color:          #888;
+      margin-bottom:  6px;
+    }
+
+    .inv-total-amount {
+      font-family:   'Libre Baskerville', serif;
+      font-size:     2.2rem;
+      font-weight:   700;
+      color:         #2D2D2D;
+    }
+
+    .inv-total-currency {
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.9rem;
+      font-weight:   500;
+      color:         #888;
+      margin-left:   6px;
+    }
+
+    .inv-total-sub {
+      font-size:  0.82rem;
+      color:      #888;
+      margin-top: 4px;
+    }
+
+    /* Line items table */
+    .inv-table {
+      width:           100%;
+      border-collapse: collapse;
+      font-size:       0.88rem;
+    }
+
+    .inv-table th {
+      padding:        9px 10px;
+      font-size:      0.68rem;
+      font-weight:    700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color:          #888;
+      text-align:     left;
+      border-bottom:  2px solid #F0F0F0;
+      background:     #FAFAFA;
+    }
+
+    .inv-table th.right,
+    .inv-table td.right {
+      text-align: right;
+    }
+
+    .inv-table td {
+      padding:       10px 10px;
+      border-bottom: 1px solid #F5F5F5;
+      color:         #2D2D2D;
+    }
+
+    .inv-table td.muted  { color: #888; }
+    .inv-table td.bold   { font-weight: 700; }
+    .inv-table td.green  {
+      color:       #2E7D32;
+      font-weight: 700;
+    }
+
+    .inv-table tfoot td {
+      border-top:    2px solid #2D2D2D;
+      border-bottom: none;
+      padding:       14px 10px;
+      font-weight:   700;
+    }
+
+    /* ── Invoice footer ────────────────────────── */
+    .inv-footer {
+      background:  #F8F8F8;
+      border-top:  1px solid #eee;
+      padding:     20px 36px;
+      display:     flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size:   0.78rem;
+      color:       #AAA;
+      gap:         16px;
+    }
+
+    .inv-footer-note {
+      color: #BBB;
+    }
+
+    .inv-status-wrap {
+      display:     flex;
+      align-items: center;
+      gap:         8px;
+    }
+
+
+    /* ══════════════════════════════════════════
+       PRINT STYLES
+       Only the .invoice-doc gets printed
+    ═══════════════════════════════════════════ */
+
+    @media print {
+      body {
+        background: white;
+        padding:    0;
+        margin:     0;
+      }
+
+      .screen-toolbar,
+      .screen-back {
+        display: none !important;
+      }
+
+      .screen-wrapper {
+        padding:   0;
+        max-width: 100%;
+      }
+
+      .invoice-doc {
+        box-shadow:    none;
+        border-radius: 0;
+      }
+
+      /* Ensure table rows don't split across pages */
+      .inv-table tr {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="screen-wrapper">
+
+    <!-- ── Toolbar (hidden when printing) ───── -->
+    <div class="screen-toolbar">
+      <a href="/admin/invoices" class="screen-back">
+        ← Back to Invoices
+      </a>
+      <div class="toolbar-actions">
+        <button class="btn btn-outline"
+                id="markPaidBtn"
+                style="display:none"
+                onclick="markAsPaid()">
+          ✅ Mark as Paid
+        </button>
+        <button class="btn btn-primary"
+                onclick="window.print()">
+          🖨️ Print / Save PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Loading state ─────────────────────── -->
+    <div id="loadingState" class="page-loading">
+      <div class="page-loading-spinner"></div>
+      <p>Loading invoice…</p>
+    </div>
+
+    <!-- ── Error state ───────────────────────── -->
+    <div id="errorState"
+         class="page-error"
+         style="display:none">
+      <div style="font-size:2.5rem">⚠️</div>
+      <p id="errorMsg">Invoice not found.</p>
+      <a href="/admin/invoices"
+         class="btn btn-outline"
+         style="margin-top:8px">
+        ← Back to Invoices
+      </a>
+    </div>
+
+    <!-- ── Invoice document ──────────────────── -->
+    <div id="invoiceDoc"
+         class="invoice-doc"
+         style="display:none">
+
+      <!-- Header -->
+      <div class="inv-header">
+        <div class="inv-logo">🧁 Delightmaker</div>
+        <div class="inv-meta">
+          <div class="inv-meta-label">Invoice</div>
+          <div class="inv-number" id="invNumber">—</div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="inv-body">
+
+        <!-- Parties -->
+        <div class="inv-parties">
+          <div>
+            <div class="inv-party-label">Bill to</div>
+            <div class="inv-party-name">Delightmaker</div>
+            <div class="inv-party-sub">Halifax, NS 🇨🇦</div>
+          </div>
+          <div style="text-align:right">
+            <div class="inv-party-label">From</div>
+            <div class="inv-party-name"
+                 id="invBakeryName">—</div>
+            <div class="inv-party-sub"
+                 id="invPeriod">—</div>
+          </div>
+        </div>
+
+        <!-- Total box -->
+        <div class="inv-total-box">
+          <div class="inv-total-label">Total Owed</div>
+          <div>
+            <span class="inv-total-amount"
+                  id="invTotalAmount">$0.00</span>
+            <span class="inv-total-currency">CAD</span>
+          </div>
+          <div class="inv-total-sub"
+               id="invOrderCount">—</div>
+        </div>
+
+        <!-- Line items -->
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Company</th>
+              <th>Employee</th>
+              <th>Treat</th>
+              <th class="right">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="invTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4">Total</td>
+              <td class="right green"
+                  id="invTableTotal">$0.00 CAD</td>
+            </tr>
+          </tfoot>
+        </table>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="inv-footer">
+        <div>
+          Delightmaker · Halifax, NS 🇨🇦 ·
+          delightmaker.ca
+        </div>
+        <div class="inv-status-wrap">
+          <span id="invStatusBadge"
+                class="status-badge status-pending">
+            ⏳ Pending
+          </span>
+        </div>
+      </div>
+
+    </div><!-- /invoice-doc -->
+
+  </div><!-- /screen-wrapper -->
+
+
+  <!-- Firebase + Auth -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    let invoiceId   = null;
+    let invoiceData = null;
+
+    requireAuth('admin').then(async user => {
+      // Get invoice ID from URL
+      const params = new URLSearchParams(
+        window.location.search
+      );
+      invoiceId = params.get('id');
+
+      if (!invoiceId) {
+        showError('No invoice ID provided.');
+        return;
+      }
+
+      await loadInvoice(user);
+    });
+
+
+    async function loadInvoice(user) {
+      try {
+        // Read directly from Firestore — no REST hop needed
+        const invoiceDoc = await db
+          .collection('invoices')
+          .doc(invoiceId)
+          .get();
+
+        if (!invoiceDoc.exists) {
+          showError('Invoice not found.');
+          return;
+        }
+
+        // Convert Firestore doc to plain object,
+        // preserving Firestore Timestamp objects so
+        // renderInvoice can call .toDate() on them
+        invoiceData = { id: invoiceDoc.id, ...invoiceDoc.data() };
+        renderInvoice(invoiceData, user);
+
+      } catch (err) {
+        console.error('Load invoice error:', err);
+        showError('Failed to load invoice: ' + err.message);
+      }
+    }
+
+
+    async function renderInvoice(inv, user) {
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+      const monthLabel =
+        `${months[(inv.month || 1) - 1]} ${inv.year}`;
+
+      // Header fields
+      document.getElementById('invNumber')
+        .textContent = inv.invoiceNumber || `INV-${inv.id.slice(-6)}`;
+      document.getElementById('invBakeryName')
+        .textContent = inv.bakeryName || '—';
+      document.getElementById('invPeriod')
+        .textContent = `Period: ${monthLabel}`;
+
+      const total = inv.totalAmount || 0;
+      document.getElementById('invTotalAmount')
+        .textContent = `$${total.toFixed(2)}`;
+      document.getElementById('invOrderCount')
+        .textContent =
+          `${inv.orderCount || 0} order${
+            inv.orderCount !== 1 ? 's' : ''
+          } delivered in ${monthLabel}`;
+
+      document.getElementById('invTableTotal')
+        .textContent = `$${total.toFixed(2)} CAD`;
+
+      // Status badge
+      const badge =
+        document.getElementById('invStatusBadge');
+      const statusMap = {
+        pending:   ['status-pending',   '⏳ Pending'],
+        submitted: ['status-submitted', '📋 Submitted'],
+        paid:      ['status-paid',      '✅ Paid'],
+      };
+      const [cls, label] =
+        statusMap[inv.status] ||
+        statusMap['pending'];
+      badge.className = `status-badge ${cls}`;
+      badge.textContent = label;
+
+      // Show "Mark as Paid" only for admin + unpaid
+      if (
+        user.role === 'admin' &&
+        inv.status !== 'paid'
+      ) {
+        document.getElementById('markPaidBtn')
+          .style.display = 'inline-flex';
+      }
+
+      // Line items — if the invoice doc has none
+      // (old manual submits), fetch orders directly
+      const tbody =
+        document.getElementById('invTableBody');
+
+      let lineItems = inv.lineItems || [];
+
+      if (lineItems.length === 0 && inv.orderCount > 0) {
+        try {
+          const start = new Date(inv.year, inv.month - 1, 1);
+          const end   = new Date(inv.year, inv.month,     1);
+          const snap  = await db
+            .collection('orders')
+            .where('bakerId',      '==', inv.bakerId)
+            .where('deliveryDate', '>=',
+              firebase.firestore.Timestamp.fromDate(start))
+            .where('deliveryDate', '<',
+              firebase.firestore.Timestamp.fromDate(end))
+            .orderBy('deliveryDate', 'asc')
+            .get();
+
+          lineItems = snap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(o =>
+              o.chargeStatus === 'paid' ||
+              o.status === 'delivered'
+            )
+            .map(o => ({
+              orderId:      o.id,
+              deliveryDate: o.deliveryDate,
+              companyName:  o.companyName  || o.companyId  || '—',
+              employeeName: o.employeeName || '—',
+              productName:  o.productName  || '—',
+              amount: typeof o.chargeAmount === 'number'
+                ? o.chargeAmount : 0,
+            }));
+        } catch (e) {
+          console.warn('Could not fetch fallback orders:', e);
+        }
+      }
+
+      if (lineItems.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5"
+                style="text-align:center;
+                       color:#888;padding:24px">
+              No line items recorded
+            </td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = lineItems.map(li => {
+          const dateStr = li.deliveryDate
+            ? (li.deliveryDate.toDate
+                ? li.deliveryDate.toDate()
+                : li.deliveryDate._seconds
+                ? new Date(li.deliveryDate._seconds * 1000)
+                : new Date(li.deliveryDate)
+              ).toLocaleDateString('en-CA', {
+                month: 'short',
+                day:   'numeric',
+              })
+            : '—';
+
+          const amount = li.amount || 0;
+
+          return `
+            <tr>
+              <td class="muted"
+                  style="white-space:nowrap">
+                ${dateStr}
+              </td>
+              <td class="bold">
+                ${li.companyName || '—'}
+              </td>
+              <td>${li.employeeName || '—'}</td>
+              <td>${li.productName || '—'}</td>
+              <td class="right green">
+                $${amount.toFixed(2)}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Show document
+      document.getElementById('loadingState')
+        .style.display = 'none';
+      document.getElementById('invoiceDoc')
+        .style.display = 'block';
+
+      // Update page title
+      document.title =
+        `${inv.invoiceNumber || 'Invoice'} — Delightmaker`;
+    }
+
+
+    async function markAsPaid() {
+      const confirmed = await confirmDialog(
+        `Mark invoice ${
+          invoiceData?.invoiceNumber || ''
+        } as paid? This will notify the baker.`,
+        'Mark as Paid'
+      );
+      if (!confirmed) return;
+
+      const btn =
+        document.getElementById('markPaidBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        const res = await apiCall(
+          `/api/invoices/${invoiceId}/paid`,
+          { method: 'PATCH' }
+        );
+
+        if (res.ok) {
+          showToast(
+            '✅ Invoice marked as paid! ' +
+            'Baker has been notified.',
+            'success', 4000
+          );
+
+          // Update badge
+          const badge =
+            document.getElementById('invStatusBadge');
+          badge.className =
+            'status-badge status-paid';
+          badge.textContent = '✅ Paid';
+
+          btn.style.display = 'none';
+
+          // Update local data
+          if (invoiceData) invoiceData.status = 'paid';
+
+        } else {
+          const data = await res.json();
+          showToast(
+            data.error || 'Failed to mark as paid',
+            'error'
+          );
+          btn.disabled    = false;
+          btn.textContent = '✅ Mark as Paid';
+        }
+      } catch (err) {
+        showToast('Action failed', 'error');
+        btn.disabled    = false;
+        btn.textContent = '✅ Mark as Paid';
+      }
+    }
+
+
+    function showError(msg) {
+      document.getElementById('loadingState')
+        .style.display = 'none';
+      document.getElementById('errorState')
+        .style.display = 'flex';
+      document.getElementById('errorMsg')
+        .textContent = msg;
+    }
+
+  </script>
+
+</body>
+</html>

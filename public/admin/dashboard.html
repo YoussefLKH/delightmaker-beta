@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Delightmaker Admin</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard"
+         class="nav-item active">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin/clients"
+         class="nav-item">
+        <span class="nav-icon">🏢</span>
+        <span class="nav-label">Clients</span>
+      </a>
+      <a href="/admin/orders"
+         class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+        <span class="nav-badge"
+               id="pendingBadge"
+               style="display:none">0</span>
+      </a>
+      <a href="/admin/bakeries"
+         class="nav-item">
+        <span class="nav-icon">🧁</span>
+        <span class="nav-label">Bakeries</span>
+      </a>
+      <a href="/admin/revenue"
+         class="nav-item">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Revenue</span>
+      </a>
+      <a href="/admin/applications"
+         class="nav-item">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Applications</span>
+      </a>
+      <a href="/admin/invoices"
+         class="nav-item">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Invoices</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">C</div>
+        <div class="user-info">
+          <p class="user-name">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- Top bar -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn"
+                id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Dashboard</h1>
+          <p class="dash-subtitle"
+             id="dateDisplay">
+            Loading...
+          </p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <button class="btn-icon"
+                onclick="runManualScan()"
+                title="Run daily scan now">
+          🔄
+        </button>
+        <button class="btn-icon"
+                onclick="scanExceptions()"
+                title="Scan for exceptions">
+          🤖
+        </button>
+      </div>
+    </header>
+
+
+    <!-- ── KPI CARDS ──────────────────────── -->
+    <section class="kpi-grid">
+
+      <div class="kpi-card">
+        <div class="kpi-icon">🏢</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Active Clients</p>
+          <p class="kpi-value"
+             id="kpiClients">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon">📦</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Orders This Month</p>
+          <p class="kpi-value"
+             id="kpiOrders">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-alert">
+        <div class="kpi-icon">⏳</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Pending Routing</p>
+          <p class="kpi-value"
+             id="kpiPending">—</p>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ── TWO COLUMN LAYOUT ──────────────── -->
+    <div class="dash-grid">
+
+
+      <!-- ── ALERTS PANEL ───────────────── -->
+      <section class="dash-card">
+
+        <div class="card-header">
+          <h2 class="card-title">
+            ⚠️ Alerts
+          </h2>
+          <button class="card-action"
+                  onclick="scanExceptions()">
+            Scan Now
+          </button>
+        </div>
+
+        <div id="alertsPanel">
+          <div class="empty-state">
+            <p>Scanning for issues...</p>
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ── UPCOMING ORDERS ─────────────── -->
+      <section class="dash-card">
+
+        <div class="card-header">
+          <h2 class="card-title">
+            📅 Next 14 Days
+          </h2>
+          <a href="/admin/orders"
+             class="card-action">
+            View All
+          </a>
+        </div>
+
+        <div id="upcomingOrders">
+          <div class="loading-rows">
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+
+    <!-- ── QUICK ACTIONS ──────────────────── -->
+    <section class="dash-card quick-actions-card">
+      <div class="card-header">
+        <h2 class="card-title">⚡ Quick Actions</h2>
+      </div>
+      <div class="quick-actions-grid">
+        <a href="/admin/clients"
+           class="quick-action">
+          <span class="qa-icon">🏢</span>
+          <span class="qa-label">Add Client</span>
+        </a>
+        <a href="orders.html?filter=unrouted"
+           class="quick-action">
+          <span class="qa-icon">📦</span>
+          <span class="qa-label">Route Orders</span>
+        </a>
+        <a href="/admin/bakeries"
+           class="quick-action">
+          <span class="qa-icon">🧁</span>
+          <span class="qa-label">Manage Bakeries</span>
+        </a>
+        <a href="/admin/revenue"
+           class="quick-action">
+          <span class="qa-icon">💰</span>
+          <span class="qa-label">View Revenue</span>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('admin').then(user => {
+      initDashboard();
+    });
+
+
+    // ── Set date display ──────────────────────────
+    document.getElementById('dateDisplay')
+      .textContent = new Date().toLocaleDateString(
+        'en-CA', {
+          weekday: 'long',
+          year:    'numeric',
+          month:   'long',
+          day:     'numeric',
+        }
+      );
+
+
+    // ── Init dashboard ────────────────────────────
+    async function initDashboard() {
+      await Promise.all([
+        loadKPIs(),
+        loadUpcomingOrders(),
+        loadAlerts(),
+      ]);
+    }
+
+
+    /* ── LOAD KPI CARDS ────────────────────────── */
+    async function loadKPIs() {
+      try {
+        const res = await apiCall(
+          '/api/orders/stats/summary'
+        );
+        if (!res) return;
+
+        const data = await res.json();
+        if (!data.success) return;
+
+        const s = data.stats;
+
+        document.getElementById('kpiClients')
+          .textContent = s.activeClients ?? '—';
+
+        document.getElementById('kpiOrders')
+          .textContent = s.ordersThisMonth ?? '—';
+
+        const pending =
+          (s.pendingConfirm || 0) +
+          (s.pendingRouting || 0);
+        document.getElementById('kpiPending')
+          .textContent = pending;
+
+        // Show badge on orders nav if pending
+        if (pending > 0) {
+          const badge =
+            document.getElementById('pendingBadge');
+          badge.textContent = pending;
+          badge.style.display = 'inline-flex';
+        }
+
+        // Highlight KPI card if pending > 0
+        if (pending > 0) {
+          document.querySelector('.kpi-alert')
+            .classList.add('kpi-alert-active');
+        }
+
+      } catch (err) {
+        console.error('KPI load error:', err);
+      }
+    }
+
+
+    /* ── LOAD UPCOMING ORDERS ──────────────────── */
+    async function loadUpcomingOrders() {
+      const container =
+        document.getElementById('upcomingOrders');
+
+      try {
+        const res = await apiCall(
+          '/api/orders?days=14&limit=10'
+        );
+        if (!res) return;
+
+        const data = await res.json();
+
+        if (!data.success ||
+            data.orders.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <span>🎉</span>
+              <p>No orders in the next 14 days</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = data.orders
+          .map(order => renderOrderRow(order))
+          .join('');
+
+      } catch (err) {
+        console.error('Upcoming orders error:', err);
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>Failed to load orders</p>
+          </div>
+        `;
+      }
+    }
+
+
+    /* ── RENDER ORDER ROW ──────────────────────── */
+    function renderOrderRow(order) {
+      const badge   = getStatusBadge(order.status);
+      const dateStr = formatDateShort(
+        order.deliveryDate
+      );
+      const days    = daysUntil(order.deliveryDate);
+
+      const daysLabel = days === 0
+        ? '<span style="color:#C62828;font-weight:700">Today</span>'
+        : days === 1
+        ? '<span style="color:#E65100;font-weight:700">Tomorrow</span>'
+        : `<span style="color:#888">In ${days}d</span>`;
+
+      const dietaryHtml =
+        order.dietaryFlags &&
+        order.dietaryFlags.length > 0
+        ? `<span class="dietary-warning">
+             ⚠️ ${order.dietaryFlags.join(', ')}
+           </span>`
+        : '';
+
+      const actionBtn =
+        order.status === 'confirmed'
+        ? `<button class="btn-route"
+                   onclick="openRouteModal('${
+                     order.id
+                   }')">
+             Route →
+           </button>`
+        : order.status === 'scheduled' ||
+          order.status === 'pending_confirmation'
+        ? `<a href="/admin/orders"
+              class="btn-view">View</a>`
+        : `<span class="status-dot"
+                style="background:${badge.bg};
+                       color:${badge.color}">
+             ${badge.icon} ${badge.label}
+           </span>`;
+
+      return `
+        <div class="order-row">
+          <div class="order-row-left">
+            <div class="order-date-badge">
+              <span class="order-date-num">
+                ${new Date(order.deliveryDate)
+                    .getDate()}
+              </span>
+              <span class="order-date-mon">
+                ${new Date(order.deliveryDate)
+                    .toLocaleDateString('en-CA', {
+                      month: 'short'
+                    })}
+              </span>
+            </div>
+            <div class="order-details">
+              <p class="order-employee">
+                ${order.employeeName}
+                ${daysLabel}
+              </p>
+              <p class="order-meta">
+                ${order.productName}
+                ${dietaryHtml}
+              </p>
+              <p class="order-company"
+                 style="color:#888;
+                        font-size:0.78rem">
+                ${order.companyId}
+              </p>
+            </div>
+          </div>
+          <div class="order-row-right">
+            ${actionBtn}
+          </div>
+        </div>
+      `;
+    }
+
+
+    /* ── LOAD ALERTS ───────────────────────────── */
+    async function loadAlerts() {
+      const panel =
+        document.getElementById('alertsPanel');
+
+      try {
+        // Get exception orders from Firestore
+        const res = await apiCall(
+          '/api/orders?status=exception&limit=10'
+        );
+        if (!res) return;
+
+        const data = await res.json();
+
+        // Also get pending confirmation count
+        const pendingRes = await apiCall(
+          '/api/orders?status=pending_confirmation' +
+          '&limit=20'
+        );
+        const pendingData = pendingRes
+          ? await pendingRes.json()
+          : null;
+
+        const alerts = [];
+
+        // Add exception alerts
+        if (data.success && data.orders.length > 0) {
+          data.orders.forEach(order => {
+            alerts.push({
+              type:    'exception',
+              message: `Order for ${
+                order.employeeName
+              } needs attention`,
+              detail:  order.exceptionReason ||
+                       'Flagged as exception',
+              orderId: order.id,
+              severity: 'critical',
+            });
+          });
+        }
+
+        // Check for overdue confirmations (48hr+)
+        if (pendingData?.success) {
+          pendingData.orders.forEach(order => {
+            if (!order.confirmationSentAt) return;
+
+            const sent = new Date(
+              order.confirmationSentAt
+            );
+            const hoursAgo =
+              (Date.now() - sent.getTime()) /
+              (1000 * 60 * 60);
+
+            if (hoursAgo >= 48) {
+              alerts.push({
+                type:    'overdue',
+                message: `${order.employeeName} — ` +
+                         `no response in 48hrs`,
+                detail:  'Order will auto-confirm soon',
+                orderId: order.id,
+                severity: 'high',
+              });
+            }
+          });
+        }
+
+        if (alerts.length === 0) {
+          panel.innerHTML = `
+            <div class="empty-state success">
+              <span>✅</span>
+              <p>No alerts — everything looks good!</p>
+            </div>
+          `;
+          return;
+        }
+
+        panel.innerHTML = alerts
+          .map(a => renderAlert(a))
+          .join('');
+
+      } catch (err) {
+        console.error('Alerts load error:', err);
+        panel.innerHTML = `
+          <div class="empty-state">
+            <p>Could not load alerts</p>
+          </div>
+        `;
+      }
+    }
+
+
+    /* ── RENDER ALERT ──────────────────────────── */
+    function renderAlert(alert) {
+      const colors = {
+        critical: {
+          bg:    '#FFEBEE',
+          color: '#C62828',
+          icon:  '🚨',
+        },
+        high: {
+          bg:    '#FFF3E0',
+          color: '#E65100',
+          icon:  '⚠️',
+        },
+        medium: {
+          bg:    '#E3F2FD',
+          color: '#1565C0',
+          icon:  'ℹ️',
+        },
+      };
+
+      const c = colors[alert.severity] ||
+                colors.medium;
+
+      return `
+        <div class="alert-item"
+             style="border-left: 3px solid ${
+               c.color
+             }">
+          <div class="alert-icon"
+               style="color:${c.color}">
+            ${c.icon}
+          </div>
+          <div class="alert-body">
+            <p class="alert-message">
+              ${alert.message}
+            </p>
+            <p class="alert-detail">
+              ${alert.detail}
+            </p>
+          </div>
+          <a href="/admin/orders"
+             class="alert-action"
+             style="color:${c.color}">
+            Fix →
+          </a>
+        </div>
+      `;
+    }
+
+
+    /* ── ROUTE MODAL (Simple) ──────────────────── */
+    function openRouteModal(orderId) {
+      // Store order ID and navigate to orders page
+      // with the route modal pre-opened
+      sessionStorage.setItem(
+        'routeOrderId', orderId
+      );
+      window.location.href =
+        `orders.html?route=${orderId}`;
+    }
+
+
+    /* ── SCAN EXCEPTIONS (AI) ──────────────────── */
+    async function scanExceptions() {
+      showToast('Scanning for issues...', 'info');
+
+      try {
+        const res = await apiCall(
+          '/api/claude/scan-exceptions',
+          { method: 'POST' }
+        );
+
+        if (!res || !res.ok) {
+          showToast('Scan failed', 'error');
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.exceptions &&
+            data.exceptions.length > 0) {
+          showToast(
+            `Found ${data.exceptions.length} ` +
+            `issue(s). Refreshing...`,
+            'error'
+          );
+          setTimeout(() => loadAlerts(), 1500);
+        } else {
+          showToast(
+            'No issues found! ✅',
+            'success'
+          );
+        }
+
+      } catch (err) {
+        showToast('Scan failed', 'error');
+      }
+    }
+
+
+    /* ── MANUAL SCAN ───────────────────────────── */
+    async function runManualScan() {
+      const confirmed = await confirmDialog(
+        'Run the daily order scan now? ' +
+        'This will check all employees for ' +
+        'upcoming events and create any ' +
+        'missing orders.',
+        'Run Daily Scan'
+      );
+
+      if (!confirmed) return;
+
+      showLoading();
+
+      try {
+        // Trigger via backend
+        const res = await apiCall(
+          '/api/orders/stats/summary'
+        );
+
+        hideLoading();
+        showToast(
+          'Scan complete! Dashboard refreshed.',
+          'success'
+        );
+        await initDashboard();
+
+      } catch (err) {
+        hideLoading();
+        showToast('Scan failed', 'error');
+      }
+    }
+
+
+    /* ── MOBILE MENU ───────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+</body>
+</html>

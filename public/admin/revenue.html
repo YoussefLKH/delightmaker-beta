@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Revenue — Delightmaker Admin</title>
+ 
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+ 
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+ 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+ 
+<body class="dash-body">
+ 
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+ 
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+ 
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin/clients" class="nav-item">
+        <span class="nav-icon">🏢</span>
+        <span class="nav-label">Clients</span>
+      </a>
+      <a href="/admin/orders" class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+      </a>
+      <a href="/admin/bakeries" class="nav-item">
+        <span class="nav-icon">🧁</span>
+        <span class="nav-label">Bakeries</span>
+      </a>
+      <a href="/admin/revenue" class="nav-item active">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Revenue</span>
+      </a>
+      <a href="/admin/applications" class="nav-item">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Applications</span>
+      </a>
+      <a href="/admin/invoices" class="nav-item">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Invoices</span>
+      </a>
+    </nav>
+ 
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">C</div>
+        <div class="user-info">
+          <p class="user-name">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+ 
+  </aside>
+ 
+ 
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+ 
+    <!-- Top bar -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn"
+                id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Revenue</h1>
+          <p class="dash-subtitle"
+             id="periodLabel">Loading...</p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <select id="monthSelector"
+                class="filter-select"
+                onchange="loadRevenue()">
+          <!-- Populated by JS -->
+        </select>
+        <button class="btn btn-outline"
+                onclick="exportCSV()">
+          Export CSV
+        </button>
+      </div>
+    </header>
+ 
+ 
+    <!-- ── KPI CARDS ──────────────────────── -->
+    <section class="kpi-grid">
+ 
+      <div class="kpi-card">
+        <div class="kpi-icon">💵</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Revenue Billed</p>
+          <p class="kpi-value" id="kpiRevenue">—</p>
+        </div>
+      </div>
+ 
+      <div class="kpi-card">
+        <div class="kpi-icon">🧁</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Bakery Costs</p>
+          <p class="kpi-value" id="kpiBakeryCosts">—</p>
+        </div>
+      </div>
+ 
+      <div class="kpi-card">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Gross Margin</p>
+          <p class="kpi-value" id="kpiMargin">—</p>
+        </div>
+      </div>
+ 
+      <div class="kpi-card">
+        <div class="kpi-icon">📦</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Deliveries</p>
+          <p class="kpi-value" id="kpiDeliveries">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-card--refund">
+        <div class="kpi-icon">↩️</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Refunds Issued</p>
+          <p class="kpi-value" id="kpiRefunds">—</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── P&L SUMMARY BAR ───────────────────── -->
+    <section class="dash-card pnl-bar" id="pnlBar" style="display:none">
+      <div class="pnl-item">
+        <span class="pnl-label">Gross Revenue</span>
+        <span class="pnl-val" id="pnlGross">—</span>
+      </div>
+      <span class="pnl-sep">−</span>
+      <div class="pnl-item pnl-item--red">
+        <span class="pnl-label">Refunds</span>
+        <span class="pnl-val" id="pnlRefunds">—</span>
+      </div>
+      <span class="pnl-sep">=</span>
+      <div class="pnl-item pnl-item--green">
+        <span class="pnl-label">Net Revenue</span>
+        <span class="pnl-val pnl-val--strong" id="pnlNet">—</span>
+      </div>
+    </section>
+ 
+ 
+    <!-- ── CLAUDE INSIGHT BANNER ──────────── -->
+    <section class="dash-card insight-banner"
+             id="insightBanner"
+             style="display:none">
+      <div class="insight-icon">🤖</div>
+      <div class="insight-body">
+        <p class="insight-title">Monthly Insight</p>
+        <p class="insight-text"
+           id="insightText">Loading...</p>
+      </div>
+      <button class="insight-refresh"
+              onclick="generateInsight()"
+              title="Regenerate insight">
+        🔄
+      </button>
+    </section>
+ 
+ 
+    <!-- ── TWO COLUMN LAYOUT ──────────────── -->
+    <div class="dash-grid">
+ 
+ 
+      <!-- ── PER CLIENT BREAKDOWN ────────── -->
+      <section class="dash-card">
+        <div class="card-header">
+          <h2 class="card-title">
+            🏢 Per Client Breakdown
+          </h2>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Orders</th>
+                <th>Billed</th>
+                <th>Bakery Cost</th>
+                <th>Margin</th>
+              </tr>
+            </thead>
+            <tbody id="clientBreakdownBody">
+              <tr>
+                <td colspan="5" class="table-loading">
+                  <div class="loading-rows">
+                    <div class="loading-row"></div>
+                    <div class="loading-row"></div>
+                    <div class="loading-row"></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+ 
+ 
+    </div><!-- /dash-grid -->
+ 
+ 
+    <!-- ── PER ORDER LEDGER ───────────────── -->
+    <section class="dash-card table-card">
+ 
+      <div class="card-header">
+        <h2 class="card-title">
+          📋 Order Ledger
+        </h2>
+        <span class="card-action"
+              id="ledgerCount"
+              style="color:#888;font-size:0.85rem">
+        </span>
+      </div>
+ 
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date</th>
+              <th>Company</th>
+              <th>Employee</th>
+              <th>Product</th>
+              <th>Billed</th>
+              <th>Cost</th>
+              <th>Stripe Fee</th>
+              <th>Net</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerBody">
+            <tr>
+              <td colspan="9" class="table-loading">
+                <div class="loading-rows">
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+ 
+    </section>
+ 
+  </main>
+ 
+ 
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+ 
+    // ── State ─────────────────────────────────────
+    let revenueData      = null;
+    let allOrders        = [];   // delivered orders
+    let allRefundOrders  = [];   // cancelled + refunded orders
+    let selectedMonth    = null;
+    let selectedYear     = null;
+ 
+ 
+    // ── Auth guard ────────────────────────────────
+    requireAuth('admin').then(() => {
+      buildMonthSelector();
+      loadRevenue();
+    });
+ 
+ 
+    /* ── Build month selector dropdown ────────── */
+    function buildMonthSelector() {
+      const sel   = document.getElementById('monthSelector');
+      const now   = new Date();
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+ 
+      // Show last 12 months
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(
+          now.getFullYear(),
+          now.getMonth() - i,
+          1
+        );
+        const val = `${d.getFullYear()}-${
+          String(d.getMonth() + 1).padStart(2, '0')
+        }`;
+        const label =
+          `${months[d.getMonth()]} ${d.getFullYear()}`;
+ 
+        const opt       = document.createElement('option');
+        opt.value       = val;
+        opt.textContent = label;
+        if (i === 0) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+ 
+ 
+    /* ════════════════════════════════════════════
+       LOAD REVENUE DATA
+    ════════════════════════════════════════════ */
+ 
+    async function loadRevenue() {
+      const sel   = document.getElementById('monthSelector');
+      const [year, month] = sel.value.split('-').map(Number);
+ 
+      selectedYear  = year;
+      selectedMonth = month;
+ 
+      // Update subtitle
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+      document.getElementById('periodLabel')
+        .textContent =
+          `${months[month - 1]} ${year}`;
+ 
+      // Reset UI to loading state
+      setLoadingState();
+ 
+      try {
+        // Load delivered orders for this month
+        const start = new Date(year, month - 1, 1);
+        const end   = new Date(year, month, 1);
+ 
+        const [ordersSnap, refundSnap, companiesSnap] =
+          await Promise.all([
+            db.collection('orders')
+              .where('status', '==', 'delivered')
+              .where('deliveryDate', '>=',
+                firebase.firestore.Timestamp.fromDate(start))
+              .where('deliveryDate', '<',
+                firebase.firestore.Timestamp.fromDate(end))
+              .orderBy('deliveryDate', 'asc')
+              .get(),
+
+            db.collection('orders')
+              .where('status', '==', 'cancelled')
+              .where('refundedAt', '>=',
+                firebase.firestore.Timestamp.fromDate(start))
+              .where('refundedAt', '<',
+                firebase.firestore.Timestamp.fromDate(end))
+              .orderBy('refundedAt', 'asc')
+              .get(),
+
+            db.collection('companies').get(),
+          ]);
+
+        allOrders = ordersSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        // Only keep cancellations that actually have a refund
+        allRefundOrders = refundSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(o => o.refundId);
+
+        const companies = {};
+        companiesSnap.docs.forEach(doc => {
+          companies[doc.id] = doc.data();
+        });
+
+        // Compute revenue
+        computeAndRender(allOrders, allRefundOrders, companies);
+
+        // Generate Claude insight
+        generateInsight();
+ 
+      } catch (err) {
+        console.error('Revenue load error:', err);
+        showToast('Failed to load revenue data', 'error');
+      }
+    }
+ 
+ 
+    /* ── Set loading state ─────────────────────── */
+    function setLoadingState() {
+      ['kpiRevenue','kpiBakeryCosts',
+       'kpiMargin','kpiDeliveries','kpiRefunds']
+        .forEach(id => {
+          document.getElementById(id).textContent = '—';
+        });
+      document.getElementById('pnlBar').style.display = 'none';
+    }
+ 
+ 
+    /* ── Compute and render everything ────────── */
+    function computeAndRender(orders, refundOrders, companies) {
+      // ── Delivered order totals ─────────────────
+      let totalBilled  = 0;
+      let totalCost    = 0;
+
+      orders.forEach(o => {
+        totalBilled += o.billedAmount   || 0;
+        totalCost   += o.wholesaleCost  || 0;
+      });
+
+      const totalStripeFees = orders.reduce((sum, o) => {
+        const billed = o.billedAmount || 0;
+        return sum + (billed * 0.029 + 0.30);
+      }, 0);
+
+      // ── Refund totals ──────────────────────────
+      const totalRefunds = refundOrders.reduce(
+        (sum, o) => sum + (o.refundAmount || 0), 0
+      );
+      const netRevenue = totalBilled - totalRefunds;
+
+      const grossMargin = netRevenue - totalCost;
+      const marginPct   = netRevenue > 0
+        ? ((grossMargin / netRevenue) * 100).toFixed(1)
+        : 0;
+
+      // ── KPI cards ──────────────────────────────
+      document.getElementById('kpiRevenue')
+        .textContent = formatCurrency(totalBilled);
+      document.getElementById('kpiBakeryCosts')
+        .textContent = formatCurrency(totalCost);
+      document.getElementById('kpiMargin')
+        .textContent =
+          `${formatCurrency(grossMargin)} (${marginPct}%)`;
+      document.getElementById('kpiDeliveries')
+        .textContent = orders.length;
+      document.getElementById('kpiRefunds')
+        .textContent = refundOrders.length > 0
+          ? `${formatCurrency(totalRefunds)} (${refundOrders.length})`
+          : '—';
+
+      // ── P&L bar ────────────────────────────────
+      if (refundOrders.length > 0) {
+        document.getElementById('pnlBar').style.display = 'flex';
+        document.getElementById('pnlGross').textContent =
+          formatCurrency(totalBilled);
+        document.getElementById('pnlRefunds').textContent =
+          formatCurrency(totalRefunds);
+        document.getElementById('pnlNet').textContent =
+          formatCurrency(netRevenue);
+      }
+
+      // ── Per client breakdown ────────────────────
+      renderClientBreakdown(orders, companies);
+
+      // ── Order ledger ────────────────────────────
+      renderLedger(orders, refundOrders, companies, totalStripeFees);
+    }
+ 
+ 
+    /* ── Per client breakdown ──────────────────── */
+    function renderClientBreakdown(orders, companies) {
+      const tbody =
+        document.getElementById('clientBreakdownBody');
+ 
+      // Group by company
+      const byCompany = {};
+      orders.forEach(o => {
+        const cid = o.companyId;
+        if (!byCompany[cid]) {
+          byCompany[cid] = {
+            name:   companies[cid]?.name || cid,
+            orders: 0,
+            billed: 0,
+            cost:   0,
+          };
+        }
+        byCompany[cid].orders++;
+        byCompany[cid].billed += o.billedAmount  || 0;
+        byCompany[cid].cost   += o.wholesaleCost || 0;
+      });
+ 
+      const rows = Object.values(byCompany)
+        .sort((a, b) => b.billed - a.billed);
+ 
+      if (rows.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                <span>💸</span>
+                <p>No delivered orders this month</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+ 
+      tbody.innerHTML = rows.map(row => {
+        const margin = row.billed > 0
+          ? ((( row.billed - row.cost) /
+               row.billed) * 100).toFixed(0)
+          : 0;
+ 
+        const marginColor = margin >= 50
+          ? '#2E7D32'
+          : margin >= 35
+          ? '#E65100'
+          : '#C62828';
+ 
+        return `
+          <tr class="table-row">
+            <td>
+              <strong>${row.name}</strong>
+            </td>
+            <td>${row.orders}</td>
+            <td>${formatCurrency(row.billed)}</td>
+            <td style="color:#888">
+              ${formatCurrency(row.cost)}
+            </td>
+            <td>
+              <span style="
+                font-weight: 700;
+                color: ${marginColor};
+              ">
+                ${margin}%
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+ 
+ 
+    /* ── Order ledger ──────────────────────────── */
+    function renderLedger(
+      orders, refundOrders, companies, totalStripeFees
+    ) {
+      const tbody =
+        document.getElementById('ledgerBody');
+
+      const totalRows = orders.length + refundOrders.length;
+
+      document.getElementById('ledgerCount')
+        .textContent =
+          `${orders.length} delivered` +
+          (refundOrders.length > 0
+            ? `, ${refundOrders.length} refunded`
+            : '');
+
+      if (totalRows === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <span>📋</span>
+                <p>No orders this month</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      // Build delivered rows
+      const deliveredRows = orders.map((order, i) => {
+        const billed    = order.billedAmount  || 0;
+        const cost      = order.wholesaleCost || 0;
+        const stripeFee = billed * 0.029 + 0.30;
+        const net       = billed - cost - stripeFee;
+
+        const dateStr = order.deliveryDate?.toDate
+          ? order.deliveryDate.toDate()
+              .toLocaleDateString('en-CA', {
+                month: 'short',
+                day:   'numeric',
+              })
+          : '—';
+
+        const companyName =
+          companies[order.companyId]?.name ||
+          order.companyId || '—';
+
+        return `
+          <tr class="table-row">
+            <td style="color:#888;font-size:0.8rem;font-family:monospace">
+              #${String(order.orderNumber || i + 1).padStart(3,'0')}
+            </td>
+            <td style="color:#888;font-size:0.85rem">${dateStr}</td>
+            <td>${companyName}</td>
+            <td>${order.employeeName || '—'}</td>
+            <td style="font-size:0.85rem">${order.productName || '—'}</td>
+            <td><strong>${formatCurrency(billed)}</strong></td>
+            <td style="color:#888">${formatCurrency(cost)}</td>
+            <td style="color:#888;font-size:0.82rem">${formatCurrency(stripeFee)}</td>
+            <td>
+              <span style="font-weight:700;color:${net > 0 ? '#2E7D32' : '#C62828'}">
+                ${formatCurrency(net)}
+              </span>
+            </td>
+          </tr>
+        `;
+      });
+
+      // Build refund rows
+      const refundRows = refundOrders.map((order, i) => {
+        const refundAmt = order.refundAmount || 0;
+
+        const dateStr = order.refundedAt?.toDate
+          ? order.refundedAt.toDate()
+              .toLocaleDateString('en-CA', {
+                month: 'short',
+                day:   'numeric',
+              })
+          : '—';
+
+        const companyName =
+          companies[order.companyId]?.name ||
+          order.companyId || '—';
+
+        return `
+          <tr class="table-row ledger-refund-row">
+            <td style="color:#888;font-size:0.8rem;font-family:monospace">
+              #${String(order.orderNumber || '—').padStart(3,'0')}
+            </td>
+            <td style="color:#888;font-size:0.85rem">${dateStr}</td>
+            <td>${companyName}</td>
+            <td>${order.employeeName || '—'}</td>
+            <td style="font-size:0.85rem">
+              ${order.productName || '—'}
+              <span class="refund-badge">↩ Refunded</span>
+            </td>
+            <td><span style="color:#C62828;font-weight:700">−${formatCurrency(refundAmt)}</span></td>
+            <td style="color:#aaa">—</td>
+            <td style="color:#aaa">—</td>
+            <td style="color:#aaa">—</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = [
+        ...deliveredRows,
+        ...(refundRows.length > 0
+          ? [`<tr class="ledger-divider-row">
+               <td colspan="9" style="padding:4px 12px;background:rgba(198,40,40,0.06);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#C62828;border-top:2px solid rgba(198,40,40,0.15)">
+                 Refunds
+               </td>
+             </tr>`]
+          : []),
+        ...refundRows,
+      ].join('');
+    }
+ 
+ 
+    /* ── Export CSV ────────────────────────────── */
+    function exportCSV() {
+      if (allOrders.length === 0 && allRefundOrders.length === 0) {
+        showToast('No orders to export', 'info');
+        return;
+      }
+
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+
+      const headers = [
+        'Order #', 'Date', 'Company', 'Employee',
+        'Product', 'Status', 'Billed', 'Refund Amount',
+        'Bakery Cost', 'Stripe Fee', 'Net',
+      ];
+
+      const deliveredRows = allOrders.map((order, i) => {
+        const billed    = order.billedAmount  || 0;
+        const cost      = order.wholesaleCost || 0;
+        const stripeFee = billed * 0.029 + 0.30;
+        const net       = billed - cost - stripeFee;
+
+        const dateStr = order.deliveryDate?.toDate
+          ? order.deliveryDate.toDate().toISOString().split('T')[0]
+          : '';
+
+        return [
+          `#${String(order.orderNumber || i + 1).padStart(3,'0')}`,
+          dateStr,
+          order.companyId    || '',
+          order.employeeName || '',
+          order.productName  || '',
+          'Delivered',
+          billed.toFixed(2),
+          '',
+          cost.toFixed(2),
+          stripeFee.toFixed(2),
+          net.toFixed(2),
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+      });
+
+      const refundRows = allRefundOrders.map(order => {
+        const refundAmt = order.refundAmount || 0;
+
+        const dateStr = order.refundedAt?.toDate
+          ? order.refundedAt.toDate().toISOString().split('T')[0]
+          : '';
+
+        return [
+          `#${String(order.orderNumber || '—').padStart(3,'0')}`,
+          dateStr,
+          order.companyId    || '',
+          order.employeeName || '',
+          order.productName  || '',
+          'Refunded',
+          '',
+          (-refundAmt).toFixed(2),
+          '',
+          '',
+          '',
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+      });
+
+      const csv = [
+        headers.join(','),
+        ...deliveredRows,
+        ...refundRows,
+      ].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `delightmaker-revenue-${
+        months[selectedMonth - 1]}-${selectedYear}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showToast('CSV exported!', 'success');
+    }
+ 
+ 
+    /* ── Generate Claude insight ───────────────── */
+    async function generateInsight() {
+      const banner =
+        document.getElementById('insightBanner');
+      const text   =
+        document.getElementById('insightText');
+ 
+      if (allOrders.length === 0) return;
+ 
+      banner.style.display = 'flex';
+      text.textContent     = 'Generating insight...';
+ 
+      try {
+        // Build summary for Claude
+        const totalBilled = allOrders.reduce(
+          (sum, o) => sum + (o.billedAmount || 0), 0
+        );
+        const totalCost = allOrders.reduce(
+          (sum, o) => sum + (o.wholesaleCost || 0), 0
+        );
+ 
+        // Product breakdown
+        const byProduct = {};
+        allOrders.forEach(o => {
+          const p = o.productName || 'Unknown';
+          if (!byProduct[p]) {
+            byProduct[p] = { count: 0, billed: 0, cost: 0 };
+          }
+          byProduct[p].count++;
+          byProduct[p].billed += o.billedAmount  || 0;
+          byProduct[p].cost   += o.wholesaleCost || 0;
+        });
+ 
+        const productSummary = Object.entries(byProduct)
+          .map(([name, data]) => {
+            const margin = data.billed > 0
+              ? ((( data.billed - data.cost) /
+                   data.billed) * 100).toFixed(0)
+              : 0;
+            return `${name}: ${data.count} orders, ` +
+                   `${margin}% margin`;
+          })
+          .join('; ');
+ 
+        const months = [
+          'January','February','March','April',
+          'May','June','July','August',
+          'September','October','November','December',
+        ];
+ 
+        const res = await apiCall(
+          '/api/claude/monthly-insight',
+          {
+            method: 'POST',
+            body:   JSON.stringify({
+              month:      months[selectedMonth - 1],
+              year:       selectedYear,
+              orders:     allOrders.length,
+              revenue:    totalBilled.toFixed(2),
+              cost:       totalCost.toFixed(2),
+              margin:     totalBilled > 0
+                ? (((totalBilled - totalCost) /
+                     totalBilled) * 100).toFixed(1)
+                : '0',
+              products: productSummary,
+            }),
+          }
+        );
+ 
+        if (res && res.ok) {
+          const data = await res.json();
+          text.textContent =
+            data.insight ||
+            'No insight available.';
+        } else {
+          text.textContent =
+            `${months[selectedMonth - 1]} ${selectedYear}: ` +
+            `${allOrders.length} deliveries, ` +
+            `${formatCurrency(totalBilled)} billed.`;
+        }
+ 
+      } catch (err) {
+        console.error('Insight error:', err);
+        text.textContent =
+          'Could not generate insight at this time.';
+      }
+    }
+ 
+ 
+    /* ── Mobile menu ───────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+ 
+  </script>
+ 
+  <style>
+    /* ── Refund KPI tint ─────────────────────── */
+    .kpi-card--refund {
+      border-left: 3px solid rgba(198,40,40,0.4);
+    }
+    .kpi-card--refund .kpi-value {
+      color: #C62828;
+    }
+
+    /* ── P&L summary bar ─────────────────────── */
+    .pnl-bar {
+      display:         flex;
+      align-items:     center;
+      gap:             24px;
+      padding:         18px 28px;
+      background:      rgba(198,40,40,0.04);
+      border:          1px solid rgba(198,40,40,0.12);
+      flex-wrap:       wrap;
+    }
+    .pnl-item {
+      display:         flex;
+      flex-direction:  column;
+      gap:             3px;
+    }
+    .pnl-label {
+      font-size:       0.7rem;
+      font-weight:     700;
+      text-transform:  uppercase;
+      letter-spacing:  0.08em;
+      color:           rgba(255,255,255,0.45);
+    }
+    .pnl-val {
+      font-size:       1.1rem;
+      font-weight:     600;
+      color:           rgba(255,255,255,0.85);
+    }
+    .pnl-val--strong {
+      font-size:       1.25rem;
+      font-weight:     800;
+    }
+    .pnl-item--red .pnl-val  { color: #EF9A9A; }
+    .pnl-item--green .pnl-val { color: #A5D6A7; }
+    .pnl-sep {
+      font-size:  1.4rem;
+      color:      rgba(255,255,255,0.3);
+      font-weight: 300;
+      align-self: flex-end;
+      padding-bottom: 2px;
+    }
+
+    /* ── Refund badge in ledger ──────────────── */
+    .refund-badge {
+      display:          inline-block;
+      margin-left:      6px;
+      padding:          2px 7px;
+      background:       rgba(198,40,40,0.15);
+      color:            #EF9A9A;
+      border-radius:    20px;
+      font-size:        0.7rem;
+      font-weight:      700;
+      letter-spacing:   0.04em;
+      vertical-align:   middle;
+    }
+    .ledger-refund-row {
+      background: rgba(198,40,40,0.04);
+    }
+    .ledger-refund-row:hover {
+      background: rgba(198,40,40,0.08) !important;
+    }
+
+    /* ── Insight banner ──────────────────────── */
+    .insight-banner {
+      display:     flex;
+      align-items: flex-start;
+      gap:         16px;
+      background:  linear-gradient(
+                     135deg,
+                     #FDF0E6 0%,
+                     #F5EDE0 100%
+                   );
+      border:      1px solid rgba(255,107,107,0.2);
+      padding:     20px 24px;
+    }
+ 
+    .insight-icon {
+      font-size:   1.8rem;
+      flex-shrink: 0;
+    }
+ 
+    .insight-body {
+      flex: 1;
+    }
+ 
+    .insight-title {
+      font-size:     0.75rem;
+      font-weight:   700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color:         rgba(255,107,107,0.8);
+      margin-bottom: 6px;
+    }
+ 
+    .insight-text {
+      font-size:   0.95rem;
+      color:       rgba(255,255,255,0.85);
+      line-height: 1.6;
+    }
+ 
+    .insight-refresh {
+      background: none;
+      border:     none;
+      font-size:  1.1rem;
+      cursor:     pointer;
+      flex-shrink: 0;
+      opacity:    0.5;
+      transition: opacity 0.2s;
+      padding:    4px;
+    }
+ 
+    .insight-refresh:hover { opacity: 1; }
+ 
+  </style>
+ 
+</body>
+</html>

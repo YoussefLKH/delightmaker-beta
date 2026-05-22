@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Orders — Delightmaker Baker</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"
+         class="nav-item"
+         id="navOrders">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+        <span class="nav-badge"
+               id="todayBadge"
+               style="display:none">0</span>
+      </a>
+      <a href="dashboard.html?view=week"
+         class="nav-item"
+         id="navWeek">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Week View</span>
+      </a>
+      <a href="menu.html"
+         class="nav-item"
+         id="navMenu">
+        <span class="nav-icon">🍰</span>
+        <span class="nav-label">My Menu</span>
+      </a>
+      <a href="dashboard.html?view=invoice"
+         class="nav-item"
+         id="navInvoice">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Invoice</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"
+             id="bakerAvatarLetter">B</div>
+        <div class="user-info">
+          <p class="user-name"
+             id="bakeryName">Loading...</p>
+          <p class="user-role">Baker</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- ── ORDER LIST VIEW ───────────────── -->
+    <div id="orderListView">
+
+      <!-- Top bar -->
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <button class="mobile-menu-btn"
+                  id="mobileMenuBtn">☰</button>
+          <div>
+            <h1 class="dash-title">Your Orders</h1>
+            <p class="dash-subtitle"
+               id="dateDisplay">Loading...</p>
+          </div>
+        </div>
+        <div class="dash-header-right">
+          <button class="btn btn-outline"
+                  onclick="showView('week')">
+            📅 Week View
+          </button>
+        </div>
+      </header>
+
+      <!-- ── TODAY'S ORDERS ──────────────── -->
+      <div id="todaySection"
+           style="margin-bottom:24px">
+
+        <div class="section-label-row">
+          <span class="section-label urgent-label">
+            🔴 TODAY
+          </span>
+          <span class="section-count"
+                id="todayCount"></span>
+        </div>
+
+        <div id="todayOrders">
+          <div class="loading-rows">
+            <div class="loading-row"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── UPCOMING ORDERS ─────────────── -->
+      <div id="upcomingSection">
+
+        <div class="section-label-row">
+          <span class="section-label">
+            🟡 UPCOMING
+          </span>
+          <span class="section-count"
+                id="upcomingCount"></span>
+        </div>
+
+        <div id="upcomingOrders">
+          <div class="loading-rows">
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── WEEK SUMMARY ────────────────── -->
+      <div class="week-summary-strip"
+           id="weekSummary"
+           style="display:none">
+        <span class="week-summary-icon">📅</span>
+        <span id="weekSummaryText"></span>
+        <button class="link-btn"
+                onclick="showView('week')">
+          Week View →
+        </button>
+      </div>
+
+    </div><!-- /orderListView -->
+
+
+    <!-- ── WEEK VIEW ─────────────────────── -->
+    <div id="weekView" style="display:none">
+
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <button class="mobile-menu-btn"
+                  id="mobileMenuBtn2">☰</button>
+          <div>
+            <h1 class="dash-title">Week View</h1>
+            <p class="dash-subtitle"
+               id="weekRangeLabel">
+            </p>
+          </div>
+        </div>
+        <div class="dash-header-right">
+          <button class="btn btn-ghost"
+                  onclick="shiftWeek(-1)">
+            ← Prev
+          </button>
+          <button class="btn btn-ghost"
+                  onclick="shiftWeek(0)">
+            Today
+          </button>
+          <button class="btn btn-ghost"
+                  onclick="shiftWeek(1)">
+            Next →
+          </button>
+        </div>
+      </header>
+
+      <div class="week-grid"
+           id="weekGrid">
+        <!-- Populated by JS -->
+      </div>
+
+      <div style="margin-top:20px">
+        <button class="btn btn-outline"
+                onclick="showView('list')">
+          ← Back to Orders
+        </button>
+      </div>
+
+    </div><!-- /weekView -->
+
+
+    <!-- ── INVOICE VIEW ───────────────────── -->
+    <div id="invoiceView" style="display:none">
+
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <button class="mobile-menu-btn"
+                  id="mobileMenuBtn3">☰</button>
+          <div>
+            <h1 class="dash-title">Invoice</h1>
+            <p class="dash-subtitle"
+               id="invoicePeriod">
+            </p>
+          </div>
+        </div>
+        <div class="dash-header-right">
+          <select id="invoiceMonthSelector"
+                  class="filter-select"
+                  onchange="loadInvoice()">
+          </select>
+        </div>
+      </header>
+
+      <!-- Total owed card -->
+      <section class="dash-card invoice-total-card">
+        <div class="invoice-total-left">
+          <p class="invoice-total-label">
+            Total Owed
+          </p>
+          <p class="invoice-total-amount"
+             id="invoiceTotalAmount">
+            —
+          </p>
+          <p class="invoice-total-sub"
+             id="invoiceTotalSub">
+          </p>
+        </div>
+        <div class="invoice-total-right">
+          <button class="btn btn-primary"
+                  id="submitInvoiceBtn"
+                  onclick="submitInvoice()">
+            Submit Invoice
+          </button>
+          <p class="invoice-submit-note"
+             id="invoiceSubmitNote">
+            Auto-generated on the 1st
+          </p>
+        </div>
+      </section>
+
+      <!-- Auto-invoice status banner -->
+      <div id="autoInvoiceBanner"
+           style="display:none;
+                  margin-bottom:16px;
+                  padding:14px 20px;
+                  border-radius:12px;
+                  font-size:0.88rem;
+                  font-weight:600">
+      </div>
+
+      <!-- Invoice line items -->
+      <section class="dash-card table-card">
+        <div class="card-header">
+          <h2 class="card-title">
+            Completed Orders
+          </h2>
+          <span class="card-action"
+                id="invoiceCount"
+                style="color:#888;
+                       font-size:0.82rem">
+          </span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Order</th>
+                <th>Company</th>
+                <th>Product</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceBody">
+              <tr>
+                <td colspan="6"
+                    class="table-loading">
+                  <div class="loading-rows">
+                    <div class="loading-row"></div>
+                    <div class="loading-row"></div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div style="margin-top:20px">
+        <button class="btn btn-outline"
+                onclick="showView('list')">
+          ← Back to Orders
+        </button>
+      </div>
+
+    </div><!-- /invoiceView -->
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       DELIVER CONFIRM MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="deliverModal"
+       style="display:none">
+    <div class="modal modal-sm">
+
+      <div class="modal-header">
+        <h2>Confirm Delivery</h2>
+        <button class="modal-close"
+                onclick="hideDeliverModal()">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="deliver-confirm-summary"
+             id="deliverSummary">
+        </div>
+
+        <div class="deliver-confirm-checks">
+          <label class="deliver-check-item">
+            <input type="checkbox"
+                   id="checkTreats"/>
+            <span>Treats are prepared correctly</span>
+          </label>
+          <label class="deliver-check-item"
+                 id="checkDietaryWrap"
+                 style="display:none">
+            <input type="checkbox"
+                   id="checkDietary"/>
+            <span class="dietary-check-label">
+              ⚠️ Dietary requirements met:
+              <span id="checkDietaryLabel"></span>
+            </span>
+          </label>
+          <label class="deliver-check-item">
+            <input type="checkbox"
+                   id="checkCard"/>
+            <span>Card included with message</span>
+          </label>
+          <label class="deliver-check-item">
+            <input type="checkbox"
+                   id="checkDelivered"/>
+            <span>Delivered to correct address</span>
+          </label>
+        </div>
+
+        <p class="deliver-billing-note">
+          💳 This will automatically charge the
+          company. Only confirm once delivered.
+        </p>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost"
+                onclick="hideDeliverModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary deliver-btn"
+                id="confirmDeliverBtn"
+                onclick="confirmDelivery()"
+                disabled>
+          ✅ Mark as Delivered
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ─────────────────────────────────────
+    let bakerId       = null;
+    let bakeryData    = null;
+    let allOrders     = [];
+    let deliverOrderId = null;
+    let weekOffset    = 0; // 0 = current week
+
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('baker').then(async user => {
+      bakerId = user.bakerId;
+
+      // Load bakery info
+      const doc = await db
+        .collection('bakeries')
+        .doc(bakerId)
+        .get();
+
+      bakeryData = doc.data();
+
+      const name = bakeryData?.name || 'Bakery';
+      document.getElementById('bakeryName')
+        .textContent = name;
+      document.getElementById('bakerAvatarLetter')
+        .textContent = name.charAt(0).toUpperCase();
+
+      // Date display
+      document.getElementById('dateDisplay')
+        .textContent = new Date().toLocaleDateString(
+          'en-CA', {
+            weekday: 'long',
+            month:   'long',
+            day:     'numeric',
+          }
+        );
+
+      // Check URL params
+      const params = new URLSearchParams(
+        window.location.search
+      );
+      const view = params.get('view');
+
+      // ── Set active nav item based on current view ──
+      const navMap = {
+        '':        'navOrders',
+        'week':    'navWeek',
+        'invoice': 'navInvoice',
+      };
+      const activeId = navMap[view || ''] || 'navOrders';
+      document.querySelectorAll('.sidebar-nav .nav-item')
+        .forEach(el => el.classList.remove('active'));
+      const activeEl = document.getElementById(activeId);
+      if (activeEl) activeEl.classList.add('active');
+
+      await loadOrders();
+
+      if (view === 'week') showView('week');
+      else if (view === 'invoice') {
+        buildInvoiceMonthSelector();
+        showView('invoice');
+        loadInvoice();
+      }
+    });
+
+
+    /* ════════════════════════════════════════════
+       LOAD ORDERS
+    ════════════════════════════════════════════ */
+
+    async function loadOrders() {
+      try {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        // Load orders routed to this bakery
+        // from today onwards
+        const snap = await db
+          .collection('orders')
+          .where('bakerId', '==', bakerId)
+          .where('status', 'in',
+            ['routed', 'in_preparation'])
+          .orderBy('deliveryDate', 'asc')
+          .get();
+
+        allOrders = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        renderOrderLists();
+
+      } catch (err) {
+        console.error('Load orders error:', err);
+        document.getElementById('todayOrders')
+          .innerHTML = `
+            <div class="empty-state">
+              <p>Failed to load orders</p>
+            </div>
+          `;
+      }
+    }
+
+
+    /* ── Render today + upcoming lists ───────────── */
+    function renderOrderLists() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const todayOrders = allOrders.filter(o => {
+        const d = getDeliveryDate(o);
+        return d >= today && d < tomorrow;
+      });
+
+      const upcomingOrders = allOrders.filter(o => {
+        const d = getDeliveryDate(o);
+        return d >= tomorrow;
+      });
+
+      // ── Today badge ───────────────────────────
+      if (todayOrders.length > 0) {
+        const badge =
+          document.getElementById('todayBadge');
+        badge.textContent   = todayOrders.length;
+        badge.style.display = 'inline-flex';
+      }
+
+      // ── Today count ───────────────────────────
+      document.getElementById('todayCount')
+        .textContent = todayOrders.length > 0
+          ? `${todayOrders.length} order${
+              todayOrders.length !== 1 ? 's' : ''
+            }`
+          : '';
+
+      // ── Today list ────────────────────────────
+      const todayEl =
+        document.getElementById('todayOrders');
+
+      if (todayOrders.length === 0) {
+        todayEl.innerHTML = `
+          <div class="empty-state"
+               style="padding:20px 0">
+            <span>✅</span>
+            <p>No deliveries today</p>
+          </div>
+        `;
+      } else {
+        todayEl.innerHTML = todayOrders
+          .map(o => renderOrderCard(o, true))
+          .join('');
+      }
+
+      // ── Upcoming count ────────────────────────
+      document.getElementById('upcomingCount')
+        .textContent = upcomingOrders.length > 0
+          ? `${upcomingOrders.length} order${
+              upcomingOrders.length !== 1 ? 's' : ''
+            } this week`
+          : '';
+
+      // ── Upcoming list ─────────────────────────
+      const upcomingEl =
+        document.getElementById('upcomingOrders');
+
+      if (upcomingOrders.length === 0) {
+        upcomingEl.innerHTML = `
+          <div class="empty-state"
+               style="padding:20px 0">
+            <span>📅</span>
+            <p>No upcoming orders</p>
+          </div>
+        `;
+      } else {
+        upcomingEl.innerHTML = upcomingOrders
+          .map(o => renderOrderCard(o, false))
+          .join('');
+      }
+
+      // ── Week summary strip ────────────────────
+      const weekEnd = new Date(today);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      const weekOrders = allOrders.filter(o => {
+        const d = getDeliveryDate(o);
+        return d >= today && d < weekEnd;
+      });
+
+      if (weekOrders.length > 0) {
+        document.getElementById('weekSummaryText')
+          .textContent =
+            `${weekOrders.length} order${
+              weekOrders.length !== 1 ? 's' : ''
+            } this week`;
+        document.getElementById('weekSummary')
+          .style.display = 'flex';
+      }
+    }
+
+
+    /* ── Render order card ───────────────────────── */
+    function renderOrderCard(order, isToday) {
+      const days    = daysUntil(order.deliveryDate);
+      const dateStr = formatDate(order.deliveryDate);
+
+      const hasDietary =
+        order.dietaryFlags &&
+        order.dietaryFlags.length > 0;
+
+      const dietaryHtml = hasDietary
+        ? `<div class="baker-dietary-alert">
+             <span>⚠️</span>
+             <span>
+               <strong>DIETARY REQUIREMENT:</strong>
+               ${order.dietaryFlags
+                   .map(f => f.toUpperCase())
+                   .join(', ')}
+             </span>
+           </div>`
+        : '';
+
+      const urgencyClass = isToday
+        ? 'baker-card-today'
+        : days === 1
+        ? 'baker-card-tomorrow'
+        : 'baker-card-upcoming';
+
+      const urgencyStrip = isToday
+        ? `<div class="baker-urgency-strip today-strip">
+             🔴 DELIVER TODAY
+           </div>`
+        : days === 1
+        ? `<div class="baker-urgency-strip tomorrow-strip">
+             🟡 DELIVER TOMORROW
+           </div>`
+        : `<div class="baker-urgency-strip upcoming-strip">
+             📅 ${dateStr}
+           </div>`;
+
+      const orderNum = order.orderNumber
+        ? `#${String(order.orderNumber)
+              .padStart(3, '0')}`
+        : `#${order.id.slice(-6).toUpperCase()}`;
+
+      return `
+        <div class="baker-order-card
+                    ${urgencyClass}">
+
+          ${urgencyStrip}
+
+          <div class="baker-card-body">
+
+            <!-- Order header -->
+            <div class="baker-order-header">
+              <span class="baker-order-num">
+                ORDER ${orderNum}
+              </span>
+              <span class="baker-order-time">
+                ⏰ By 10:00 AM
+              </span>
+            </div>
+
+            ${dietaryHtml}
+
+            <!-- Order details grid -->
+            <div class="baker-details-grid">
+
+              <div class="baker-detail">
+                <span class="baker-detail-icon">
+                  📦
+                </span>
+                <div>
+                  <p class="baker-detail-label">
+                    Treat
+                  </p>
+                  <p class="baker-detail-value">
+                    <strong>
+                      ${order.productName || '—'}
+                    </strong>
+                  </p>
+                </div>
+              </div>
+
+              <div class="baker-detail">
+                <span class="baker-detail-icon">
+                  🏢
+                </span>
+                <div>
+                  <p class="baker-detail-label">
+                    Company
+                  </p>
+                  <p class="baker-detail-value">
+                    ${order.companyName ||
+                      order.companyId   || '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div class="baker-detail baker-detail-full">
+                <span class="baker-detail-icon">
+                  📍
+                </span>
+                <div>
+                  <p class="baker-detail-label">
+                    Deliver to
+                  </p>
+                  <p class="baker-detail-value">
+                    <strong>
+                      ${order.deliveryAddress || '—'}
+                    </strong>
+                  </p>
+                  ${order.deliveryInstructions
+                    ? `<p class="baker-detail-note">
+                         ${order.deliveryInstructions}
+                       </p>`
+                    : ''}
+                </div>
+              </div>
+
+              ${order.bakerNotes ? `
+              <div class="baker-detail baker-detail-full">
+                <span class="baker-detail-icon">
+                  📝
+                </span>
+                <div>
+                  <p class="baker-detail-label">
+                    Note from Colton
+                  </p>
+                  <p class="baker-detail-value">
+                    ${order.bakerNotes}
+                  </p>
+                </div>
+              </div>` : ''}
+
+              <div class="baker-detail baker-detail-full">
+                <span class="baker-detail-icon">
+                  💌
+                </span>
+                <div>
+                  <p class="baker-detail-label">
+                    Include card saying
+                  </p>
+                  <p class="baker-detail-value"
+                     style="font-style:italic">
+                    "${order.customMessage ||
+                      'Happy Birthday from the team!'}"
+                  </p>
+                </div>
+              </div>
+
+            </div><!-- /baker-details-grid -->
+
+            <!-- Deliver button -->
+            ${isToday
+              ? `<button class="btn baker-deliver-btn"
+                         onclick="openDeliverModal(
+                           '${order.id}'
+                         )">
+                   ✅ MARK AS DELIVERED
+                 </button>`
+              : `<a href="order.html?id=${order.id}"
+                    class="btn btn-outline
+                           baker-view-btn">
+                   View Full Details →
+                 </a>`
+            }
+
+          </div>
+
+        </div>
+      `;
+    }
+
+
+    /* ════════════════════════════════════════════
+       DELIVER MODAL
+    ════════════════════════════════════════════ */
+
+    function openDeliverModal(orderId) {
+      deliverOrderId = orderId;
+      const order = allOrders.find(
+        o => o.id === orderId
+      );
+      if (!order) return;
+
+      // Reset checkboxes
+      ['checkTreats','checkCard',
+       'checkDelivered','checkDietary']
+        .forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.checked = false;
+        });
+
+      // Summary
+      document.getElementById('deliverSummary')
+        .innerHTML = `
+          <div class="deliver-summary-row">
+            <span>📦</span>
+            <strong>${order.productName || '—'}</strong>
+          </div>
+          <div class="deliver-summary-row">
+            <span>📍</span>
+            <span>${order.deliveryAddress || '—'}</span>
+          </div>
+          <div class="deliver-summary-row">
+            <span>🏢</span>
+            <span>${order.companyName ||
+                    order.companyId || '—'}</span>
+          </div>
+        `;
+
+      // Dietary check
+      const hasDietary =
+        order.dietaryFlags &&
+        order.dietaryFlags.length > 0;
+
+      const dietaryWrap =
+        document.getElementById('checkDietaryWrap');
+      if (hasDietary) {
+        dietaryWrap.style.display = 'flex';
+        document.getElementById('checkDietaryLabel')
+          .textContent =
+            order.dietaryFlags
+              .map(f => f.toUpperCase())
+              .join(', ');
+      } else {
+        dietaryWrap.style.display = 'none';
+      }
+
+      // Wire up checkboxes to enable button
+      const checkIds = hasDietary
+        ? ['checkTreats', 'checkDietary',
+           'checkCard',   'checkDelivered']
+        : ['checkTreats', 'checkCard',
+           'checkDelivered'];
+
+      checkIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('change',
+            () => validateDeliverChecks(checkIds)
+          );
+        }
+      });
+
+      document.getElementById('confirmDeliverBtn')
+        .disabled = true;
+
+      document.getElementById('deliverModal')
+        .style.display = 'flex';
+    }
+
+    function validateDeliverChecks(checkIds) {
+      const allChecked = checkIds.every(id => {
+        const el = document.getElementById(id);
+        return el && el.checked;
+      });
+      document.getElementById('confirmDeliverBtn')
+        .disabled = !allChecked;
+    }
+
+    function hideDeliverModal() {
+      document.getElementById('deliverModal')
+        .style.display = 'none';
+      deliverOrderId = null;
+    }
+
+    async function confirmDelivery() {
+      if (!deliverOrderId) return;
+
+      const btn =
+        document.getElementById('confirmDeliverBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Confirming...';
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${deliverOrderId}/deliver`,
+          { method: 'PATCH' }
+        );
+
+        if (res && res.ok) {
+          hideDeliverModal();
+          showToast(
+            '✅ Delivery confirmed! ' +
+            'Company has been charged.',
+            'success',
+            4000
+          );
+          await loadOrders();
+        } else {
+          showToast('Failed to confirm delivery',
+            'error');
+          btn.disabled    = false;
+          btn.textContent = '✅ Mark as Delivered';
+        }
+      } catch (err) {
+        showToast('Action failed', 'error');
+        btn.disabled    = false;
+        btn.textContent = '✅ Mark as Delivered';
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       WEEK VIEW
+    ════════════════════════════════════════════ */
+
+    function renderWeekView() {
+      const today  = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Get start of week (Monday)
+      const startOfWeek = new Date(today);
+      const dayOfWeek   =
+        (today.getDay() + 6) % 7; // Mon=0
+      startOfWeek.setDate(
+        today.getDate() - dayOfWeek +
+        (weekOffset * 7)
+      );
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+      document.getElementById('weekRangeLabel')
+        .textContent =
+          `${startOfWeek.toLocaleDateString(
+            'en-CA', { month: 'short', day: 'numeric' }
+          )} – ${endOfWeek.toLocaleDateString(
+            'en-CA', {
+              month: 'short',
+              day:   'numeric',
+              year:  'numeric',
+            }
+          )}`;
+
+      const days = ['Mon','Tue','Wed',
+                    'Thu','Fri','Sat','Sun'];
+      const grid =
+        document.getElementById('weekGrid');
+
+      grid.innerHTML = days.map((dayName, i) => {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + i);
+
+        const isToday =
+          date.toDateString() ===
+          today.toDateString();
+
+        const nextDay = new Date(date);
+        nextDay.setDate(date.getDate() + 1);
+
+        const dayOrders = allOrders.filter(o => {
+          const d = getDeliveryDate(o);
+          return d >= date && d < nextDay;
+        });
+
+        const dateNum = date.getDate();
+        const monthLabel = date.toLocaleDateString(
+          'en-CA', { month: 'short' }
+        );
+
+        const pillsHtml = dayOrders.length === 0
+          ? `<p class="week-no-orders">No orders</p>`
+          : dayOrders.map(o => {
+              const flags = (o.dietaryFlags || []);
+              const flagHtml = flags.length > 0
+                ? `<div class="week-pill-flags">${
+                    flags.slice(0,3).map(f =>
+                      `<span class="week-pill-flag">
+                        ${f}
+                      </span>`
+                    ).join('')
+                  }</div>`
+                : '';
+              return `
+                <div class="week-order-pill"
+                     onclick="window.location.href=
+                       'order.html?id=${o.id}'">
+                  <span class="week-pill-product">
+                    ${o.productName || 'Order'}
+                  </span>
+                  <span class="week-pill-company">
+                    ${o.companyName || ''}
+                  </span>
+                  ${flagHtml}
+                </div>
+              `;
+            }).join('');
+
+        return `
+          <div class="week-day-col
+               ${isToday ? ' week-day-today' : ''}
+               ${dayOrders.length > 0
+                 ? ' week-day-has-orders' : ''}">
+
+            <div class="week-day-header">
+              <span class="week-day-name">${dayName}</span>
+              <span class="week-day-date-num">${dateNum}</span>
+              <span style="font-size:0.65rem;color:var(--gray);
+                           display:block;margin-top:1px">
+                ${monthLabel}
+              </span>
+              ${isToday
+                ? '<span class="week-today-badge">Today</span>'
+                : ''}
+              ${dayOrders.length > 0
+                ? `<span class="week-order-count-badge">
+                     ${dayOrders.length}
+                   </span>`
+                : ''}
+            </div>
+
+            <div class="week-day-orders">
+              ${pillsHtml}
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function shiftWeek(direction) {
+      if (direction === 0) weekOffset = 0;
+      else weekOffset += direction;
+      renderWeekView();
+    }
+
+
+    /* ════════════════════════════════════════════
+       INVOICE VIEW
+    ════════════════════════════════════════════ */
+
+    function buildInvoiceMonthSelector() {
+      const sel    =
+        document.getElementById(
+          'invoiceMonthSelector'
+        );
+      const now    = new Date();
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(
+          now.getFullYear(),
+          now.getMonth() - i, 1
+        );
+        const val =
+          `${d.getFullYear()}-${
+            String(d.getMonth() + 1).padStart(2,'0')
+          }`;
+        const label =
+          `${months[d.getMonth()]} ${d.getFullYear()}`;
+
+        const opt       = document.createElement('option');
+        opt.value       = val;
+        opt.textContent = label;
+        if (i === 0) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    async function loadInvoice() {
+      const sel = document.getElementById(
+        'invoiceMonthSelector'
+      );
+      if (!sel || !sel.value) return;
+
+      const [year, month] =
+        sel.value.split('-').map(Number);
+
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+      document.getElementById('invoicePeriod')
+        .textContent = `${months[month - 1]} ${year}`;
+
+      try {
+        const start = new Date(year, month - 1, 1);
+        const end   = new Date(year, month, 1);
+
+        // Fetch paid/delivered orders for this month
+        const snap = await db
+          .collection('orders')
+          .where('bakerId', '==', bakerId)
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp.fromDate(start))
+          .where('deliveryDate', '<',
+            firebase.firestore.Timestamp.fromDate(end))
+          .orderBy('deliveryDate', 'asc')
+          .get();
+
+        // Filter to paid or delivered
+        const orders = snap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(o =>
+            o.chargeStatus === 'paid' ||
+            o.status === 'delivered'
+          );
+
+        // Use chargeAmount (what companies actually paid)
+        const total = orders.reduce(
+          (sum, o) => sum + (
+            typeof o.chargeAmount === 'number'
+              ? o.chargeAmount : 0
+          ), 0
+        );
+
+        // Check for auto-generated invoice this month
+        const autoInvSnap = await db
+          .collection('invoices')
+          .where('bakerId', '==', bakerId)
+          .where('month',   '==', month)
+          .where('year',    '==', year)
+          .where('type',    '==', 'auto')
+          .limit(1)
+          .get();
+
+        // Also check for manually submitted invoice
+        const manualInvSnap = !autoInvSnap.empty
+          ? null
+          : await db
+              .collection('invoices')
+              .where('bakerId', '==', bakerId)
+              .where('month',   '==', month)
+              .where('year',    '==', year)
+              .limit(1)
+              .get();
+
+        const hasAutoInvoice  = !autoInvSnap.empty;
+        const hasManualInv    = manualInvSnap &&
+                                !manualInvSnap.empty;
+        const autoInvoiceData = hasAutoInvoice
+          ? autoInvSnap.docs[0].data()
+          : null;
+        const manualInvData   = hasManualInv
+          ? manualInvSnap.docs[0].data()
+          : null;
+
+        const activeInvoice = autoInvoiceData ||
+                              manualInvData;
+        const invoiceStatus = activeInvoice
+          ? activeInvoice.status
+          : null;
+        const invoiceNumber = activeInvoice
+          ? activeInvoice.invoiceNumber
+          : null;
+
+        // ── Total card ──────────────────────────────
+        document.getElementById('invoiceTotalAmount')
+          .textContent = formatCurrency(total);
+
+        document.getElementById('invoiceTotalSub')
+          .textContent =
+            `${orders.length} paid order${
+              orders.length !== 1 ? 's' : ''
+            }`;
+
+        // ── Auto-invoice banner ─────────────────────
+        const banner =
+          document.getElementById('autoInvoiceBanner');
+
+        if (hasAutoInvoice) {
+          const isPaid = invoiceStatus === 'paid';
+          banner.style.display = 'block';
+          banner.style.background  = isPaid
+            ? '#E8F5E9' : '#FFF8E1';
+          banner.style.border = isPaid
+            ? '1px solid #A5D6A7'
+            : '1px solid #FFE082';
+          banner.style.color = isPaid
+            ? '#2E7D32' : '#F57F17';
+          banner.innerHTML = isPaid
+            ? `✅ Invoice <strong>${invoiceNumber}</strong> — Paid`
+            : `🧾 Invoice <strong>${invoiceNumber}</strong> generated and emailed to you — <em>Awaiting payment from Colton</em>`;
+        } else {
+          banner.style.display = 'none';
+        }
+
+        // ── Submit button ───────────────────────────
+        const submitBtn =
+          document.getElementById('submitInvoiceBtn');
+        const submitNote =
+          document.getElementById('invoiceSubmitNote');
+
+        if (hasAutoInvoice) {
+          // Auto-invoice exists — no manual submit needed
+          submitBtn.disabled      = true;
+          submitBtn.style.opacity = '0.55';
+          submitBtn.textContent   =
+            invoiceStatus === 'paid'
+              ? '✅ Paid'
+              : '📋 Invoice Sent';
+          if (submitNote) {
+            submitNote.textContent =
+              invoiceStatus === 'paid'
+                ? 'Payment received'
+                : 'Auto-generated on the 1st';
+          }
+        } else if (hasManualInv) {
+          submitBtn.disabled      = true;
+          submitBtn.style.opacity = '0.7';
+          submitBtn.textContent   =
+            invoiceStatus === 'paid'
+              ? '✅ Paid'
+              : '📋 Submitted';
+          if (submitNote) {
+            submitNote.textContent =
+              invoiceStatus === 'paid'
+                ? 'Payment received'
+                : 'Notified Colton to pay you';
+          }
+        } else if (orders.length === 0) {
+          submitBtn.disabled      = true;
+          submitBtn.style.opacity = '0.45';
+          submitBtn.textContent   = 'Nothing to Invoice';
+          if (submitNote) {
+            submitNote.textContent =
+              'No paid orders this month';
+          }
+        } else {
+          // Manual submit available
+          submitBtn.disabled      = false;
+          submitBtn.style.opacity = '1';
+          submitBtn.textContent   = 'Submit Invoice';
+          submitBtn.dataset.month  = month;
+          submitBtn.dataset.year   = year;
+          submitBtn.dataset.total  = total;
+          submitBtn.dataset.orders = orders.length;
+          if (submitNote) {
+            submitNote.textContent =
+              'Notifies Colton to pay you';
+          }
+        }
+
+        // ── Line items count + table ────────────────
+        document.getElementById('invoiceCount')
+          .textContent =
+            `${orders.length} order${
+              orders.length !== 1 ? 's' : ''
+            }`;
+
+        renderInvoiceTable(orders);
+
+      } catch (err) {
+        console.error('Load invoice error:', err);
+        showToast('Failed to load invoice', 'error');
+      }
+    }
+
+    function renderInvoiceTable(orders) {
+      const tbody =
+        document.getElementById('invoiceBody');
+
+      if (orders.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <span>📋</span>
+                <p>No paid orders this month</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(order => {
+        const dateStr  = formatDateShort(
+          order.deliveryDate
+        );
+        const orderNum = order.orderNumber
+          ? `#${String(order.orderNumber)
+                .padStart(3,'0')}`
+          : `#${order.id.slice(-6).toUpperCase()}`;
+
+        // chargeAmount is what the company paid
+        const amount = typeof order.chargeAmount === 'number'
+          ? order.chargeAmount
+          : 0;
+
+        const isPaid = order.chargeStatus === 'paid';
+
+        return `
+          <tr class="table-row">
+            <td style="font-size:0.85rem;
+                       color:#888;
+                       white-space:nowrap">
+              ${dateStr}
+            </td>
+            <td style="font-family:monospace;
+                       font-size:0.8rem;
+                       color:#888">
+              ${orderNum}
+            </td>
+            <td style="font-size:0.85rem;
+                       font-weight:600">
+              ${order.companyName ||
+                order.companyId   || '—'}
+            </td>
+            <td style="font-size:0.85rem">
+              ${order.productName || '—'}
+            </td>
+            <td>
+              <strong style="color:${
+                amount > 0 ? '#2E7D32' : '#888'
+              }">
+                ${formatCurrency(amount)}
+              </strong>
+            </td>
+            <td>
+              <span style="
+                font-size:   0.75rem;
+                font-weight: 600;
+                background:  ${isPaid
+                  ? 'var(--green-light)'
+                  : '#F5F5F5'};
+                color:       ${isPaid
+                  ? '#2E7D32'
+                  : '#888'};
+                padding:     3px 8px;
+                border-radius: 100px;
+              ">
+                ${isPaid ? '✅ Paid' : '✅ Delivered'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function submitInvoice() {
+      const btn =
+        document.getElementById('submitInvoiceBtn');
+
+      const month  = parseInt(btn.dataset.month);
+      const year   = parseInt(btn.dataset.year);
+      const total  = parseFloat(btn.dataset.total);
+      const orders = parseInt(btn.dataset.orders);
+
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+      const monthLabel = `${months[month - 1]} ${year}`;
+
+      const confirmed = await confirmDialog(
+        `Submit invoice for ${
+          formatCurrency(total)
+        } (${orders} order${
+          orders !== 1 ? 's' : ''
+        }) for ${monthLabel}? Colton will be notified.`,
+        'Submit Invoice'
+      );
+      if (!confirmed) return;
+
+      btn.disabled    = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        // Fetch the actual orders so we can save
+        // line items on the invoice doc
+        const start = new Date(year, month - 1, 1);
+        const end   = new Date(year, month, 1);
+
+        const snap = await db
+          .collection('orders')
+          .where('bakerId', '==', bakerId)
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp.fromDate(start))
+          .where('deliveryDate', '<',
+            firebase.firestore.Timestamp.fromDate(end))
+          .orderBy('deliveryDate', 'asc')
+          .get();
+
+        const lineItems = snap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(o =>
+            o.chargeStatus === 'paid' ||
+            o.status === 'delivered'
+          )
+          .map(o => ({
+            orderId:      o.id,
+            deliveryDate: o.deliveryDate,
+            companyName:  o.companyName  || o.companyId  || '—',
+            employeeName: o.employeeName || '—',
+            productName:  o.productName  || '—',
+            amount: typeof o.chargeAmount === 'number'
+              ? o.chargeAmount : 0,
+          }));
+
+        // Save invoice to Firestore (with line items)
+        await db.collection('invoices').add({
+          bakerId,
+          bakeryName:  bakeryData?.name || '',
+          month,
+          year,
+          type:        'manual',
+          lineItems,
+          totalAmount: total,
+          orderCount:  orders,
+          status:      'submitted',
+          submittedAt: firebase.firestore
+                         .FieldValue.serverTimestamp(),
+        });
+
+        // Notify via API (emails Colton)
+        apiCall('/api/emails/baker-invoice', {
+          method: 'POST',
+          body:   JSON.stringify({
+            bakerId,
+            month,
+            year,
+            total,
+            orders,
+          }),
+        }).catch(err =>
+          console.warn('Invoice email failed:', err)
+        );
+
+        showToast(
+          '✅ Invoice submitted! Colton will ' +
+          'pay you shortly.',
+          'success',
+          4000
+        );
+
+        btn.textContent     = '📋 Submitted';
+        btn.style.opacity   = '0.7';
+
+        const submitNote =
+          document.getElementById('invoiceSubmitNote');
+        if (submitNote) {
+          submitNote.textContent =
+            'Notified Colton to pay you';
+        }
+
+      } catch (err) {
+        console.error('Submit invoice error:', err);
+        showToast('Failed to submit invoice', 'error');
+        btn.disabled    = false;
+        btn.textContent = 'Submit Invoice';
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       VIEW SWITCHING
+    ════════════════════════════════════════════ */
+
+    function showView(view) {
+      ['orderListView', 'weekView',
+       'invoiceView'].forEach(id => {
+        document.getElementById(id)
+          .style.display = 'none';
+      });
+
+      if (view === 'list') {
+        document.getElementById('orderListView')
+          .style.display = 'block';
+      } else if (view === 'week') {
+        document.getElementById('weekView')
+          .style.display = 'block';
+        renderWeekView();
+      } else if (view === 'invoice') {
+        document.getElementById('invoiceView')
+          .style.display = 'block';
+        if (!document.getElementById(
+          'invoiceMonthSelector'
+        ).options.length) {
+          buildInvoiceMonthSelector();
+        }
+        loadInvoice();
+      }
+    }
+
+
+    /* ── Helper: get delivery date as Date ────────── */
+    function getDeliveryDate(order) {
+      if (!order.deliveryDate) return new Date(0);
+      return order.deliveryDate?.toDate
+        ? order.deliveryDate.toDate()
+        : new Date(order.deliveryDate);
+    }
+
+
+    /* ── Mobile menus ────────────────────────────── */
+    ['mobileMenuBtn','mobileMenuBtn2',
+     'mobileMenuBtn3'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('click', () => {
+          document.getElementById('sidebar')
+            .classList.toggle('sidebar-open');
+        });
+      }
+    });
+
+  </script>
+
+  <style>
+    /* ── Section label rows ──────────────────── */
+    .section-label-row {
+      display:       flex;
+      align-items:   center;
+      gap:           10px;
+      margin-bottom: 12px;
+    }
+
+    .section-label {
+      font-size:     0.72rem;
+      font-weight:   700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color:         var(--gray);
+    }
+
+    .urgent-label {
+      color: #C62828;
+    }
+
+    .section-count {
+      font-size:   0.78rem;
+      color:       var(--gray);
+      font-weight: 500;
+    }
+
+    /* ── Baker order cards ───────────────────── */
+    .baker-order-card {
+      background:    var(--vanilla);
+      border-radius: var(--radius-lg);
+      margin-bottom: 16px;
+      overflow:      hidden;
+      box-shadow:    var(--shadow-sm);
+      border:        1px solid rgba(196,98,29,0.1);
+      transition:    box-shadow 0.2s, transform 0.2s;
+    }
+
+    .baker-order-card:hover {
+      box-shadow: var(--shadow-warm);
+      transform:  translateY(-2px);
+    }
+
+    .baker-card-today {
+      border-color: rgba(198,40,40,0.3);
+      border-left:  4px solid #C62828;
+    }
+
+    .baker-card-tomorrow {
+      border-color: rgba(196,98,29,0.14);
+      border-left:  4px solid var(--caramel);
+    }
+
+    /* Urgency strips */
+    .baker-urgency-strip {
+      padding:     10px 20px;
+      font-size:   0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .today-strip {
+      background: #FFEBEE;
+      color:      #C62828;
+    }
+
+    .tomorrow-strip {
+      background: var(--caramel-light);
+      color:      var(--caramel);
+    }
+
+    .upcoming-strip {
+      background: var(--cream-dark);
+      color:      var(--gray);
+    }
+
+    /* Card body */
+    .baker-card-body {
+      padding: 20px;
+    }
+
+    .baker-order-header {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      margin-bottom:   12px;
+    }
+
+    .baker-order-num {
+      font-size:   0.78rem;
+      font-weight: 700;
+      color:       var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .baker-order-time {
+      font-size:   0.82rem;
+      font-weight: 600;
+      color:       var(--dark);
+    }
+
+    /* Dietary alert */
+    .baker-dietary-alert {
+      display:       flex;
+      align-items:   center;
+      gap:           10px;
+      padding:       10px 14px;
+      background:    #FFEBEE;
+      border-radius: var(--radius-sm);
+      font-size:     0.85rem;
+      font-weight:   600;
+      color:         #C62828;
+      margin-bottom: 16px;
+      border:        1px solid rgba(198,40,40,0.2);
+    }
+
+    /* Details grid */
+    .baker-details-grid {
+      display:               grid;
+      grid-template-columns: 1fr 1fr;
+      gap:                   14px;
+      margin-bottom:         20px;
+    }
+
+    .baker-detail {
+      display:   flex;
+      gap:       10px;
+      align-items: flex-start;
+    }
+
+    .baker-detail-full {
+      grid-column: 1 / -1;
+    }
+
+    .baker-detail-icon {
+      font-size:   1.2rem;
+      flex-shrink: 0;
+      margin-top:  1px;
+    }
+
+    .baker-detail-label {
+      font-size:     0.72rem;
+      font-weight:   700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color:         var(--gray);
+      margin-bottom: 3px;
+    }
+
+    .baker-detail-value {
+      font-size:   0.9rem;
+      color:       var(--dark);
+      line-height: 1.4;
+    }
+
+    .baker-detail-note {
+      font-size:  0.82rem;
+      color:      var(--gray);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* Deliver button */
+    .baker-deliver-btn {
+      width:           100%;
+      padding:         16px;
+      font-size:       1rem;
+      font-weight:     700;
+      background:      var(--dark);
+      color:           white;
+      border-radius:   var(--radius-sm);
+      text-align:      center;
+      letter-spacing:  0.02em;
+      transition:      var(--transition);
+    }
+
+    .baker-deliver-btn:hover {
+      background: var(--coral);
+      transform:  translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255,107,107,0.3);
+    }
+
+    .baker-view-btn {
+      width:      100%;
+      text-align: center;
+      display:    block;
+    }
+
+    /* ── Delivery confirm modal ──────────────── */
+    .deliver-confirm-summary {
+      background:    var(--bg);
+      border-radius: var(--radius-sm);
+      padding:       14px 16px;
+      margin-bottom: 20px;
+    }
+
+    .deliver-summary-row {
+      display:       flex;
+      align-items:   center;
+      gap:           10px;
+      font-size:     0.9rem;
+      color:         var(--dark);
+      margin-bottom: 6px;
+    }
+
+    .deliver-summary-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .deliver-confirm-checks {
+      display:        flex;
+      flex-direction: column;
+      gap:            10px;
+      margin-bottom:  16px;
+    }
+
+    .deliver-check-item {
+      display:     flex;
+      align-items: flex-start;
+      gap:         10px;
+      font-size:   0.88rem;
+      color:       var(--dark);
+      cursor:      pointer;
+      line-height: 1.4;
+    }
+
+    .deliver-check-item input {
+      width:      18px;
+      height:     18px;
+      flex-shrink: 0;
+      cursor:     pointer;
+      margin-top: 1px;
+    }
+
+    .dietary-check-label {
+      color:       #C62828;
+      font-weight: 600;
+    }
+
+    .deliver-billing-note {
+      font-size:     0.82rem;
+      color:         var(--gray);
+      line-height:   1.5;
+      padding-top:   12px;
+      border-top:    1px solid rgba(0,0,0,0.06);
+    }
+
+    .deliver-btn:not(:disabled) {
+      background: #2E7D32 !important;
+    }
+
+    /* ── Week view grid ──────────────────────── */
+    .week-grid {
+      display:               grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap:                   10px;
+      align-items:           start;
+    }
+
+    .week-day-col {
+      background:    var(--white);
+      border:        1px solid rgba(0,0,0,0.07);
+      border-radius: 14px;
+      overflow:      hidden;
+      min-height:    140px;
+      transition:    box-shadow 0.2s, transform 0.15s;
+    }
+
+    .week-day-col:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .week-day-today {
+      border-color: var(--coral);
+      box-shadow:   0 0 0 2px rgba(255,107,107,0.18),
+                    0 4px 20px rgba(255,107,107,0.1);
+    }
+
+    .week-day-has-orders {
+      background: #FFFBFB;
+    }
+
+    .week-day-header {
+      padding:    10px 10px 8px;
+      position:   relative;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .week-day-today .week-day-header {
+      background: linear-gradient(135deg,
+        rgba(255,107,107,0.12) 0%,
+        rgba(255,107,107,0.04) 100%);
+    }
+
+    .week-day-name {
+      display:        block;
+      font-size:      0.65rem;
+      font-weight:    800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color:          var(--gray);
+      margin-bottom:  3px;
+    }
+
+    .week-day-today .week-day-name {
+      color: var(--coral);
+    }
+
+    .week-day-date-num {
+      display:     block;
+      font-size:   1.35rem;
+      font-weight: 700;
+      color:       var(--dark);
+      line-height: 1;
+    }
+
+    .week-day-today .week-day-date-num {
+      color: var(--coral);
+    }
+
+    .week-today-badge {
+      position:      absolute;
+      top:           8px;
+      right:         8px;
+      background:    var(--coral);
+      color:         white;
+      font-size:     0.6rem;
+      font-weight:   700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding:       2px 6px;
+      border-radius: 20px;
+    }
+
+    .week-order-count-badge {
+      position:      absolute;
+      bottom:        8px;
+      right:         8px;
+      background:    rgba(0,0,0,0.06);
+      color:         var(--gray);
+      font-size:     0.65rem;
+      font-weight:   700;
+      padding:       2px 6px;
+      border-radius: 20px;
+    }
+
+    .week-day-today .week-order-count-badge {
+      background: rgba(255,107,107,0.15);
+      color:      var(--coral);
+    }
+
+    .week-day-orders {
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .week-no-orders {
+      font-size:   0.78rem;
+      color:       #ccc;
+      text-align:  center;
+      padding:     16px 0;
+      user-select: none;
+    }
+
+    .week-order-pill {
+      background:    linear-gradient(135deg,
+                       rgba(255,107,107,0.1) 0%,
+                       rgba(255,107,107,0.05) 100%);
+      border:        1px solid rgba(255,107,107,0.15);
+      border-radius: 8px;
+      padding:       6px 8px;
+      font-size:     0.73rem;
+      font-weight:   600;
+      color:         var(--dark);
+      cursor:        pointer;
+      transition:    background 0.15s, transform 0.1s;
+    }
+
+    .week-order-pill:hover {
+      background: linear-gradient(135deg,
+                    rgba(255,107,107,0.2) 0%,
+                    rgba(255,107,107,0.1) 100%);
+      transform: translateY(-1px);
+    }
+
+    .week-pill-product {
+      display:       block;
+      overflow:      hidden;
+      text-overflow: ellipsis;
+      white-space:   nowrap;
+      margin-bottom: 2px;
+    }
+
+    .week-pill-company {
+      display:     block;
+      font-size:   0.65rem;
+      font-weight: 400;
+      color:       var(--gray);
+      overflow:    hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .week-pill-flags {
+      display:     flex;
+      gap:         3px;
+      margin-top:  3px;
+      flex-wrap:   wrap;
+    }
+
+    .week-pill-flag {
+      font-size:     0.6rem;
+      background:    rgba(255,200,0,0.15);
+      border-radius: 4px;
+      padding:       1px 4px;
+    }
+
+    .week-day-count {
+      font-size:  0.72rem;
+      color:      var(--gray);
+      text-align: center;
+      padding:    4px 8px 8px;
+    }
+
+    /* ── Week summary strip ──────────────────── */
+    .week-summary-strip {
+      display:       flex;
+      align-items:   center;
+      gap:           10px;
+      background:    var(--white);
+      border:        1px solid rgba(0,0,0,0.07);
+      border-radius: var(--radius-sm);
+      padding:       12px 16px;
+      margin-top:    20px;
+      font-size:     0.88rem;
+      color:         var(--gray);
+    }
+
+    .week-summary-icon {
+      font-size: 1.2rem;
+    }
+
+    /* ── Invoice card ────────────────────────── */
+    .invoice-total-card {
+      display:       flex;
+      align-items:   center;
+      justify-content: space-between;
+      padding:       24px;
+      margin-bottom: 20px;
+      gap:           16px;
+    }
+
+    .invoice-total-label {
+      font-size:     0.75rem;
+      font-weight:   700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color:         var(--gray);
+      margin-bottom: 6px;
+    }
+
+    .invoice-total-amount {
+      font-family:   var(--font-head);
+      font-size:     2rem;
+      font-weight:   700;
+      color:         var(--dark);
+      margin-bottom: 4px;
+    }
+
+    .invoice-total-sub {
+      font-size: 0.83rem;
+      color:     var(--gray);
+    }
+
+    .invoice-total-right {
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .invoice-submit-note {
+      font-size:  0.78rem;
+      color:      var(--gray);
+      margin-top: 6px;
+    }
+
+    /* ── Responsive week grid ────────────────── */
+    @media (max-width: 768px) {
+      .week-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .week-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .baker-details-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+</body>
+</html>

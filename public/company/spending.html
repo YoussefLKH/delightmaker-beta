@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spending — Delightmaker</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a href="employees.html" class="nav-item">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Team</span>
+      </a>
+      <a href="celebrations.html" class="nav-item">
+        <span class="nav-icon">🎉</span>
+        <span class="nav-label">Celebrations</span>
+      </a>
+      <a href="approvals.html" class="nav-item">
+        <span class="nav-icon">✅</span>
+        <span class="nav-label">Approvals</span>
+      </a>
+      <a href="rules.html" class="nav-item">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Rules</span>
+      </a>
+      <a href="spending.html"
+         class="nav-item active">
+        <span class="nav-icon">💳</span>
+        <span class="nav-label">Spending</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"
+             id="userAvatarLetter">?</div>
+        <div class="user-info">
+          <p class="user-name"
+             id="userDisplayName">Loading...</p>
+          <p class="user-role"
+             id="companyDisplayName">—</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <div id="impersonationBanner" style="display:none;
+         background:#1a1a2e;color:#fff;padding:10px 24px;
+         align-items:center;justify-content:space-between;
+         font-family:inherit;font-size:0.88rem;font-weight:600;gap:12px">
+      <span>👁 Admin view — you are browsing as <span id="impersonatingAs"></span></span>
+      <button onclick="exitImpersonation()"
+              style="background:rgba(255,255,255,0.15);border:none;
+                     color:#fff;padding:6px 14px;border-radius:8px;
+                     cursor:pointer;font-size:0.82rem;font-weight:700;font-family:inherit">
+        ✕ Exit &amp; Close
+      </button>
+    </div>
+
+    <!-- Top bar -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn"
+                id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Spending</h1>
+          <p class="dash-subtitle"
+             id="periodLabel">Loading...</p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <select id="monthSelector"
+                class="filter-select"
+                onchange="loadSpending()">
+          <!-- Populated by JS -->
+        </select>
+        <button class="btn btn-outline"
+                onclick="exportCSV()">
+          Export CSV
+        </button>
+      </div>
+    </header>
+
+
+    <!-- ── KPI CARDS ──────────────────────── -->
+    <section class="kpi-grid">
+
+      <div class="kpi-card">
+        <div class="kpi-icon">💳</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Total Spend</p>
+          <p class="kpi-value"
+             id="kpiTotal">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon">📦</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Deliveries</p>
+          <p class="kpi-value"
+             id="kpiDeliveries">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon">➗</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Avg Per Delivery</p>
+          <p class="kpi-value"
+             id="kpiAvg">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon">📊</div>
+        <div class="kpi-body">
+          <p class="kpi-label">YTD Spend</p>
+          <p class="kpi-value"
+             id="kpiYtd">—</p>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ── UPCOMING CHARGES ─────────────────── -->
+    <section class="dash-card forecast-card"
+             id="forecastSection"
+             style="display:none">
+
+      <div class="card-header">
+        <h2 class="card-title">
+          📅 Upcoming Charges
+        </h2>
+        <span style="font-size:0.82rem;color:#888"
+              id="forecastSubtitle">
+        </span>
+      </div>
+
+      <div id="forecastList"></div>
+
+      <div class="forecast-total-row"
+           id="forecastTotalRow"
+           style="display:none">
+        <span class="forecast-total-label">
+          Estimated Total
+        </span>
+        <span class="forecast-total-amount"
+              id="forecastTotal">
+        </span>
+      </div>
+
+    </section>
+
+
+    <!-- ── TWO COLUMN LAYOUT ──────────────── -->
+    <div class="dash-grid">
+
+
+      <!-- ── BREAKDOWN BY TYPE ──────────── -->
+      <section class="dash-card">
+
+        <div class="card-header">
+          <h2 class="card-title">
+            🎂 Breakdown by Type
+          </h2>
+        </div>
+
+        <div id="breakdownSection">
+          <div class="loading-rows">
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ── TOP PRODUCTS ───────────────── -->
+      <section class="dash-card">
+
+        <div class="card-header">
+          <h2 class="card-title">
+            🧁 By Treat Type
+          </h2>
+        </div>
+
+        <div id="productSection">
+          <div class="loading-rows">
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+
+    <!-- ── DELIVERY HISTORY ───────────────── -->
+    <section class="dash-card table-card">
+
+      <div class="card-header">
+        <h2 class="card-title">
+          📋 Delivery History
+        </h2>
+        <span class="card-action"
+              id="historyCount"
+              style="color:#888;
+                     font-size:0.82rem">
+        </span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Employee</th>
+              <th>Event</th>
+              <th>Treat</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr>
+              <td colspan="6"
+                  class="table-loading">
+                <div class="loading-rows">
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+
+    <!-- ── YTD GIFT SPENDING REPORT ──────────── -->
+    <section class="dash-card" id="ytdReportSection">
+
+      <!-- Screen header (hidden when printing) -->
+      <div class="card-header no-print">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <h2 class="card-title" style="margin:0">
+            📄 YTD Gift Spending Report
+          </h2>
+          <select id="ytdYearSelector"
+                  class="filter-select"
+                  onchange="loadYTDReport()"
+                  style="font-size:0.85rem">
+          </select>
+        </div>
+        <button class="btn btn-primary"
+                onclick="window.print()"
+                style="white-space:nowrap">
+          🖨 Print / Save as PDF
+        </button>
+      </div>
+
+      <p class="no-print" style="font-size:0.82rem;color:#888;margin:0 0 20px">
+        Covers orders with status <strong>Confirmed</strong> or <strong>Delivered</strong> only.
+        Use this report for CRA gift expense documentation.
+      </p>
+
+      <!-- ── PRINTABLE REPORT ────────────────── -->
+      <div id="ytdReportBody">
+        <div class="loading-rows">
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ─────────────────────────────────────
+    let companyId       = null;
+    let companyName     = '—';
+    let deliveredOrders = [];
+    let selectedMonth   = null;
+    let selectedYear    = null;
+
+
+    // ── Impersonation banner ──────────────────────
+    (function checkImpersonation() {
+      const company = sessionStorage.getItem('impersonatingCompany');
+      if (sessionStorage.getItem('impersonating') && company) {
+        const banner = document.getElementById('impersonationBanner');
+        document.getElementById('impersonatingAs').textContent = company;
+        banner.style.display = 'flex';
+      }
+    })();
+    function exitImpersonation() {
+      sessionStorage.removeItem('impersonating');
+      sessionStorage.removeItem('impersonatingCompany');
+      firebase.auth().signOut().then(() => window.close());
+    }
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('company_user').then(async user => {
+      companyId = user.companyId;
+
+      document.getElementById('userAvatarLetter')
+        .textContent =
+          (user.name || user.email || 'H')
+            .charAt(0).toUpperCase();
+      document.getElementById('userDisplayName')
+        .textContent = user.name || 'HR Manager';
+
+      const doc = await db
+        .collection('companies')
+        .doc(companyId)
+        .get();
+      companyName = doc.data()?.name || '—';
+      document.getElementById('companyDisplayName')
+        .textContent = companyName;
+
+      buildMonthSelector();
+      buildYTDYearSelector();
+      await Promise.all([
+        loadSpending(),
+        loadYTD(),
+        loadUpcomingCharges(),
+        loadYTDReport(),
+      ]);
+    });
+
+
+    /* ── Build month selector ────────────────────── */
+    function buildMonthSelector() {
+      const sel    =
+        document.getElementById('monthSelector');
+      const now    = new Date();
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(
+          now.getFullYear(),
+          now.getMonth() - i, 1
+        );
+        const val =
+          `${d.getFullYear()}-${
+            String(d.getMonth() + 1).padStart(2,'0')
+          }`;
+        const label =
+          `${months[d.getMonth()]} ${d.getFullYear()}`;
+
+        const opt       = document.createElement('option');
+        opt.value       = val;
+        opt.textContent = label;
+        if (i === 0) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       LOAD SPENDING DATA
+    ════════════════════════════════════════════ */
+
+    async function loadSpending() {
+      const sel   =
+        document.getElementById('monthSelector');
+      const [year, month] =
+        sel.value.split('-').map(Number);
+
+      selectedYear  = year;
+      selectedMonth = month;
+
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+      document.getElementById('periodLabel')
+        .textContent =
+          `${months[month - 1]} ${year}`;
+
+      // Reset
+      setLoadingState();
+
+      try {
+        const start =
+          new Date(year, month - 1, 1);
+        const end   =
+          new Date(year, month, 1);
+
+        // Load ALL orders this month
+        // (delivered + upcoming for estimates)
+        const snap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp
+              .fromDate(start))
+          .where('deliveryDate', '<',
+            firebase.firestore.Timestamp
+              .fromDate(end))
+          .orderBy('deliveryDate', 'asc')
+          .get();
+
+        const allMonthOrders = snap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(o => o.status !== 'cancelled');
+
+        // Count any order where payment was collected
+        // (confirmed, routed, in_preparation, delivered)
+        // not just fully-delivered ones
+        deliveredOrders = allMonthOrders.filter(
+          o => o.chargeStatus === 'paid'
+        );
+
+        computeAndRender(allMonthOrders);
+
+      } catch (err) {
+        console.error('Load spending error:', err);
+        showToast('Failed to load spending data',
+          'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       UPCOMING CHARGES FORECAST
+    ════════════════════════════════════════════ */
+
+    async function loadUpcomingCharges() {
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const snap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp
+              .fromDate(today))
+          .orderBy('deliveryDate', 'asc')
+          .get();
+
+        // Unpaid, non-cancelled upcoming orders
+        const upcoming = snap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(o =>
+            o.status    !== 'cancelled' &&
+            o.status    !== 'delivered' &&
+            o.chargeStatus !== 'paid'
+          );
+
+        const section =
+          document.getElementById('forecastSection');
+
+        if (upcoming.length === 0) {
+          section.style.display = 'none';
+          return;
+        }
+
+        section.style.display = 'block';
+
+        const total = upcoming.reduce(
+          (sum, o) => sum + (o.chargeAmount || 0), 0
+        );
+
+        document.getElementById('forecastSubtitle')
+          .textContent =
+            `${upcoming.length} order${
+              upcoming.length !== 1 ? 's' : ''
+            } not yet charged`;
+
+        const months = [
+          'Jan','Feb','Mar','Apr','May','Jun',
+          'Jul','Aug','Sep','Oct','Nov','Dec',
+        ];
+
+        document.getElementById('forecastList')
+          .innerHTML = upcoming.map(order => {
+            const d = order.deliveryDate?.toDate
+              ? order.deliveryDate.toDate()
+              : new Date(order.deliveryDate);
+            const dateStr =
+              `${months[d.getMonth()]} ${d.getDate()}`;
+            const icon =
+              order.eventType === 'birthday'
+                ? '🎂' : '🎉';
+            const label =
+              order.eventType === 'birthday'
+                ? 'Birthday' : 'Event';
+            const amount = order.chargeAmount
+              ? `~${formatCurrency(order.chargeAmount)}`
+              : '—';
+
+            // Status chip
+            const isPending =
+              order.status === 'pending_confirmation';
+            const chipColor = isPending
+              ? '#e67e22' : '#27ae60';
+            const chipLabel = isPending
+              ? 'Awaiting Payment' : 'Confirmed';
+
+            return `
+              <div class="forecast-row">
+                <div class="forecast-row-left">
+                  <span class="forecast-icon">
+                    ${icon}
+                  </span>
+                  <div class="forecast-info">
+                    <p class="forecast-name">
+                      ${order.employeeName || '—'}
+                    </p>
+                    <p class="forecast-meta">
+                      ${label} ·
+                      <strong>${dateStr}</strong>
+                      · ${order.productName || '—'}
+                    </p>
+                  </div>
+                </div>
+                <div class="forecast-row-right">
+                  <span class="forecast-chip"
+                        style="color:${chipColor};
+                               background:${chipColor}18">
+                    ${chipLabel}
+                  </span>
+                  <span class="forecast-amount">
+                    ${amount}
+                  </span>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+        // Total row
+        if (total > 0) {
+          document.getElementById('forecastTotal')
+            .textContent = `~${formatCurrency(total)}`;
+          document.getElementById('forecastTotalRow')
+            .style.display = 'flex';
+        }
+
+      } catch (err) {
+        console.error('Forecast load error:', err);
+      }
+    }
+
+
+    /* ── Load YTD ────────────────────────────────── */
+    async function loadYTD() {
+      try {
+        const startOfYear =
+          new Date(new Date().getFullYear(), 0, 1);
+
+        const snap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('chargeStatus', '==', 'paid')
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp
+              .fromDate(startOfYear))
+          .get();
+
+        const ytd = snap.docs.reduce(
+          (sum, d) =>
+            sum + (d.data().chargeAmount || 0), 0
+        );
+
+        document.getElementById('kpiYtd')
+          .textContent = formatCurrency(ytd);
+
+      } catch (err) {
+        console.error('YTD load error:', err);
+      }
+    }
+
+
+    /* ── Set loading state ───────────────────────── */
+    function setLoadingState() {
+      ['kpiTotal','kpiDeliveries','kpiAvg']
+        .forEach(id => {
+          document.getElementById(id)
+            .textContent = '—';
+        });
+    }
+
+
+    /* ── Compute and render ──────────────────────── */
+    function computeAndRender(orders) {
+
+      // Count paid orders as spend (chargeStatus === 'paid')
+      // Upcoming = scheduled/pending that haven't been charged yet
+      const delivered = orders.filter(
+        o => o.chargeStatus === 'paid'
+      );
+      const upcoming  = orders.filter(
+        o => o.chargeStatus !== 'paid' &&
+             o.status !== 'cancelled'
+      );
+
+      const totalSpend = delivered.reduce(
+        (sum, o) => sum + (o.chargeAmount || 0), 0
+      );
+      const avgSpend   = delivered.length > 0
+        ? totalSpend / delivered.length
+        : 0;
+
+      // ── KPIs ───────────────────────────────────
+      document.getElementById('kpiTotal')
+        .textContent = formatCurrency(totalSpend);
+      document.getElementById('kpiDeliveries')
+        .textContent = delivered.length;
+      document.getElementById('kpiAvg')
+        .textContent = avgSpend > 0
+          ? formatCurrency(avgSpend)
+          : '—';
+
+      // ── Breakdown by type ───────────────────────
+      renderBreakdown(delivered, upcoming);
+
+      // ── By product ──────────────────────────────
+      renderProductBreakdown(delivered);
+
+      // ── History table ───────────────────────────
+      renderHistory(orders);
+    }
+
+
+    /* ── Breakdown by event type ─────────────────── */
+    function renderBreakdown(delivered, upcoming) {
+      const container =
+        document.getElementById('breakdownSection');
+
+      const birthdays     = delivered.filter(o => o.eventType === 'birthday');
+      const celebrations  = delivered.filter(o => o.eventType === 'celebration');
+
+      const bdSpend     = birthdays.reduce(
+        (s, o) => s + (o.chargeAmount || 0), 0);
+      const celebSpend  = celebrations.reduce(
+        (s, o) => s + (o.chargeAmount || 0), 0);
+      const total       = bdSpend + celebSpend;
+
+      const upcomingEst = upcoming.reduce(
+        (s, o) => s + (o.chargeAmount || 0), 0
+      );
+
+      if (delivered.length === 0 &&
+          upcoming.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span>💳</span>
+            <p>No orders this month</p>
+          </div>
+        `;
+        return;
+      }
+
+      const bdPct    = total > 0 ? ((bdSpend    / total) * 100).toFixed(0) : 0;
+      const celebPct = total > 0 ? ((celebSpend / total) * 100).toFixed(0) : 0;
+
+      container.innerHTML = `
+        <!-- Birthday bar -->
+        ${bdSpend > 0 || birthdays.length > 0 ? `
+        <div class="spend-type-row">
+          <div class="spend-type-header">
+            <span class="spend-type-label">🎂 Birthdays</span>
+            <span class="spend-type-amount">
+              ${formatCurrency(bdSpend)}
+              <span style="color:#888;font-size:0.78rem">(${birthdays.length})</span>
+            </span>
+          </div>
+          <div class="spend-bar-track">
+            <div class="spend-bar-fill"
+                 style="width:${bdPct}%;background:var(--coral)">
+            </div>
+          </div>
+        </div>` : ''}
+
+        <!-- Celebrations bar -->
+        ${celebSpend > 0 || celebrations.length > 0 ? `
+        <div class="spend-type-row">
+          <div class="spend-type-header">
+            <span class="spend-type-label">🎉 Celebrations</span>
+            <span class="spend-type-amount">
+              ${formatCurrency(celebSpend)}
+              <span style="color:#888;font-size:0.78rem">(${celebrations.length})</span>
+            </span>
+          </div>
+          <div class="spend-bar-track">
+            <div class="spend-bar-fill"
+                 style="width:${celebPct}%;background:#7B5EA7">
+            </div>
+          </div>
+        </div>` : ''}
+
+        ${upcomingEst > 0 ? `
+          <!-- Upcoming estimate -->
+          <div class="upcoming-estimate">
+            <span class="upcoming-est-label">
+              ⏳ Upcoming (estimated)
+            </span>
+            <span class="upcoming-est-amount">
+              ~${formatCurrency(upcomingEst)}
+              <span style="color:#888;
+                           font-size:0.78rem">
+                (${upcoming.length} order${
+                  upcoming.length !== 1 ? 's' : ''
+                })
+              </span>
+            </span>
+          </div>
+        ` : ''}
+      `;
+    }
+
+
+    /* ── Breakdown by product ────────────────────── */
+    function renderProductBreakdown(delivered) {
+      const container =
+        document.getElementById('productSection');
+
+      if (delivered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span>🧁</span>
+            <p>No deliveries this month</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group by product
+      const byProduct = {};
+      delivered.forEach(o => {
+        const p = o.productName || 'Unknown';
+        if (!byProduct[p]) {
+          byProduct[p] = { count: 0, spend: 0 };
+        }
+        byProduct[p].count++;
+        byProduct[p].spend += o.chargeAmount || 0;
+      });
+
+      const totalSpend = delivered.reduce(
+        (s, o) => s + (o.chargeAmount || 0), 0
+      );
+
+      const rows = Object.entries(byProduct)
+        .sort((a, b) => b[1].spend - a[1].spend);
+
+      const colors = [
+        'var(--coral)', '#7C4DFF',
+        '#00BCD4', '#FF9800', '#4CAF50',
+      ];
+
+      container.innerHTML = rows.map(
+        ([name, data], i) => {
+          const pct = totalSpend > 0
+            ? ((data.spend / totalSpend) * 100)
+                .toFixed(0)
+            : 0;
+          return `
+            <div class="spend-type-row">
+              <div class="spend-type-header">
+                <span class="spend-type-label">
+                  ${name}
+                </span>
+                <span class="spend-type-amount">
+                  ${formatCurrency(data.spend)}
+                  <span style="color:#888;
+                               font-size:0.78rem">
+                    (${data.count}×)
+                  </span>
+                </span>
+              </div>
+              <div class="spend-bar-track">
+                <div class="spend-bar-fill"
+                     style="width:${pct}%;
+                            background:${
+                              colors[i % colors.length]
+                            }">
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      ).join('');
+    }
+
+
+    /* ── Render history table ────────────────────── */
+    function renderHistory(orders) {
+      const tbody =
+        document.getElementById('historyBody');
+
+      document.getElementById('historyCount')
+        .textContent =
+          `${orders.length} order${
+            orders.length !== 1 ? 's' : ''
+          }`;
+
+      if (orders.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <span>📋</span>
+                <p>No orders this month</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(order => {
+        const badge   = getStatusBadge(order.status);
+        const dateStr = formatDateShort(
+          order.deliveryDate
+        );
+        const eventIcon =
+          order.eventType === 'birthday'
+            ? '🎂' : '🎉';
+        const eventLabel = 'Birthday';
+
+        const isPaid = order.chargeStatus === 'paid';
+
+        return `
+          <tr class="table-row">
+            <td style="white-space:nowrap;
+                       font-size:0.85rem;
+                       color:#888">
+              ${dateStr}
+            </td>
+            <td>
+              <strong>
+                ${order.employeeName || '—'}
+              </strong>
+            </td>
+            <td style="font-size:0.85rem">
+              ${eventIcon} ${eventLabel}
+            </td>
+            <td style="font-size:0.85rem;
+                       color:#888">
+              ${order.productName || '—'}
+            </td>
+            <td>
+              <span style="
+                font-weight: 700;
+                color: ${isPaid
+                  ? 'var(--dark)'
+                  : 'var(--gray)'};
+              ">
+                ${order.chargeAmount
+                  ? formatCurrency(
+                      order.chargeAmount
+                    )
+                  : '—'}
+              </span>
+              ${!isPaid
+                ? '<span style="font-size:0.72rem;color:#888"> est.</span>'
+                : ''}
+            </td>
+            <td>
+              <span class="status-pill"
+                    style="background:${badge.bg};
+                           color:${badge.color};
+                           font-size:0.75rem">
+                ${badge.icon} ${badge.label}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+
+    /* ── Export CSV ──────────────────────────────── */
+    function exportCSV() {
+      if (deliveredOrders.length === 0) {
+        showToast('No delivered orders to export',
+          'info');
+        return;
+      }
+
+      const months = [
+        'January','February','March','April',
+        'May','June','July','August',
+        'September','October','November','December',
+      ];
+
+      const headers = [
+        'Date', 'Employee', 'Event',
+        'Treat', 'Amount', 'Status',
+      ];
+
+      const rows = deliveredOrders.map(order => {
+        const dateStr = order.deliveryDate?.toDate
+          ? order.deliveryDate.toDate()
+              .toISOString().split('T')[0]
+          : '';
+        return [
+          dateStr,
+          order.employeeName || '',
+          order.eventType    || '',
+          order.productName  || '',
+          (order.chargeAmount || 0).toFixed(2),
+          order.status       || '',
+        ].map(v =>
+          `"${String(v).replace(/"/g, '""')}"`
+        ).join(',');
+      });
+
+      const csv = [
+        headers.join(','),
+        ...rows,
+      ].join('\n');
+
+      const blob = new Blob([csv], {
+        type: 'text/csv'
+      });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download =
+        `delightmaker-spending-${
+          months[selectedMonth - 1]
+        }-${selectedYear}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showToast('CSV exported!', 'success');
+    }
+
+
+    /* ════════════════════════════════════════════
+       YTD GIFT SPENDING REPORT
+    ════════════════════════════════════════════ */
+
+    function buildYTDYearSelector() {
+      const sel = document.getElementById('ytdYearSelector');
+      const currentYear = new Date().getFullYear();
+      for (let y = currentYear; y >= currentYear - 4; y--) {
+        const opt = document.createElement('option');
+        opt.value       = y;
+        opt.textContent = `${y} — Full Year`;
+        if (y === currentYear) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    async function loadYTDReport() {
+      const year     = parseInt(
+        document.getElementById('ytdYearSelector').value
+      );
+      const container =
+        document.getElementById('ytdReportBody');
+
+      container.innerHTML = `
+        <div class="loading-rows">
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+        </div>`;
+
+      try {
+        const start = new Date(year, 0, 1);
+        const end   = new Date(year + 1, 0, 1);
+
+        const snap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp.fromDate(start))
+          .where('deliveryDate', '<',
+            firebase.firestore.Timestamp.fromDate(end))
+          .orderBy('deliveryDate', 'asc')
+          .get();
+
+        // Only confirmed + delivered
+        const orders = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(o =>
+            o.status === 'confirmed' ||
+            o.status === 'delivered'  ||
+            o.status === 'routed'     ||
+            o.status === 'in_preparation'
+          );
+
+        renderYTDReport(orders, year);
+
+      } catch (err) {
+        console.error('YTD report error:', err);
+        container.innerHTML = `
+          <p style="color:#C62828;font-size:0.85rem">
+            Failed to load report data.
+          </p>`;
+      }
+    }
+
+    function renderYTDReport(orders, year) {
+      const container =
+        document.getElementById('ytdReportBody');
+      const CRA_THRESHOLD = 500;
+      const generated = new Date().toLocaleDateString(
+        'en-CA', { year:'numeric', month:'long', day:'numeric' }
+      );
+
+      if (orders.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span>📄</span>
+            <p>No confirmed or delivered orders in ${year}</p>
+          </div>`;
+        return;
+      }
+
+      // Group orders by employee name
+      const byEmployee = {};
+      orders.forEach(o => {
+        const name = o.employeeName || 'Unknown';
+        if (!byEmployee[name]) byEmployee[name] = [];
+        byEmployee[name].push(o);
+      });
+
+      const grandTotal = orders.reduce(
+        (s, o) => s + (o.chargeAmount || 0), 0
+      );
+
+      // Sort employees alphabetically
+      const employees = Object.keys(byEmployee).sort();
+
+      const tableRows = employees.map(name => {
+        const empOrders = byEmployee[name];
+        const empTotal  = empOrders.reduce(
+          (s, o) => s + (o.chargeAmount || 0), 0
+        );
+        const overThreshold = empTotal >= CRA_THRESHOLD;
+
+        const detailRows = empOrders.map(o => {
+          const d = o.deliveryDate?.toDate
+            ? o.deliveryDate.toDate()
+            : new Date(o.deliveryDate);
+          const dateStr = d.toLocaleDateString('en-CA', {
+            month: 'short', day: 'numeric'
+          });
+          const eventLabel = o.eventType === 'birthday'
+            ? '🎂 Birthday' : '🎉 ' + (o.celebrationName || 'Celebration');
+          return `
+            <tr class="ytd-detail-row">
+              <td style="padding-left:28px;color:#888;font-size:0.8rem">
+                ${dateStr}
+              </td>
+              <td style="color:#888;font-size:0.8rem">
+                ${eventLabel}
+              </td>
+              <td style="color:#888;font-size:0.8rem">
+                ${o.productName || '—'}
+              </td>
+              <td style="text-align:right;color:#555;font-size:0.82rem">
+                ${formatCurrency(o.chargeAmount || 0)}
+              </td>
+            </tr>`;
+        }).join('');
+
+        return `
+          <tr class="ytd-emp-row">
+            <td style="font-weight:700;font-size:0.9rem;padding:10px 0 4px">
+              ${name}
+              ${overThreshold
+                ? `<span class="ytd-threshold-flag">
+                     ⚠️ Review — exceeds $${CRA_THRESHOLD} CRA threshold
+                   </span>`
+                : ''}
+            </td>
+            <td></td>
+            <td></td>
+            <td style="text-align:right;font-weight:700;font-size:0.9rem;
+                       color:${overThreshold ? '#C62828' : 'var(--dark)'}">
+              ${formatCurrency(empTotal)}
+            </td>
+          </tr>
+          ${detailRows}
+          <tr><td colspan="4" style="height:6px"></td></tr>`;
+      }).join('');
+
+      container.innerHTML = `
+        <!-- Print header — only visible when printing -->
+        <div class="print-header">
+          <div class="print-logo">🧁 Delightmaker</div>
+          <h2 class="print-title">Employee Gift Spending Report</h2>
+          <div class="print-meta">
+            <span><strong>Company:</strong> ${companyName}</span>
+            <span><strong>Period:</strong> January 1 – December 31, ${year}</span>
+            <span><strong>Generated:</strong> ${generated}</span>
+          </div>
+          <div class="print-divider"></div>
+        </div>
+
+        <!-- Screen company/period line -->
+        <div class="ytd-screen-meta no-print">
+          <span><strong>${companyName}</strong></span>
+          <span>Jan 1 – Dec 31, ${year}</span>
+          <span style="color:#888">Generated ${generated}</span>
+        </div>
+
+        <!-- Report table -->
+        <div class="table-wrap">
+          <table class="data-table ytd-table">
+            <thead>
+              <tr>
+                <th>Employee / Occasion</th>
+                <th>Event Type</th>
+                <th>Gift</th>
+                <th style="text-align:right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+              <!-- Grand total -->
+              <tr class="ytd-grand-total-row">
+                <td colspan="3" style="font-weight:700;font-size:0.95rem;
+                                        padding-top:14px">
+                  Grand Total — ${orders.length} gift${orders.length !== 1 ? 's' : ''}
+                </td>
+                <td style="text-align:right;font-weight:800;font-size:1.05rem;
+                            color:var(--coral);padding-top:14px">
+                  ${formatCurrency(grandTotal)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- CRA note -->
+        <div class="ytd-cra-note">
+          <strong>CRA Note:</strong> Non-cash gifts and awards to employees up to
+          <strong>$500 CAD per person per year</strong> are generally exempt from
+          taxable benefits under CRA guidelines (IT-470R). Employees shown with
+          ⚠️ have received gifts totalling $500 or more this year — please confirm
+          T4 reporting requirements with your accountant.
+        </div>
+      `;
+    }
+
+
+    /* ── Mobile menu ─────────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+  <style>
+    /* ── Spend type rows ─────────────────────── */
+    .spend-type-row {
+      margin-bottom: 18px;
+    }
+
+    .spend-type-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .spend-type-header {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      margin-bottom:   6px;
+    }
+
+    .spend-type-label {
+      font-size:   0.88rem;
+      font-weight: 600;
+      color:       var(--dark);
+    }
+
+    .spend-type-amount {
+      font-size:   0.88rem;
+      font-weight: 700;
+      color:       var(--dark);
+    }
+
+    .spend-bar-track {
+      height:        8px;
+      background:    rgba(196,98,29,0.08);
+      border-radius: 100px;
+      overflow:      hidden;
+    }
+
+    .spend-bar-fill {
+      height:        100%;
+      border-radius: 100px;
+      transition:    width 0.8s ease;
+      min-width:     4px;
+    }
+
+    /* ── Upcoming estimate ───────────────────── */
+    .upcoming-estimate {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      padding:         12px 14px;
+      background:      var(--bg);
+      border-radius:   var(--radius-sm);
+      border:          1px dashed
+                       rgba(196,98,29,0.1);
+      margin-top:      20px;
+    }
+
+    .upcoming-est-label {
+      font-size: 0.85rem;
+      color:     var(--gray);
+    }
+
+    .upcoming-est-amount {
+      font-size:   0.88rem;
+      font-weight: 600;
+      color:       var(--gray);
+    }
+
+    /* ── Forecast card ───────────────────────── */
+    .forecast-card {
+      border-left: 3px solid rgba(196,98,29,0.3);
+    }
+
+    .forecast-row {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      padding:         12px 0;
+      border-bottom:   1px solid rgba(0,0,0,0.05);
+      gap:             12px;
+    }
+
+    .forecast-row:last-child {
+      border-bottom: none;
+    }
+
+    .forecast-row-left {
+      display:     flex;
+      align-items: center;
+      gap:         12px;
+      min-width:   0;
+    }
+
+    .forecast-icon {
+      font-size:   1.3rem;
+      flex-shrink: 0;
+    }
+
+    .forecast-info {
+      min-width: 0;
+    }
+
+    .forecast-name {
+      font-weight:   600;
+      font-size:     0.9rem;
+      color:         var(--dark);
+      white-space:   nowrap;
+      overflow:      hidden;
+      text-overflow: ellipsis;
+    }
+
+    .forecast-meta {
+      font-size: 0.8rem;
+      color:     var(--gray);
+      margin-top: 2px;
+    }
+
+    .forecast-row-right {
+      display:     flex;
+      align-items: center;
+      gap:         12px;
+      flex-shrink: 0;
+    }
+
+    .forecast-chip {
+      font-size:     0.72rem;
+      font-weight:   600;
+      padding:       3px 9px;
+      border-radius: 100px;
+      white-space:   nowrap;
+    }
+
+    .forecast-amount {
+      font-size:    0.9rem;
+      font-weight:  700;
+      color:        var(--dark);
+      min-width:    60px;
+      text-align:   right;
+    }
+
+    .forecast-total-row {
+      display:         flex;
+      justify-content: space-between;
+      align-items:     center;
+      padding:         14px 0 2px;
+      margin-top:      4px;
+      border-top:      2px solid rgba(196,98,29,0.12);
+    }
+
+    .forecast-total-label {
+      font-size:  0.85rem;
+      color:      var(--gray);
+      font-weight: 500;
+    }
+
+    .forecast-total-amount {
+      font-size:   1.1rem;
+      font-weight: 700;
+      color:       var(--coral);
+    }
+
+    /* ── YTD Report — screen styles ─────────── */
+    .ytd-screen-meta {
+      display:   flex;
+      gap:       20px;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+      color:     #555;
+      margin-bottom: 16px;
+    }
+
+    .ytd-emp-row td {
+      border-top: 1.5px solid rgba(0,0,0,0.07);
+      padding-top: 10px;
+    }
+
+    .ytd-detail-row td {
+      padding: 2px 0;
+    }
+
+    .ytd-grand-total-row td {
+      border-top: 2px solid rgba(196,98,29,0.2);
+    }
+
+    .ytd-threshold-flag {
+      display:       inline-block;
+      margin-left:   8px;
+      padding:       2px 8px;
+      background:    rgba(198,40,40,0.08);
+      color:         #C62828;
+      border-radius: 100px;
+      font-size:     0.72rem;
+      font-weight:   600;
+    }
+
+    .ytd-cra-note {
+      margin-top:    24px;
+      padding:       14px 16px;
+      background:    rgba(0,0,0,0.025);
+      border-left:   3px solid rgba(196,98,29,0.3);
+      border-radius: 0 8px 8px 0;
+      font-size:     0.78rem;
+      color:         #666;
+      line-height:   1.6;
+    }
+
+    .ytd-table {
+      font-size: 0.85rem;
+    }
+
+    /* Print header — hidden on screen, shown on print */
+    .print-header { display: none; }
+
+    /* ── PRINT STYLES ────────────────────────── */
+    @media print {
+
+      /* Hide everything except the report section */
+      .sidebar,
+      .dash-header,
+      .kpi-grid,
+      #forecastSection,
+      .dash-grid,
+      .table-card,
+      .no-print,
+      #impersonationBanner {
+        display: none !important;
+      }
+
+      /* Remove main layout padding */
+      .dash-body  { display: block !important; }
+      .dash-main  {
+        margin:  0 !important;
+        padding: 0 !important;
+        width:   100% !important;
+      }
+
+      /* Show the report section cleanly */
+      #ytdReportSection {
+        box-shadow: none !important;
+        border:     none !important;
+        padding:    0 !important;
+        margin:     0 !important;
+      }
+
+      /* Show print-only header */
+      .print-header {
+        display:       block !important;
+        margin-bottom: 28px;
+      }
+
+      .print-logo {
+        font-size:   1.1rem;
+        font-weight: 700;
+        color:       #FF6B6B;
+        margin-bottom: 8px;
+      }
+
+      .print-title {
+        font-size:   1.6rem;
+        font-weight: 700;
+        color:       #2D2D2D;
+        margin:      0 0 10px;
+      }
+
+      .print-meta {
+        display:   flex;
+        gap:       24px;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        color:     #555;
+      }
+
+      .print-divider {
+        height:     2px;
+        background: #EEE;
+        margin-top: 16px;
+      }
+
+      /* Table print adjustments */
+      .ytd-table {
+        width:           100%;
+        border-collapse: collapse;
+        font-size:       0.82rem;
+      }
+
+      .ytd-table th,
+      .ytd-table td {
+        padding:     8px 6px;
+        border-bottom: 1px solid #E8E8E8;
+      }
+
+      .ytd-table thead th {
+        background:    #F5F5F5;
+        font-weight:   700;
+        border-bottom: 2px solid #DDD;
+      }
+
+      .ytd-cra-note {
+        font-size: 0.72rem;
+        margin-top: 20px;
+      }
+
+      .ytd-threshold-flag {
+        font-size: 0.68rem;
+      }
+
+      /* Page settings */
+      @page {
+        margin: 1.5cm 2cm;
+      }
+    }
+  </style>
+
+</body>
+</html>

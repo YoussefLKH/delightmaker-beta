@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Log In — Delightmaker</title>
+  <meta name="description" content="Log in to your Delightmaker account."/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/auth.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+
+<body class="auth-body">
+
+  <!-- ═══════════════════════════════════════
+       NAVBAR (minimal on login page)
+  ════════════════════════════════════════ -->
+  <nav class="auth-nav">
+    <a href="/" class="nav-logo" aria-label="Delightmaker Home">
+      <div class="logo-placeholder">
+        <span class="logo-icon">🧁</span>
+        <span class="logo-text">Delightmaker</span>
+      </div>
+    </a>
+  </nav>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN LOGIN LAYOUT
+  ════════════════════════════════════════ -->
+  <main class="auth-main">
+
+    <!-- LEFT PANEL — Branding -->
+    <div class="auth-left">
+      <div class="auth-left-content">
+
+        <h1 class="auth-headline">
+          Every celebration,<br/>
+          <em>handled.</em>
+        </h1>
+
+        <p class="auth-subtext">
+          Log in to manage your team's gifting,
+          track upcoming celebrations, and keep
+          your employees feeling appreciated.
+        </p>
+
+        <!-- Floating info cards -->
+        <div class="auth-cards">
+
+          <div class="auth-info-card">
+            <div class="info-card-icon">🏢</div>
+            <div class="info-card-body">
+              <p class="info-card-title">For HR Teams</p>
+              <p class="info-card-sub">
+                Manage your team, set gifting rules,
+                approve deliveries with one click.
+              </p>
+            </div>
+          </div>
+
+          <div class="auth-info-card">
+            <div class="info-card-icon">🧁</div>
+            <div class="info-card-body">
+              <p class="info-card-title">For Bakery Partners</p>
+              <p class="info-card-sub">
+                View your upcoming orders, delivery
+                details, and confirm completions.
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Trust note -->
+        <div class="auth-trust">
+          <span>🔒 Secured by Firebase</span>
+          <span>🇨🇦 PIPEDA Compliant</span>
+          <span>✅ SSL Encrypted</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL — Login Form -->
+    <div class="auth-right">
+      <div class="auth-form-wrap">
+
+        <!-- ── LOGIN FORM ─────────────────── -->
+        <div class="auth-card" id="loginCard">
+
+          <div class="auth-card-header">
+            <h2>Welcome back</h2>
+            <p>Sign in to your Delightmaker account</p>
+          </div>
+
+          <!-- Error alert -->
+          <div class="auth-alert error"
+               id="loginError"
+               style="display:none;">
+            <span class="alert-icon">⚠️</span>
+            <span class="alert-text" id="loginErrorText">
+              Invalid email or password.
+            </span>
+          </div>
+
+          <!-- Email not verified alert (inline, hidden) -->
+          <div id="verifyAlert" style="display:none;"></div>
+
+          <!-- Success alert -->
+          <div class="auth-alert success" 
+               id="loginSuccess" 
+               style="display:none;">
+            <span class="alert-icon">✅</span>
+            <span class="alert-text">
+              Logged in! Redirecting you now...
+            </span>
+          </div>
+
+          <form class="auth-form" id="loginForm">
+
+            <!-- Email -->
+            <div class="form-group">
+              <label for="loginEmail">Email address</label>
+              <div class="input-wrap">
+                <span class="input-icon">✉️</span>
+                <input
+                  type="email"
+                  id="loginEmail"
+                  placeholder="you@company.com"
+                  autocomplete="email"
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="loginPassword">Password</label>
+                <button 
+                  type="button" 
+                  class="forgot-link"
+                  id="showForgot">
+                  Forgot password?
+                </button>
+              </div>
+              <div class="input-wrap">
+                <span class="input-icon">🔒</span>
+                <input
+                  type="password"
+                  id="loginPassword"
+                  placeholder="Your password"
+                  autocomplete="current-password"
+                  required
+                />
+                <button 
+                  type="button" 
+                  class="toggle-password"
+                  id="togglePassword"
+                  aria-label="Show password">
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button 
+              type="submit" 
+              class="btn btn-primary btn-full auth-submit"
+              id="loginBtn">
+              Sign In →
+            </button>
+
+          </form>
+
+          <!-- Divider -->
+          <div class="auth-divider">
+            <span>New to Delightmaker?</span>
+          </div>
+
+          <p class="auth-contact-note">
+            New to Delightmaker?
+            <a href="/#apply">Apply for an account →</a>
+          </p>
+
+        </div>
+
+
+        <!-- ── VERIFY EMAIL CARD ─────────────── -->
+        <div class="auth-card"
+             id="verifyCard"
+             style="display:none;">
+
+          <div style="text-align:center;padding:8px 0 28px">
+
+            <div style="font-size:3rem;margin-bottom:20px">📧</div>
+
+            <h2 style="font-family:var(--font-head);font-size:1.6rem;
+                       font-weight:700;color:var(--dark);margin-bottom:10px">
+              Verify your email
+            </h2>
+
+            <p style="color:var(--gray);line-height:1.7;font-size:.92rem;
+                      margin-bottom:28px">
+              Your account was approved — almost there!<br/>
+              Click the link in your approval email to verify
+              your address, then come back and log in.
+            </p>
+
+            <!-- Resend success message -->
+            <div id="resendSuccess"
+                 style="display:none;background:var(--green-light);
+                        border:1px solid #C8E6C9;color:#2E7D32;
+                        border-radius:var(--radius-sm);padding:12px 16px;
+                        font-size:.88rem;font-weight:500;margin-bottom:20px;
+                        animation:slideDown .3s ease">
+              ✅ Verification email sent! Check your inbox.
+            </div>
+
+            <!-- Resend error message -->
+            <div id="resendError"
+                 style="display:none;background:#FFF2F2;
+                        border:1px solid #FFCDD2;color:#C62828;
+                        border-radius:var(--radius-sm);padding:12px 16px;
+                        font-size:.88rem;font-weight:500;margin-bottom:20px;
+                        animation:slideDown .3s ease">
+              ⚠️ Could not send — check your password and try again.
+            </div>
+
+            <button type="button"
+                    id="resendVerifyBtn"
+                    class="btn btn-primary btn-full auth-submit"
+                    style="margin-bottom:16px">
+              Resend verification email →
+            </button>
+
+            <button
+              class="btn btn-ghost btn-full"
+              onclick="
+                document.getElementById('verifyCard').style.display='none';
+                document.getElementById('loginCard').style.display='block';
+              ">
+              ← Back to login
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- ── PENDING APPROVAL CARD ─────────── -->
+        <div class="auth-card"
+             id="pendingCard"
+             style="display:none;">
+
+          <div style="text-align:center;padding:12px 0 24px">
+            <div style="font-size:3rem;margin-bottom:16px">⏳</div>
+            <h2 style="margin-bottom:10px">Application Under Review</h2>
+            <p style="color:#888;line-height:1.7;font-size:.95rem">
+              Your account has been created but is pending
+              Colton's approval. You'll receive an email at
+              <strong id="pendingEmail"></strong> once
+              you're approved — usually within 1 business day.
+            </p>
+            <p style="margin-top:20px;color:#aaa;font-size:.85rem">
+              Questions? Email
+              <a href="mailto:hello@delightmaker.ca"
+                 style="color:#FF6B6B">
+                hello@delightmaker.ca
+              </a>
+            </p>
+            <button
+              class="btn btn-outline"
+              style="margin-top:24px"
+              onclick="
+                document.getElementById('pendingCard').style.display='none';
+                document.getElementById('loginCard').style.display='block';
+              ">
+              ← Back to login
+            </button>
+          </div>
+
+        </div>
+
+        <!-- ── FORGOT PASSWORD CARD ────────── -->
+        <div class="auth-card" 
+             id="forgotCard" 
+             style="display:none;">
+
+          <button class="back-btn" id="backToLogin">
+            ← Back to login
+          </button>
+
+          <div class="auth-card-header">
+            <h2>Reset your password</h2>
+            <p>
+              Enter your email and we'll send you 
+              a reset link.
+            </p>
+          </div>
+
+          <!-- Error alert -->
+          <div class="auth-alert error" 
+               id="forgotError" 
+               style="display:none;">
+            <span class="alert-icon">⚠️</span>
+            <span class="alert-text" id="forgotErrorText">
+              Something went wrong.
+            </span>
+          </div>
+
+          <!-- Success state -->
+          <div class="forgot-success" 
+               id="forgotSuccess" 
+               style="display:none;">
+            <div class="forgot-success-icon">📧</div>
+            <h3>Check your email</h3>
+            <p>
+              We've sent a password reset link to
+              <strong id="forgotEmailSent"></strong>.
+              The link expires in 1 hour.
+            </p>
+            <button 
+              class="btn btn-outline" 
+              id="backToLoginFromSuccess"
+              style="margin-top: 20px;">
+              Back to login
+            </button>
+          </div>
+
+          <form class="auth-form" 
+                id="forgotForm"
+                style="display:block;">
+
+            <div class="form-group">
+              <label for="forgotEmail">Email address</label>
+              <div class="input-wrap">
+                <span class="input-icon">✉️</span>
+                <input
+                  type="email"
+                  id="forgotEmail"
+                  placeholder="you@company.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              class="btn btn-primary btn-full auth-submit"
+              id="forgotBtn">
+              Send Reset Link →
+            </button>
+
+          </form>
+
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="js/firebase-config.js"></script>
+  <script>
+
+    // ── Elements ──────────────────────────────────
+    const loginCard    = document.getElementById('loginCard');
+    const forgotCard   = document.getElementById('forgotCard');
+    const loginForm    = document.getElementById('loginForm');
+    const forgotForm   = document.getElementById('forgotForm');
+    const loginBtn     = document.getElementById('loginBtn');
+    const forgotBtn    = document.getElementById('forgotBtn');
+    const loginError   = document.getElementById('loginError');
+    const loginErrorTx = document.getElementById('loginErrorText');
+    const loginSuccess = document.getElementById('loginSuccess');
+    const verifyAlert  = document.getElementById('verifyAlert');
+    const forgotError  = document.getElementById('forgotError');
+    const forgotErrorTx= document.getElementById('forgotErrorText');
+    const forgotSuccess= document.getElementById('forgotSuccess');
+    const forgotEmailSent = document.getElementById('forgotEmailSent');
+    const togglePwdBtn = document.getElementById('togglePassword');
+    const passwordInput= document.getElementById('loginPassword');
+
+    // Holds signed-in but unverified user so we can resend
+    let unverifiedUser = null;
+
+    // ── Resend verification email ─────────────────
+    document.getElementById('resendVerifyBtn')
+      .addEventListener('click', async () => {
+        const btn         = document.getElementById('resendVerifyBtn');
+        const successMsg  = document.getElementById('resendSuccess');
+        const errorMsg    = document.getElementById('resendError');
+
+        btn.disabled    = true;
+        btn.textContent = 'Sending...';
+        successMsg.style.display = 'none';
+        errorMsg.style.display   = 'none';
+
+        try {
+          const email = document.getElementById('loginEmail').value.trim();
+
+          if (!email) {
+            errorMsg.textContent   = '⚠️ Go back and enter your email first.';
+            errorMsg.style.display = 'block';
+            btn.disabled           = false;
+            btn.textContent        = 'Resend verification email →';
+            return;
+          }
+
+          // Call server endpoint — generates a fresh link
+          // and sends our branded email via Resend
+          const res = await fetch('/api/auth/resend-verification', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ email }),
+          });
+
+          if (res.ok) {
+            successMsg.style.display = 'block';
+            btn.textContent          = 'Resend again';
+            btn.disabled             = false;
+          } else {
+            throw new Error('Server error');
+          }
+
+        } catch (err) {
+          console.error('Resend error:', err);
+          errorMsg.style.display = 'block';
+          btn.disabled           = false;
+          btn.textContent        = 'Resend verification email →';
+        }
+      });
+
+    // ── Toggle password visibility ────────────────
+    togglePwdBtn.addEventListener('click', () => {
+      const type = passwordInput.type === 'password' 
+                   ? 'text' 
+                   : 'password';
+      passwordInput.type = type;
+      togglePwdBtn.textContent = type === 'password' 
+                                 ? '👁️' 
+                                 : '🙈';
+    });
+
+    // ── Switch to forgot password ─────────────────
+    document.getElementById('showForgot')
+      .addEventListener('click', () => {
+        loginCard.style.display  = 'none';
+        forgotCard.style.display = 'block';
+        hideAlert(loginError);
+      });
+
+    // ── Back to login ─────────────────────────────
+    document.getElementById('backToLogin')
+      .addEventListener('click', () => {
+        forgotCard.style.display = 'none';
+        loginCard.style.display  = 'block';
+        hideAlert(forgotError);
+      });
+
+    document.getElementById('backToLoginFromSuccess')
+      .addEventListener('click', () => {
+        forgotCard.style.display  = 'none';
+        loginCard.style.display   = 'block';
+        forgotSuccess.style.display = 'none';
+        forgotForm.style.display    = 'block';
+      });
+
+    // ── Helpers ───────────────────────────────────
+    function showAlert(el, msg) {
+      if (msg) {
+        el.querySelector('.alert-text').textContent = msg;
+      }
+      el.style.display = 'flex';
+    }
+
+    function hideAlert(el) {
+      el.style.display = 'none';
+    }
+
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      btn.textContent = loading 
+        ? 'Please wait...' 
+        : btn.dataset.label;
+    }
+
+    // Store original button labels
+    loginBtn.dataset.label  = loginBtn.textContent;
+    forgotBtn.dataset.label = forgotBtn.textContent;
+
+    // ── Firebase error messages ───────────────────
+    function getFriendlyError(code) {
+      const errors = {
+        'auth/user-not-found':      
+          'No account found with this email.',
+        'auth/wrong-password':      
+          'Incorrect password. Please try again.',
+        'auth/invalid-email':       
+          'Please enter a valid email address.',
+        'auth/too-many-requests':   
+          'Too many attempts. Please wait a few minutes.',
+        'auth/user-disabled':       
+          'This account has been disabled. Contact support.',
+        'auth/network-request-failed': 
+          'Network error. Check your connection.',
+        'auth/invalid-credential':  
+          'Invalid email or password.',
+      };
+      return errors[code] || 
+             'Something went wrong. Please try again.';
+    }
+
+    // ── LOGIN FORM SUBMIT ─────────────────────────
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert(loginError);
+      hideAlert(loginSuccess);
+      verifyAlert.style.display = 'none';
+      unverifiedUser = null;
+      setLoading(loginBtn, true);
+
+      const email    = document
+                       .getElementById('loginEmail')
+                       .value.trim();
+      const password = document
+                       .getElementById('loginPassword')
+                       .value;
+
+      try {
+        // Sign in with Firebase Auth
+        const userCred = await firebase
+          .auth()
+          .signInWithEmailAndPassword(email, password);
+
+        const user = userCred.user;
+
+        // Force-refresh token to pick up latest custom claims
+        // (approval sets claims server-side — cached token
+        //  won't have them until a forced refresh)
+        const idTokenResult = await user
+          .getIdTokenResult(true);
+        const role = idTokenResult.claims.role;
+
+        // Pending approval — sign them out + show waiting screen
+        if (role === 'pending' || !role) {
+          await firebase.auth().signOut();
+          document.getElementById('pendingEmail').textContent =
+            user.email;
+          loginCard.style.display   = 'none';
+          document.getElementById('pendingCard').style.display = 'block';
+          setLoading(loginBtn, false);
+          return;
+        }
+
+        // Email not verified — show verify card
+        if (!user.emailVerified) {
+          unverifiedUser = user;
+          await firebase.auth().signOut();
+          loginCard.style.display = 'none';
+          document.getElementById('verifyCard').style.display = 'block';
+          // Reset resend state
+          document.getElementById('resendSuccess').style.display = 'none';
+          document.getElementById('resendError').style.display   = 'none';
+          const resendBtn = document.getElementById('resendVerifyBtn');
+          resendBtn.disabled    = false;
+          resendBtn.textContent = 'Resend verification email →';
+          setLoading(loginBtn, false);
+          return;
+        }
+
+        // Show success
+        showAlert(loginSuccess);
+
+        // Redirect based on role
+        setTimeout(() => {
+          if (role === 'admin') {
+            window.location.href = '/admin/dashboard';
+          } else if (role === 'company_user') {
+            window.location.href =
+              '/company/dashboard';
+          } else if (role === 'baker') {
+            window.location.href = '/baker/dashboard';
+          } else {
+            firebase.auth().signOut();
+            showAlert(
+              loginError,
+              'Account not configured. ' +
+              'Contact hello@delightmaker.ca'
+            );
+          }
+        }, 1200);
+
+      } catch (err) {
+        console.error('Login error:', err.code);
+        showAlert(loginError, getFriendlyError(err.code));
+        setLoading(loginBtn, false);
+      }
+    });
+
+
+    // ── FORGOT PASSWORD SUBMIT ────────────────────
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert(forgotError);
+      setLoading(forgotBtn, true);
+
+      const email = document
+                    .getElementById('forgotEmail')
+                    .value.trim();
+
+      try {
+        await firebase
+          .auth()
+          .sendPasswordResetEmail(email);
+
+        // Show success state
+        forgotEmailSent.textContent = email;
+        forgotForm.style.display    = 'none';
+        forgotSuccess.style.display = 'block';
+
+      } catch (err) {
+        console.error('Reset error:', err.code);
+        showAlert(
+          forgotError,
+          getFriendlyError(err.code)
+        );
+        setLoading(forgotBtn, false);
+      }
+    });
+
+
+    // ── AUTH STATE — redirect if already logged in ─
+    // Only fires for users who are ALREADY signed in
+    // when the page loads (e.g. navigated back to /login)
+    // Not used for the submit flow — that handles its own redirects
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      // Don't redirect unverified users — let them see
+      // the verify alert from the submit handler
+      if (!user.emailVerified) return;
+
+      try {
+        const idTokenResult = await user.getIdTokenResult();
+        const role = idTokenResult.claims.role;
+
+        if (role === 'admin') {
+          window.location.href = '/admin/dashboard';
+        } else if (role === 'company_user') {
+          window.location.href = '/company/dashboard';
+        } else if (role === 'baker') {
+          window.location.href = '/baker/dashboard';
+        }
+      } catch (err) {
+        console.error('Token error:', err);
+      }
+    });
+
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Delightmaker</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"
+         class="nav-item active">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a href="employees.html" class="nav-item">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Team</span>
+      </a>
+      <a href="celebrations.html" class="nav-item">
+        <span class="nav-icon">🎉</span>
+        <span class="nav-label">Celebrations</span>
+      </a>
+      <a href="approvals.html" class="nav-item">
+        <span class="nav-icon">✅</span>
+        <span class="nav-label">Approvals</span>
+        <span class="nav-badge"
+               id="approvalBadge"
+               style="display:none">0</span>
+      </a>
+      <a href="rules.html" class="nav-item">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Rules</span>
+      </a>
+      <a href="spending.html" class="nav-item">
+        <span class="nav-icon">💳</span>
+        <span class="nav-label">Spending</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"
+             id="userAvatarLetter">?</div>
+        <div class="user-info">
+          <p class="user-name"
+             id="userDisplayName">Loading...</p>
+          <p class="user-role"
+             id="companyDisplayName">—</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- Impersonation banner — only shown when admin is viewing as company -->
+    <div id="impersonationBanner" style="display:none;
+         background:#1a1a2e;color:#fff;padding:10px 24px;
+         display:none;align-items:center;justify-content:space-between;
+         font-family:inherit;font-size:0.88rem;font-weight:600;gap:12px">
+      <span>👁 Admin view — you are browsing as <span id="impersonatingAs"></span></span>
+      <button onclick="exitImpersonation()"
+              style="background:rgba(255,255,255,0.15);border:none;
+                     color:#fff;padding:6px 14px;border-radius:8px;
+                     cursor:pointer;font-size:0.82rem;font-weight:700;
+                     font-family:inherit">
+        ✕ Exit &amp; Close
+      </button>
+    </div>
+
+    <!-- Top bar -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn"
+                id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title"
+              id="greetingText">Good morning!</h1>
+          <p class="dash-subtitle"
+             id="dateDisplay">Loading...</p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <a href="approvals.html"
+           class="btn btn-primary"
+           id="pendingApprovalBtn"
+           style="display:none">
+          ✅ Review Approvals
+        </a>
+      </div>
+    </header>
+
+
+    <!-- ── KPI CARDS ──────────────────────── -->
+    <section class="kpi-grid">
+
+      <div class="kpi-card">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-body">
+          <p class="kpi-label">Team Size</p>
+          <p class="kpi-value"
+             id="kpiTeamSize">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon">🎂</div>
+        <div class="kpi-body">
+          <p class="kpi-label">This Month</p>
+          <p class="kpi-value"
+             id="kpiThisMonth">—</p>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon">💳</div>
+        <div class="kpi-body">
+          <p class="kpi-label">MTD Spend</p>
+          <p class="kpi-value"
+             id="kpiMtdSpend">—</p>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ── TWO COLUMN LAYOUT ──────────────── -->
+    <div class="dash-grid">
+
+
+      <!-- ── UPCOMING EVENTS ─────────────── -->
+      <section class="dash-card">
+
+        <div class="card-header">
+          <h2 class="card-title">
+            📅 Coming Up (30 Days)
+          </h2>
+          <a href="approvals.html"
+             class="card-action">
+            View All
+          </a>
+        </div>
+
+        <div id="upcomingEvents">
+          <div class="loading-rows">
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ── QUICK ACTIONS + PLAN ────────── -->
+      <div>
+
+        <!-- Quick actions -->
+        <section class="dash-card"
+                 style="margin-bottom:20px">
+          <div class="card-header">
+            <h2 class="card-title">
+              ⚡ Quick Actions
+            </h2>
+          </div>
+          <div class="quick-actions-grid">
+            <a href="employees.html"
+               class="quick-action">
+              <span class="qa-icon">👥</span>
+              <span class="qa-label">Team</span>
+            </a>
+            <a href="approvals.html"
+               class="quick-action">
+              <span class="qa-icon">✅</span>
+              <span class="qa-label">Approvals</span>
+            </a>
+            <a href="rules.html"
+               class="quick-action">
+              <span class="qa-icon">⚙️</span>
+              <span class="qa-label">Rules</span>
+            </a>
+            <a href="spending.html"
+               class="quick-action">
+              <span class="qa-icon">💳</span>
+              <span class="qa-label">Spending</span>
+            </a>
+          </div>
+        </section>
+
+      </div>
+
+    </div><!-- /dash-grid -->
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       MODIFY ORDER MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="modifyModal"
+       style="display:none">
+    <div class="modal modify-modal-wide">
+
+      <div class="modal-header">
+        <div>
+          <h2>Modify Order</h2>
+          <p id="modifyHeader"
+             style="font-size:0.85rem;color:var(--gray);margin-top:2px"></p>
+        </div>
+        <button class="modal-close"
+                onclick="hideModifyModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Bundle builder -->
+        <div class="bundle-header" style="margin-bottom:12px">
+          <div>
+            <label style="margin-bottom:2px">Choose treats</label>
+            <p class="form-hint" style="margin:0;font-size:0.8rem;color:#888">
+              Pick bakery, treat, and quantity for this delivery
+            </p>
+          </div>
+          <span class="bundle-total-pill" id="modifyBundleTotal">—</span>
+        </div>
+
+        <div class="bundle-list" id="modifyBundleList">
+          <!-- rows injected by JS -->
+        </div>
+
+        <button type="button"
+                class="bundle-add-btn"
+                onclick="addModifyBundleRow()"
+                style="margin-top:8px">
+          + Add treat
+        </button>
+
+        <!-- Note -->
+        <div class="form-group" style="margin-top:20px">
+          <label>Special instructions
+            <span style="font-weight:400;font-size:0.78rem;color:#888;margin-left:4px">
+              Sent to baker + Colton
+            </span>
+          </label>
+          <textarea id="modifyNote"
+                    class="dash-textarea"
+                    rows="2"
+                    placeholder="Any special requests..."></textarea>
+        </div>
+
+        <p style="font-size:0.78rem;color:#888;margin-top:12px;line-height:1.5">
+          ⚠️ Delivery date cannot be changed. Contact
+          <a href="mailto:hello@delightmaker.ca" style="color:var(--coral)">
+            hello@delightmaker.ca
+          </a> to reschedule.
+        </p>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost"
+                onclick="hideModifyModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary"
+                id="modifySubmitBtn"
+                onclick="submitModify()">
+          Save Changes →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ─────────────────────────────────────
+    let companyId     = null;
+    let companyData   = null;
+    let upcomingOrders = [];
+    let modifyOrderId = null;
+
+
+    // ── Impersonation banner ──────────────────────
+    (function checkImpersonation() {
+      const company = sessionStorage.getItem('impersonatingCompany');
+      if (sessionStorage.getItem('impersonating') && company) {
+        const banner = document.getElementById('impersonationBanner');
+        document.getElementById('impersonatingAs').textContent = company;
+        banner.style.display = 'flex';
+      }
+    })();
+
+    function exitImpersonation() {
+      sessionStorage.removeItem('impersonating');
+      sessionStorage.removeItem('impersonatingCompany');
+      firebase.auth().signOut().then(() => window.close());
+    }
+
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('company_user').then(async user => {
+      companyId = user.companyId;
+
+      // Set greeting
+      setGreeting(user.name || user.email);
+
+      // Set date
+      document.getElementById('dateDisplay')
+        .textContent = new Date().toLocaleDateString(
+          'en-CA', {
+            weekday: 'long',
+            year:    'numeric',
+            month:   'long',
+            day:     'numeric',
+          }
+        );
+
+      // Load everything
+      await loadCompanyData();
+      await Promise.all([
+        loadKPIs(),
+        loadUpcomingEvents(),
+      ]);
+    });
+
+
+    /* ── Greeting ────────────────────────────────── */
+    function setGreeting(name) {
+      const hour = new Date().getHours();
+      const greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+        ? 'Good afternoon'
+        : 'Good evening';
+
+      const firstName = (name || '').split(' ')[0] ||
+                        'there';
+
+      document.getElementById('greetingText')
+        .textContent = `${greeting}, ${firstName}! 👋`;
+
+      // User avatar
+      document.getElementById('userAvatarLetter')
+        .textContent = firstName.charAt(0).toUpperCase();
+      document.getElementById('userDisplayName')
+        .textContent = name || 'HR Manager';
+    }
+
+
+    /* ── Load company data ───────────────────────── */
+    async function loadCompanyData() {
+      try {
+        const doc = await db
+          .collection('companies')
+          .doc(companyId)
+          .get();
+
+        companyData = doc.data();
+
+        document.getElementById('companyDisplayName')
+          .textContent = companyData?.name || '—';
+
+      } catch (err) {
+        console.error('Load company error:', err);
+      }
+    }
+
+
+    /* ── Load KPIs ───────────────────────────────── */
+    async function loadKPIs() {
+      try {
+        // Team size
+        const empSnap = await db
+          .collection('employees')
+          .where('companyId', '==', companyId)
+          .where('active', '==', true)
+          .get();
+
+        document.getElementById('kpiTeamSize')
+          .textContent = empSnap.size;
+
+        // This month's events
+        const now   = new Date();
+        const start = new Date(
+          now.getFullYear(), now.getMonth(), 1
+        );
+        const end   = new Date(
+          now.getFullYear(), now.getMonth() + 1, 1
+        );
+
+        const monthSnap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp.fromDate(start))
+          .where('deliveryDate', '<',
+            firebase.firestore.Timestamp.fromDate(end))
+          .get();
+
+        document.getElementById('kpiThisMonth')
+          .textContent =
+            `${monthSnap.size} event${
+              monthSnap.size !== 1 ? 's' : ''
+            }`;
+
+        // MTD spend (delivered orders this month)
+        const deliveredSnap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('status', '==', 'delivered')
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp.fromDate(start))
+          .where('deliveryDate', '<',
+            firebase.firestore.Timestamp.fromDate(end))
+          .get();
+
+        const mtdSpend = deliveredSnap.docs.reduce(
+          (sum, d) =>
+            sum + (d.data().chargeAmount || 0), 0
+        );
+
+        document.getElementById('kpiMtdSpend')
+          .textContent = formatCurrency(mtdSpend);
+
+        // Pending approvals badge
+        const pendingSnap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('status', '==',
+            'pending_confirmation')
+          .get();
+
+        if (pendingSnap.size > 0) {
+          const badge =
+            document.getElementById('approvalBadge');
+          badge.textContent = pendingSnap.size;
+          badge.style.display = 'inline-flex';
+
+          document.getElementById('pendingApprovalBtn')
+            .style.display = 'flex';
+        }
+
+      } catch (err) {
+        console.error('KPI load error:', err);
+      }
+    }
+
+
+    /* ── Load upcoming events ────────────────────── */
+    async function loadUpcomingEvents() {
+      const container =
+        document.getElementById('upcomingEvents');
+
+      try {
+        const now   = new Date();
+        now.setHours(0, 0, 0, 0);
+        const end   = new Date();
+        end.setDate(end.getDate() + 30);
+
+        const snap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('deliveryDate', '>=',
+            firebase.firestore.Timestamp.fromDate(now))
+          .where('deliveryDate', '<=',
+            firebase.firestore.Timestamp.fromDate(end))
+          .orderBy('deliveryDate', 'asc')
+          .limit(10)
+          .get();
+
+        upcomingOrders = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        if (upcomingOrders.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <span>🎉</span>
+              <p>No events in the next 30 days</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = upcomingOrders
+          .map(order => renderEventCard(order))
+          .join('');
+
+      } catch (err) {
+        console.error('Upcoming events error:', err);
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>Could not load upcoming events</p>
+          </div>
+        `;
+      }
+    }
+
+
+    /* ── Render event card ───────────────────────── */
+    function renderEventCard(order) {
+      const isPending =
+        order.status === 'pending_confirmation';
+      const isApproved =
+        order.status === 'confirmed' ||
+        order.status === 'routed'    ||
+        order.status === 'delivered';
+      const isCancelled =
+        order.status === 'cancelled' ||
+        order.status === 'canceled';
+
+      const days = daysUntil(order.deliveryDate);
+      const dateStr = formatDateShort(order.deliveryDate);
+
+      const eventIcon =
+        order.eventType === 'birthday'
+          ? '🎂'
+          : '🎉';
+
+      const daysLabel = days === 0
+        ? '<span style="color:#C62828;font-weight:700">Today</span>'
+        : days === 1
+        ? '<span style="color:#E65100;font-weight:700">Tomorrow</span>'
+        : `<span style="color:#888">In ${days} days</span>`;
+
+      const dietaryHtml =
+        order.dietaryFlags &&
+        order.dietaryFlags.length > 0
+        ? `<span class="dietary-warning">
+             ⚠️ ${order.dietaryFlags.join(', ')}
+           </span>`
+        : '';
+
+      const actionHtml = isPending
+        ? `<div class="event-actions">
+             <button class="btn btn-primary btn-sm-compact"
+                     onclick="approveOrder('${order.id}')">
+               ✅ Approve
+             </button>
+             <button class="btn btn-outline btn-sm-compact"
+                     onclick="openModifyModal('${order.id}')">
+               ✏️ Modify
+             </button>
+             <button class="btn btn-ghost btn-sm-compact"
+                     onclick="cancelOrder('${order.id}')">
+               ✕
+             </button>
+           </div>`
+        : isCancelled
+        ? `<div class="event-status-tag tag-cancelled">
+             ❌ Cancelled
+           </div>`
+        : `<div class="event-status-tag ${
+             isApproved ? 'tag-approved' : 'tag-scheduled'
+           }">
+             ${isApproved ? '✅ Approved' : '⏳ Scheduled'}
+           </div>`;
+
+      const urgencyClass = days <= 2
+        ? 'event-card-urgent'
+        : days <= 7
+        ? 'event-card-soon'
+        : '';
+
+      return `
+        <div class="event-card ${urgencyClass}
+             ${isPending   ? 'event-card-pending'   : ''}
+             ${isCancelled ? 'event-card-cancelled' : ''}">
+          <div class="event-card-left">
+            <div class="event-date-badge">
+              <span class="event-date-num">
+                ${new Date(
+                    order.deliveryDate?.toDate
+                    ? order.deliveryDate.toDate()
+                    : order.deliveryDate
+                  ).getDate()}
+              </span>
+              <span class="event-date-mon">
+                ${new Date(
+                    order.deliveryDate?.toDate
+                    ? order.deliveryDate.toDate()
+                    : order.deliveryDate
+                  ).toLocaleDateString('en-CA', {
+                    month: 'short'
+                  })}
+              </span>
+            </div>
+            <div class="event-info">
+              <p class="event-name">
+                ${eventIcon}
+                ${order.employeeName}
+                ${daysLabel}
+              </p>
+              <p class="event-product">
+                ${order.productName || '—'}
+                ${order.chargeAmount
+                  ? `<span class="event-price">
+                       est. ${formatCurrency(
+                         order.chargeAmount
+                       )}
+                     </span>`
+                  : ''}
+              </p>
+              ${dietaryHtml}
+            </div>
+          </div>
+          <div class="event-card-right">
+            ${actionHtml}
+          </div>
+        </div>
+      `;
+    }
+
+
+    /* ════════════════════════════════════════════
+       ORDER ACTIONS
+    ════════════════════════════════════════════ */
+
+    /* ── Approve → Stripe Checkout ──────────────── */
+    async function approveOrder(orderId) {
+      const btn = document.querySelector(
+        `[onclick="approveOrder('${orderId}')"]`
+      );
+      if (btn) {
+        btn.disabled    = true;
+        btn.textContent = '⏳ Loading...';
+      }
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${orderId}/checkout-session`,
+          { method: 'POST' }
+        );
+
+        if (res && res.ok) {
+          const data = await res.json();
+          window.location.href = data.url;
+        } else {
+          showToast(
+            'Could not open checkout. Try again.',
+            'error'
+          );
+          if (btn) {
+            btn.disabled    = false;
+            btn.textContent = '✅ Approve';
+          }
+        }
+      } catch (err) {
+        showToast('Action failed', 'error');
+        if (btn) {
+          btn.disabled    = false;
+          btn.textContent = '✅ Approve';
+        }
+      }
+    }
+
+
+    /* ── Cancel ──────────────────────────────────── */
+    async function cancelOrder(orderId) {
+      const confirmed = await confirmDialog(
+        'Cancel this order? The treat will not ' +
+        'be sent and you will not be charged.',
+        'Cancel Order'
+      );
+      if (!confirmed) return;
+
+      showLoading();
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${orderId}/cancel`,
+          {
+            method: 'PATCH',
+            body:   JSON.stringify({
+              reason: 'Cancelled by company HR'
+            }),
+          }
+        );
+
+        hideLoading();
+
+        if (res && res.ok) {
+          showToast('Order cancelled', 'success');
+          await loadUpcomingEvents();
+          await loadKPIs();
+        } else {
+          showToast('Failed to cancel', 'error');
+        }
+      } catch (err) {
+        hideLoading();
+        showToast('Action failed', 'error');
+      }
+    }
+
+
+    /* ── Modify modal ────────────────────────────── */
+    let MODIFY_BAKERIES        = [];
+    let MODIFY_BAKERY_PRODUCTS = {};
+
+    async function loadModifyBakeries() {
+      if (MODIFY_BAKERIES.length > 0) return;
+      try {
+        const res  = await apiCall('/api/bakeries');
+        const data = await res.json();
+        MODIFY_BAKERIES = data.bakeries || [];
+      } catch (err) {
+        MODIFY_BAKERIES = [];
+      }
+    }
+
+    async function loadModifyBakeryProducts(bakeryId) {
+      if (!bakeryId) return [];
+      if (MODIFY_BAKERY_PRODUCTS[bakeryId] !== undefined)
+        return MODIFY_BAKERY_PRODUCTS[bakeryId];
+      try {
+        const res  = await apiCall(`/api/products/${bakeryId}`);
+        const data = await res.json();
+        MODIFY_BAKERY_PRODUCTS[bakeryId] = data.products || [];
+      } catch (err) {
+        MODIFY_BAKERY_PRODUCTS[bakeryId] = [];
+      }
+      return MODIFY_BAKERY_PRODUCTS[bakeryId];
+    }
+
+    function buildModifyTreatOptions(products, selectedId = '') {
+      if (!products || products.length === 0)
+        return '<option value="">— no items yet —</option>';
+      return '<option value="">— choose treat —</option>' +
+        products.map(p =>
+          `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>
+             ${p.name} — $${parseFloat(p.price).toFixed(2)}
+           </option>`
+        ).join('');
+    }
+
+    async function addModifyBundleRow(item = {}) {
+      const list = document.getElementById('modifyBundleList');
+      const bakeryOpts = MODIFY_BAKERIES.map(b =>
+        `<option value="${b.id}" ${item.bakeryId === b.id ? 'selected' : ''}>
+           ${b.name}
+         </option>`
+      ).join('');
+
+      let treatOpts  = '<option value="">— choose treat —</option>';
+      let treatClass = 'bundle-treat treat-disabled';
+
+      if (item.bakeryId) {
+        const products = await loadModifyBakeryProducts(item.bakeryId);
+        if (products.length > 0) {
+          treatOpts  = buildModifyTreatOptions(products, item.treatType || '');
+          treatClass = 'bundle-treat';
+        }
+      }
+
+      const qty = item.qty || 1;
+      const row = document.createElement('div');
+      row.className = 'bundle-row';
+      row.innerHTML = `
+        <select class="bundle-bakery" onchange="onModifyRowBakeryChange(this)">
+          <option value="">— bakery —</option>
+          ${bakeryOpts}
+        </select>
+        <select class="${treatClass}" onchange="updateModifyBundleTotal()">
+          ${treatOpts}
+        </select>
+        <div class="qty-stepper">
+          <button type="button" class="qty-btn" onclick="changeModifyQty(this,-1)">−</button>
+          <span class="qty-value">${qty}</span>
+          <button type="button" class="qty-btn" onclick="changeModifyQty(this,1)">+</button>
+        </div>
+        <button type="button" class="bundle-remove"
+                onclick="removeModifyBundleRow(this)" title="Remove">✕</button>
+      `;
+      list.appendChild(row);
+      updateModifyBundleTotal();
+    }
+
+    async function onModifyRowBakeryChange(sel) {
+      const row      = sel.closest('.bundle-row');
+      const treatSel = row.querySelector('.bundle-treat');
+      const bakeryId = sel.value;
+      if (!bakeryId) {
+        treatSel.innerHTML = '<option value="">— choose treat —</option>';
+        treatSel.className = 'bundle-treat treat-disabled';
+        updateModifyBundleTotal();
+        return;
+      }
+      treatSel.className = 'bundle-treat';
+      treatSel.innerHTML = '<option value="">Loading...</option>';
+      treatSel.disabled  = true;
+      const products     = await loadModifyBakeryProducts(bakeryId);
+      treatSel.disabled  = false;
+      treatSel.innerHTML = buildModifyTreatOptions(products);
+      updateModifyBundleTotal();
+    }
+
+    function changeModifyQty(btn, delta) {
+      const el   = btn.closest('.bundle-row').querySelector('.qty-value');
+      const next = Math.max(1, Math.min(20, (parseInt(el.textContent) || 1) + delta));
+      el.textContent = next;
+      updateModifyBundleTotal();
+    }
+
+    function removeModifyBundleRow(btn) {
+      const list = document.getElementById('modifyBundleList');
+      if (list.children.length <= 1) {
+        showToast('Bundle needs at least one treat', 'error');
+        return;
+      }
+      btn.closest('.bundle-row').remove();
+      updateModifyBundleTotal();
+    }
+
+    function updateModifyBundleTotal() {
+      const rows  = document.querySelectorAll('#modifyBundleList .bundle-row');
+      let   total = 0;
+      rows.forEach(row => {
+        const treatSel = row.querySelector('.bundle-treat');
+        const qty      = parseInt(row.querySelector('.qty-value').textContent) || 1;
+        const opt      = treatSel?.options[treatSel.selectedIndex];
+        if (opt && opt.value) {
+          const match = opt.text.match(/\$([0-9.]+)/);
+          if (match) total += parseFloat(match[1]) * qty;
+        }
+      });
+      const pill = document.getElementById('modifyBundleTotal');
+      pill.textContent = total > 0 ? `~$${total.toFixed(0)} CAD / delivery` : '—';
+    }
+
+    function getModifyBundleItems() {
+      return Array.from(
+        document.querySelectorAll('#modifyBundleList .bundle-row')
+      ).map(row => ({
+        bakeryId:  row.querySelector('.bundle-bakery').value,
+        treatType: row.querySelector('.bundle-treat').value,
+        qty:       parseInt(row.querySelector('.qty-value').textContent) || 1,
+      })).filter(i => i.bakeryId && i.treatType);
+    }
+
+    async function openModifyModal(orderId) {
+      modifyOrderId = orderId;
+      const order   = upcomingOrders.find(o => o.id === orderId);
+      if (!order) return;
+
+      document.getElementById('modifyHeader').textContent =
+        `${order.employeeName} · ${formatDateShort(order.deliveryDate)}`;
+      document.getElementById('modifyNote').value = order.companyNote || '';
+      document.getElementById('modifyBundleList').innerHTML = '';
+      document.getElementById('modifyBundleTotal').textContent = '—';
+
+      await loadModifyBakeries();
+
+      if (order.lineItems && order.lineItems.length > 0) {
+        for (const item of order.lineItems) {
+          await addModifyBundleRow({
+            bakeryId:  item.bakeryId,
+            treatType: item.treatType,
+            qty:       item.qty || 1,
+          });
+        }
+      } else {
+        await addModifyBundleRow();
+      }
+
+      document.getElementById('modifyModal').style.display = 'flex';
+    }
+
+    function hideModifyModal() {
+      document.getElementById('modifyModal').style.display = 'none';
+      modifyOrderId = null;
+    }
+
+    async function submitModify() {
+      if (!modifyOrderId) return;
+
+      const lineItems   = getModifyBundleItems();
+      const companyNote = document.getElementById('modifyNote').value.trim();
+
+      if (lineItems.length === 0) {
+        showToast('Pick at least one treat', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('modifySubmitBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${modifyOrderId}/modify-bundle`,
+          {
+            method: 'PATCH',
+            body:   JSON.stringify({ lineItems, companyNote }),
+          }
+        );
+
+        if (res && res.ok) {
+          showToast('Order updated! ✅', 'success');
+          hideModifyModal();
+          await loadUpcomingEvents();
+        } else {
+          showToast('Failed to update order', 'error');
+        }
+      } catch (err) {
+        showToast('Action failed', 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Save Changes →';
+      }
+    }
+
+
+    /* ── Mobile menu ─────────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+  <style>
+    /* ── Event cards ─────────────────────────── */
+    .event-card {
+      display:       flex;
+      align-items:   flex-start;
+      justify-content: space-between;
+      padding:       16px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      gap:           12px;
+      transition:    background 0.15s;
+    }
+
+    .event-card:last-child {
+      border-bottom: none;
+    }
+
+    .event-card:hover {
+      background: rgba(196,98,29,0.04);
+    }
+
+    .event-card-pending {
+      background:   rgba(255,107,107,0.04);
+      border-left:  3px solid var(--coral);
+    }
+
+    .event-card-urgent {
+      background: rgba(198,40,40,0.05);
+      border-left: 3px solid #C62828;
+    }
+
+    .event-card-left {
+      display:   flex;
+      align-items: flex-start;
+      gap:       14px;
+      flex:      1;
+    }
+
+    /* Date badge */
+    .event-date-badge {
+      display:        flex;
+      flex-direction: column;
+      align-items:    center;
+      background:     linear-gradient(135deg, var(--cream-dark), var(--caramel-light));
+      border:         1px solid rgba(196,98,29,0.1);
+      border-radius:  var(--radius-sm);
+      padding:        6px 10px;
+      min-width:      44px;
+      flex-shrink:    0;
+      box-shadow:     0 2px 6px rgba(196,98,29,0.06);
+    }
+
+    .event-date-num {
+      font-family:   var(--font-head);
+      font-size:     1.3rem;
+      font-weight:   700;
+      color:         var(--dark);
+      line-height:   1;
+    }
+
+    .event-date-mon {
+      font-size:   0.7rem;
+      font-weight: 600;
+      color:       var(--gray);
+      text-transform: uppercase;
+    }
+
+    /* Event info */
+    .event-info {
+      flex: 1;
+    }
+
+    .event-name {
+      font-weight:   600;
+      font-size:     0.95rem;
+      color:         var(--dark);
+      margin-bottom: 4px;
+      display:       flex;
+      align-items:   center;
+      gap:           6px;
+      flex-wrap:     wrap;
+    }
+
+    .event-product {
+      font-size:     0.83rem;
+      color:         var(--gray);
+      margin-bottom: 4px;
+      display:       flex;
+      align-items:   center;
+      gap:           8px;
+    }
+
+    .event-price {
+      color:       var(--coral);
+      font-weight: 600;
+    }
+
+    /* Card right */
+    .event-card-right {
+      flex-shrink: 0;
+    }
+
+    .event-actions {
+      display:   flex;
+      gap:       6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn-sm-compact {
+      padding:   6px 12px !important;
+      font-size: 0.8rem  !important;
+    }
+
+    /* Status tags */
+    .event-status-tag {
+      font-size:     0.78rem;
+      font-weight:   600;
+      padding:       4px 10px;
+      border-radius: 100px;
+    }
+
+    .tag-approved {
+      background: var(--green-light);
+      color:      #2E7D32;
+    }
+
+    .tag-scheduled {
+      background: var(--cream-dark);
+      color:      var(--gray);
+    }
+
+    .tag-cancelled {
+      background: rgba(198,40,40,0.08);
+      color:      #C62828;
+    }
+
+    .event-card-cancelled {
+      opacity: 0.55;
+    }
+
+    /* ── Wider modify modal ──────────────────── */
+    .modify-modal-wide {
+      width:      min(680px, 96vw);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .bundle-header {
+      display:         flex;
+      align-items:     center;
+      justify-content: space-between;
+      gap:             12px;
+    }
+
+    .bundle-total-pill {
+      background:    rgba(255,107,107,0.12);
+      color:         var(--coral);
+      border-radius: 100px;
+      padding:       4px 14px;
+      font-size:     0.82rem;
+      font-weight:   700;
+      white-space:   nowrap;
+    }
+
+    .bundle-list {
+      display:        flex;
+      flex-direction: column;
+      gap:            10px;
+      margin-top:     4px;
+    }
+
+    .bundle-row {
+      display:       flex;
+      align-items:   center;
+      gap:           10px;
+      background:    rgba(255,255,255,0.04);
+      border:        1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding:       10px 12px;
+    }
+
+    .bundle-bakery,
+    .bundle-treat {
+      flex:          1;
+      background:    var(--bg);
+      border:        1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color:         var(--dark);
+      font-size:     0.85rem;
+      padding:       8px 10px;
+      min-width:     0;
+    }
+
+    .treat-disabled { opacity: 0.45; pointer-events: none; }
+
+    .qty-stepper { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+
+    .qty-btn {
+      width:           28px;
+      height:          28px;
+      border-radius:   50%;
+      border:          1px solid rgba(255,255,255,0.15);
+      background:      var(--bg);
+      color:           var(--dark);
+      font-size:       1rem;
+      cursor:          pointer;
+      display:         flex;
+      align-items:     center;
+      justify-content: center;
+      transition:      background 0.15s;
+    }
+    .qty-btn:hover { background: rgba(255,107,107,0.15); }
+
+    .qty-value { min-width:24px; text-align:center; font-weight:700; font-size:0.9rem; }
+
+    .bundle-remove {
+      background: none; border: none; color: #888;
+      cursor: pointer; font-size: 1rem; padding: 4px;
+      flex-shrink: 0; transition: color 0.15s;
+    }
+    .bundle-remove:hover { color: #C62828; }
+
+    .bundle-add-btn {
+      width:         100%;
+      padding:       10px;
+      border:        1px dashed rgba(255,255,255,0.15);
+      border-radius: 10px;
+      background:    transparent;
+      color:         #888;
+      font-size:     0.85rem;
+      cursor:        pointer;
+      transition:    border-color 0.15s, color 0.15s;
+    }
+    .bundle-add-btn:hover { border-color: var(--coral); color: var(--coral); }
+
+  </style>
+
+</body>
+</html>

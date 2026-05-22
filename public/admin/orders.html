@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Orders — Delightmaker Admin</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin/clients" class="nav-item">
+        <span class="nav-icon">🏢</span>
+        <span class="nav-label">Clients</span>
+      </a>
+      <a href="/admin/orders"
+         class="nav-item active">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+      </a>
+      <a href="/admin/bakeries" class="nav-item">
+        <span class="nav-icon">🧁</span>
+        <span class="nav-label">Bakeries</span>
+      </a>
+      <a href="/admin/revenue" class="nav-item">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Revenue</span>
+      </a>
+      <a href="/admin/applications" class="nav-item">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Applications</span>
+      </a>
+      <a href="/admin/invoices" class="nav-item">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Invoices</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">C</div>
+        <div class="user-info">
+          <p class="user-name">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- Top bar -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn"
+                id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Orders</h1>
+          <p class="dash-subtitle"
+             id="orderCount">
+            Loading...
+          </p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <button class="btn btn-primary"
+                onclick="showCreateOrderModal()">
+          + Manual Order
+        </button>
+      </div>
+    </header>
+
+
+    <!-- ── STATUS TABS ────────────────────── -->
+    <div class="status-tabs">
+      <button class="status-tab active"
+              data-status=""
+              onclick="setTab(this, '')">
+        All
+      </button>
+      <button class="status-tab"
+              data-status="confirmed"
+              onclick="setTab(this, 'confirmed')">
+        🔵 Needs Routing
+      </button>
+      <button class="status-tab"
+              data-status="pending_confirmation"
+              onclick="setTab(this,
+                'pending_confirmation')">
+        ⏳ Awaiting Approval
+      </button>
+      <button class="status-tab"
+              data-status="routed"
+              onclick="setTab(this, 'routed')">
+        🧁 Routed
+      </button>
+      <button class="status-tab"
+              data-status="delivered"
+              onclick="setTab(this, 'delivered')">
+        ✅ Delivered
+      </button>
+      <button class="status-tab"
+              data-status="exception"
+              onclick="setTab(this, 'exception')">
+        🚨 Exceptions
+      </button>
+    </div>
+
+
+    <!-- ── FILTERS ────────────────────────── -->
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search employee or company..."
+        />
+      </div>
+      <input type="date"
+             id="dateFilter"
+             class="filter-select"
+             title="Filter by delivery date"/>
+    </div>
+
+
+    <!-- ── ORDERS TABLE ───────────────────── -->
+    <section class="dash-card table-card">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Company</th>
+              <th>Employee</th>
+              <th>Product</th>
+              <th>Dietary</th>
+              <th>Status</th>
+              <th>Margin</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody">
+            <tr>
+              <td colspan="9"
+                  class="table-loading">
+                <div class="loading-rows">
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                  <div class="loading-row"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Load more -->
+      <div class="table-footer"
+           id="loadMoreWrap"
+           style="display:none">
+        <button class="btn btn-ghost"
+                onclick="loadMoreOrders()">
+          Load More Orders
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       ROUTE ORDER MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="routeModal"
+       style="display:none">
+    <div class="modal modal-lg">
+
+      <div class="modal-header">
+        <h2>Route Order</h2>
+        <button class="modal-close"
+                onclick="hideRouteModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Order summary -->
+        <div class="route-order-summary"
+             id="routeOrderSummary">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- AI Recommendation -->
+        <div class="ai-recommendation"
+             id="aiRecommendation"
+             style="display:none">
+          <div class="ai-header">
+            <span class="ai-icon">🤖</span>
+            <span class="ai-label">
+              Claude Recommends
+            </span>
+            <span class="ai-confidence"
+                  id="aiConfidence">
+            </span>
+          </div>
+          <p class="ai-reason"
+             id="aiReason">
+          </p>
+        </div>
+
+        <div class="ai-loading"
+             id="aiLoading"
+             style="display:none">
+          <span>🤖 Getting AI recommendation...</span>
+        </div>
+
+        <!-- Bakery selection -->
+        <div class="form-group"
+             style="margin-top:20px">
+          <label>Select Bakery *</label>
+          <div id="bakeryOptions"
+               class="bakery-options">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Notes to baker -->
+        <div class="form-group"
+             style="margin-top:16px">
+          <label>Notes to Baker</label>
+          <textarea
+            id="routeNotes"
+            class="dash-textarea"
+            rows="2"
+            placeholder="Use side entrance on Granville St..."
+          ></textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost"
+                onclick="hideRouteModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary"
+                id="confirmRouteBtn"
+                onclick="confirmRouting()">
+          Confirm Routing →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       ORDER DETAIL MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="orderDetailModal"
+       style="display:none">
+    <div class="modal modal-lg">
+
+      <div class="modal-header">
+        <h2 id="orderDetailTitle">Order Detail</h2>
+        <button class="modal-close"
+                onclick="hideOrderDetailModal()">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body"
+           id="orderDetailBody">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="modal-footer"
+           id="orderDetailFooter">
+        <!-- Populated by JS -->
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       CREATE ORDER MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="createOrderModal"
+       style="display:none">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2>Create Manual Order</h2>
+        <button class="modal-close"
+                onclick="hideCreateOrderModal()">
+          ✕
+        </button>
+      </div>
+
+      <form id="createOrderForm"
+            onsubmit="submitCreateOrder(event)">
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label>Company ID *</label>
+            <input type="text"
+                   id="coCompanyId"
+                   placeholder="Firestore company ID"
+                   required/>
+          </div>
+
+          <div class="form-group">
+            <label>Employee ID *</label>
+            <input type="text"
+                   id="coEmployeeId"
+                   placeholder="Firestore employee ID"
+                   required/>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Product ID *</label>
+              <input type="text"
+                     id="coProductId"
+                     placeholder="Product ID"
+                     required/>
+            </div>
+            <div class="form-group">
+              <label>Event Type *</label>
+              <select id="coEventType" required>
+                <option value="birthday">
+                  🎂 Birthday
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Delivery Date *</label>
+              <input type="date"
+                     id="coDeliveryDate"
+                     required/>
+            </div>
+            <div class="form-group">
+              <label>Charge Amount (CAD)</label>
+              <input type="number"
+                     id="coChargeAmount"
+                     placeholder="55.00"
+                     step="0.01"
+                     min="0"/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Delivery Address *</label>
+            <input type="text"
+                   id="coDeliveryAddress"
+                   placeholder="123 Barrington St, Halifax"
+                   required/>
+          </div>
+
+          <div class="form-group">
+            <label>Card Message</label>
+            <input type="text"
+                   id="coCustomMessage"
+                   placeholder="Happy Birthday from the whole team!"/>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button"
+                  class="btn btn-ghost"
+                  onclick="hideCreateOrderModal()">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="btn btn-primary"
+                  id="createOrderBtn">
+            Create Order →
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ─────────────────────────────────────
+    let allOrders       = [];
+    let filteredOrders  = [];
+    let currentStatus   = '';
+    let currentOrderId  = null;
+    let selectedBakery  = null;
+    let allBakeries     = [];
+    let lastDoc         = null;
+    const PAGE_SIZE     = 25;
+
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('admin').then(() => {
+      loadOrders();
+      loadBakeries();
+      checkUrlParams();
+    });
+
+
+    // ── Exception SLA helper ──────────────────────
+    function getStuckBadge(order) {
+      if (order.status !== 'exception') return '';
+      const since = order.exceptionSince
+        ? (order.exceptionSince._seconds
+            ? order.exceptionSince._seconds * 1000
+            : new Date(order.exceptionSince).getTime())
+        : (order.flaggedAt
+            ? (order.flaggedAt._seconds
+                ? order.flaggedAt._seconds * 1000
+                : new Date(order.flaggedAt).getTime())
+            : null);
+      if (!since) return '';
+      const diffMs   = Date.now() - since;
+      const diffHrs  = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffHrs / 24);
+      const label    = diffDays >= 1
+        ? `${diffDays}d stuck`
+        : `${diffHrs}h stuck`;
+      const bg = diffDays >= 2
+        ? '#B71C1C'
+        : diffHrs >= 12
+        ? '#C62828'
+        : '#E53935';
+      return `<span style="
+        display:inline-block;
+        margin-left:5px;
+        padding:2px 6px;
+        background:${bg};
+        color:#fff;
+        border-radius:10px;
+        font-size:0.68rem;
+        font-weight:700;
+        vertical-align:middle;
+        letter-spacing:0.03em;
+      ">🔴 ${label}</span>`;
+    }
+
+    // ── Check URL for route param ─────────────────
+    function checkUrlParams() {
+      const params = new URLSearchParams(
+        window.location.search
+      );
+      const routeId = params.get('route');
+      const filter  = params.get('filter');
+
+      if (filter === 'unrouted') {
+        const tab = document.querySelector(
+          '[data-status="confirmed"]'
+        );
+        if (tab) setTab(tab, 'confirmed');
+      }
+
+      if (routeId) {
+        // Small delay for orders to load
+        setTimeout(() =>
+          openRouteModal(routeId), 800
+        );
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       LOAD ORDERS
+    ════════════════════════════════════════════ */
+
+    async function loadOrders(append = false) {
+      if (!append) {
+        showTableLoading();
+        lastDoc = null;
+      }
+
+      try {
+        let url = `/api/orders?limit=${PAGE_SIZE}`;
+        if (currentStatus) {
+          url += `&status=${currentStatus}`;
+        }
+
+        const res = await apiCall(url);
+        if (!res) return;
+
+        const data = await res.json();
+        if (!data.success) return;
+
+        if (append) {
+          allOrders = [...allOrders, ...data.orders];
+        } else {
+          allOrders = data.orders;
+        }
+
+        filteredOrders = [...allOrders];
+        applyFilters();
+
+        document.getElementById('orderCount')
+          .textContent =
+            `${allOrders.length} orders` +
+            (currentStatus
+              ? ` — ${currentStatus}`
+              : '');
+
+        // Show load more if full page returned
+        document.getElementById('loadMoreWrap')
+          .style.display =
+            data.orders.length >= PAGE_SIZE
+            ? 'flex'
+            : 'none';
+
+      } catch (err) {
+        console.error('Load orders error:', err);
+        showTableError();
+      }
+    }
+
+    function loadMoreOrders() {
+      loadOrders(true);
+    }
+
+
+    /* ── Status tabs ───────────────────────────── */
+    function setTab(btn, status) {
+      document.querySelectorAll('.status-tab')
+        .forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentStatus = status;
+      loadOrders();
+    }
+
+
+    /* ── Apply filters ─────────────────────────── */
+    function applyFilters() {
+      const search = document
+        .getElementById('searchInput')
+        .value.toLowerCase().trim();
+      const date   = document
+        .getElementById('dateFilter').value;
+
+      let filtered = [...allOrders];
+
+      if (search) {
+        filtered = filtered.filter(o =>
+          (o.employeeName || '')
+            .toLowerCase().includes(search) ||
+          (o.celebrationName || '')
+            .toLowerCase().includes(search) ||
+          (o.companyName || '')
+            .toLowerCase().includes(search) ||
+          (o.companyId || '')
+            .toLowerCase().includes(search) ||
+          (o.productName || '')
+            .toLowerCase().includes(search)
+        );
+      }
+
+      if (date) {
+        filtered = filtered.filter(o => {
+          if (!o.deliveryDate) return false;
+          const d = new Date(o.deliveryDate)
+            .toISOString().split('T')[0];
+          return d === date;
+        });
+      }
+
+      // Sort exception tab: oldest stuck = most urgent (top)
+      if (currentStatus === 'exception') {
+        filtered.sort((a, b) => {
+          const tsA = a.exceptionSince || a.flaggedAt;
+          const tsB = b.exceptionSince || b.flaggedAt;
+          const tA  = tsA
+            ? (tsA._seconds ? tsA._seconds * 1000 : new Date(tsA).getTime())
+            : Infinity;
+          const tB  = tsB
+            ? (tsB._seconds ? tsB._seconds * 1000 : new Date(tsB).getTime())
+            : Infinity;
+          return tA - tB; // oldest first = most urgent
+        });
+      }
+
+      filteredOrders = filtered;
+      renderOrdersTable(filtered);
+    }
+
+    document.getElementById('searchInput')
+      .addEventListener('input', applyFilters);
+    document.getElementById('dateFilter')
+      .addEventListener('change', applyFilters);
+
+
+    /* ── Render table ──────────────────────────── */
+    function renderOrdersTable(orders) {
+      const tbody =
+        document.getElementById('ordersTableBody');
+
+      if (orders.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="table-empty">
+              <div class="empty-state">
+                <span>📦</span>
+                <p>No orders found</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(order => {
+        const badge   = getStatusBadge(order.status);
+        const dateStr = formatDateShort(
+          order.deliveryDate
+        );
+        const days    = daysUntil(order.deliveryDate);
+        const margin  = (order.chargeAmount || 0) -
+                        (order.wholesaleCost || 0);
+
+        const dietaryHtml =
+          order.dietaryFlags &&
+          order.dietaryFlags.length > 0
+          ? order.dietaryFlags.map(f =>
+              `<span class="dietary-tag">⚠️${f}</span>`
+            ).join('')
+          : '<span style="color:#bbb">—</span>';
+
+        const urgency = days <= 1
+          ? 'row-urgent'
+          : days <= 3
+          ? 'row-warning'
+          : '';
+
+        const actions = buildActionButtons(order);
+
+        return `
+          <tr class="table-row ${urgency}">
+            <td>
+              <span class="order-id-badge">
+                #${order.id.slice(-6).toUpperCase()}
+              </span>
+            </td>
+            <td>
+              <div class="date-cell">
+                <span class="date-main">
+                  ${dateStr}
+                </span>
+                <span class="date-days"
+                      style="color:${
+                        days <= 1
+                        ? '#C62828'
+                        : days <= 3
+                        ? '#E65100'
+                        : '#888'
+                      }">
+                  ${days === 0
+                    ? 'TODAY'
+                    : days < 0
+                    ? `${Math.abs(days)}d ago`
+                    : `${days}d`}
+                </span>
+              </div>
+            </td>
+            <td style="font-size:0.82rem;
+                       max-width:140px;
+                       overflow:hidden;
+                       text-overflow:ellipsis">
+              ${order.companyName
+                  ? `<strong>${order.companyName}</strong>`
+                  : `<span style="color:#888">${order.companyId || '—'}</span>`}
+            </td>
+            <td>
+              <span style="font-size:0.82rem;margin-right:4px">
+                ${order.eventType === 'birthday' ? '🎂' : '🎉'}
+              </span>
+              <strong>
+                ${order.eventType === 'celebration'
+                    ? (order.celebrationName || order.employeeName || '—')
+                    : (order.employeeName || '—')}
+              </strong>
+            </td>
+            <td style="font-size:0.85rem">
+              ${order.productName || '—'}
+            </td>
+            <td>${dietaryHtml}</td>
+            <td>
+              <span class="status-pill"
+                    style="background:${badge.bg};
+                           color:${badge.color};
+                           font-size:0.75rem">
+                ${badge.icon} ${badge.label}
+              </span>
+              ${order.status === 'cancelled' && order.refundId
+                ? `<span class="refunded-chip">↩ Refunded</span>`
+                : ''}
+              ${getStuckBadge(order)}
+            </td>
+            <td>
+              <span style="
+                color:${margin > 0
+                  ? '#2E7D32'
+                  : '#C62828'};
+                font-weight:600;
+                font-size:0.85rem
+              ">
+                
+$$
+{margin.toFixed(0)}
+              </span>
+            </td>
+            <td>
+              <div class="action-btns">
+                ${actions}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+
+    /* ── Build action buttons per status ───────── */
+    function buildActionButtons(order) {
+      const id = order.id;
+
+      switch (order.status) {
+        case 'confirmed':
+          return `
+            <button class="btn-sm btn-primary"
+                    onclick="openRouteModal('${id}')">
+              Route →
+            </button>
+            <button class="btn-sm btn-ghost"
+                    onclick="viewOrder('${id}')">
+              View
+            </button>
+          `;
+
+        case 'pending_confirmation':
+          return `
+            <button class="btn-sm btn-outline"
+                    onclick="resendConfirmation(
+                      '${id}'
+                    )">
+              Resend Email
+            </button>
+            <button class="btn-sm btn-ghost"
+                    onclick="viewOrder('${id}')">
+              View
+            </button>
+          `;
+
+        case 'routed':
+          return `
+            <button class="btn-sm btn-ghost"
+                    onclick="viewOrder('${id}')">
+              View
+            </button>
+            <button class="btn-sm"
+                    style="background:#f5f5f5;
+                           color:#555"
+                    onclick="markDelivered('${id}')">
+              Mark Delivered
+            </button>
+          `;
+
+        case 'exception':
+          return `
+            <button class="btn-sm btn-primary"
+                    onclick="openRouteModal('${id}')">
+              Fix →
+            </button>
+            <button class="btn-sm btn-ghost"
+                    onclick="viewOrder('${id}')">
+              View
+            </button>
+          `;
+
+        case 'delivered':
+          return `
+            <button class="btn-sm btn-ghost"
+                    onclick="viewOrder('${id}')">
+              View
+            </button>
+          `;
+
+        default:
+          return `
+            <button class="btn-sm btn-ghost"
+                    onclick="viewOrder('${id}')">
+              View
+            </button>
+          `;
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       ROUTE ORDER MODAL
+    ════════════════════════════════════════════ */
+
+    async function openRouteModal(orderId) {
+      currentOrderId = orderId;
+      selectedBakery = null;
+      document.getElementById('routeNotes')
+        .value = '';
+      document.getElementById('aiRecommendation')
+        .style.display = 'none';
+      document.getElementById('aiLoading')
+        .style.display = 'none';
+
+      document.getElementById('routeModal')
+        .style.display = 'flex';
+
+      // Find order in loaded list
+      const order = allOrders.find(
+        o => o.id === orderId
+      );
+
+      if (!order) {
+        showToast('Order not found', 'error');
+        hideRouteModal();
+        return;
+      }
+
+      // Fetch company lat/lng for distance calculation
+      let companyLat = null, companyLng = null;
+      try {
+        if (order.companyId) {
+          const companyDoc = await db
+            .collection('companies')
+            .doc(order.companyId)
+            .get();
+          if (companyDoc.exists) {
+            companyLat = companyDoc.data().addressLat || null;
+            companyLng = companyDoc.data().addressLng || null;
+          }
+        }
+      } catch (e) { /* non-fatal */ }
+
+
+      // ── Render order summary ──────────────────
+      const days    = daysUntil(order.deliveryDate);
+      const urgency = days <= 2
+        ? `<span style="color:#C62828;
+                        font-weight:700">
+             🔴 ${days === 0
+               ? 'TODAY'
+               : days === 1
+               ? 'TOMORROW'
+               : `${days} days`}
+           </span>`
+        : `<span style="color:#888">
+             ${days} days away
+           </span>`;
+
+      const dietaryHtml =
+        order.dietaryFlags &&
+        order.dietaryFlags.length > 0
+        ? `<div class="route-dietary-alert">
+             🚨 DIETARY: ${order.dietaryFlags
+               .map(f => f.toUpperCase())
+               .join(', ')}
+           </div>`
+        : '';
+
+      document.getElementById('routeOrderSummary')
+        .innerHTML = `
+          <div class="route-summary-grid">
+            <div class="route-field">
+              <span class="route-label">Employee</span>
+              <span class="route-value">
+                ${order.employeeName}
+              </span>
+            </div>
+            <div class="route-field">
+              <span class="route-label">Product</span>
+              <span class="route-value">
+                ${order.productName}
+              </span>
+            </div>
+            <div class="route-field">
+              <span class="route-label">Delivery</span>
+              <span class="route-value">
+                ${formatDate(order.deliveryDate)}
+                ${urgency}
+              </span>
+            </div>
+            <div class="route-field">
+              <span class="route-label">Address</span>
+              <span class="route-value">
+                ${order.deliveryAddress || '—'}
+              </span>
+            </div>
+            <div class="route-field">
+              <span class="route-label">Charge</span>
+              <span class="route-value"
+                    style="color:#FF6B6B;
+                           font-weight:700">
+$$
+{order.chargeAmount} CAD
+              </span>
+            </div>
+          </div>
+          ${dietaryHtml}
+        `;
+
+
+      // ── Render bakery options ─────────────────
+      renderBakeryOptions(null, companyLat, companyLng);
+
+
+      // ── Get Claude recommendation ─────────────
+      document.getElementById('aiLoading')
+        .style.display = 'flex';
+
+      try {
+        const aiRes = await apiCall(
+          '/api/claude/route-order',
+          {
+            method: 'POST',
+            body:   JSON.stringify({
+              orderId:      order.id,
+              productName:  order.productName,
+              dietaryFlags: order.dietaryFlags || [],
+              quantity:     'standard',
+              deliveryArea: 'Halifax HRM',
+            }),
+          }
+        );
+
+        document.getElementById('aiLoading')
+          .style.display = 'none';
+
+        if (aiRes && aiRes.ok) {
+          const aiData = await aiRes.json();
+
+          if (aiData.recommendation &&
+              !aiData.recommendation.isException) {
+            showAiRecommendation(
+              aiData.recommendation
+            );
+
+            // Pre-select recommended bakery
+            selectedBakery =
+              aiData.recommendation
+                .recommendedBakeryId;
+            renderBakeryOptions(
+              aiData.recommendation
+                .recommendedBakeryId,
+              companyLat,
+              companyLng
+            );
+          } else if (
+            aiData.recommendation?.isException
+          ) {
+            showToast(
+              '⚠️ Claude flagged this as an ' +
+              'exception: ' +
+              aiData.recommendation.exceptionReason,
+              'error',
+              6000
+            );
+          }
+        }
+      } catch (err) {
+        document.getElementById('aiLoading')
+          .style.display = 'none';
+        console.error('AI routing error:', err);
+      }
+    }
+
+
+    /* ── Show AI recommendation ────────────────── */
+    function showAiRecommendation(rec) {
+      const el =
+        document.getElementById('aiRecommendation');
+      const confidenceColors = {
+        high:   '#2E7D32',
+        medium: '#E65100',
+        low:    '#888',
+      };
+
+      document.getElementById('aiConfidence')
+        .innerHTML = `
+          <span style="
+            color:      ${confidenceColors[
+                           rec.confidence
+                         ] || '#888'};
+            font-size:  0.8rem;
+            font-weight:600;
+          ">
+            ${rec.confidence?.toUpperCase()}
+            confidence
+          </span>
+        `;
+
+      document.getElementById('aiReason')
+        .textContent = rec.reason || '';
+
+      el.querySelector('.ai-header').innerHTML = `
+        <span class="ai-icon">🤖</span>
+        <span class="ai-label">
+          Claude recommends:
+          <strong>${rec.recommendedBakeryName}</strong>
+        </span>
+        <span id="aiConfidence">
+          <span style="
+            color:     ${confidenceColors[
+                          rec.confidence
+                        ] || '#888'};
+            font-size: 0.8rem;
+            font-weight:600
+          ">
+            ${(rec.confidence || '').toUpperCase()}
+          </span>
+        </span>
+      `;
+
+      el.style.display = 'block';
+    }
+
+
+    /* ── Render bakery radio options ───────────── */
+    function renderBakeryOptions(selectedId, companyLat, companyLng) {
+      const container =
+        document.getElementById('bakeryOptions');
+
+      if (allBakeries.length === 0) {
+        container.innerHTML = `
+          <p style="color:#888;font-size:0.9rem">
+            No active bakeries found.
+            <a href="/admin/bakeries">Add bakeries →</a>
+          </p>
+        `;
+        return;
+      }
+
+      const GEO_RADIUS_KM = 10; // warn beyond this
+
+      // Attach distance to each bakery (null if no coords)
+      const bakeresWithDist = allBakeries.map(b => {
+        let distKm = null;
+        if (companyLat && companyLng &&
+            b.addressLat  && b.addressLng) {
+          distKm = haversineKm(
+            companyLat, companyLng,
+            b.addressLat, b.addressLng
+          );
+        }
+        return { ...b, distKm };
+      });
+
+      // Sort: closest first, unknown distance last
+      bakeresWithDist.sort((a, b) => {
+        if (a.distKm === null && b.distKm === null) return 0;
+        if (a.distKm === null) return 1;
+        if (b.distKm === null) return -1;
+        return a.distKm - b.distKm;
+      });
+
+      container.innerHTML = bakeresWithDist.map(b => {
+        const isSelected  = b.id === selectedId;
+        const outOfRange  = b.distKm !== null &&
+                            b.distKm > GEO_RADIUS_KM;
+
+        // Distance badge HTML
+        let distBadge = '';
+        if (b.distKm !== null) {
+          const badgeColor = outOfRange
+            ? '#C62828'
+            : b.distKm <= 5
+            ? '#2E7D32'
+            : '#E65100';
+          distBadge = `
+            <span style="
+              display:       inline-block;
+              padding:       2px 7px;
+              background:    ${badgeColor}18;
+              color:         ${badgeColor};
+              border:        1px solid ${badgeColor}40;
+              border-radius: 10px;
+              font-size:     0.72rem;
+              font-weight:   700;
+              margin-left:   6px;
+              vertical-align:middle;
+            ">📍 ${fmtDist(b.distKm)}</span>
+          `;
+        }
+
+        const outOfRangeWarning = outOfRange
+          ? `<span style="
+               color:#C62828;
+               font-size:0.72rem;
+               font-weight:600;
+             ">⚠️ Out of range</span> `
+          : '';
+
+        return `
+          <label class="bakery-option ${
+            isSelected ? 'bakery-option-selected' : ''
+          } ${outOfRange ? 'bakery-option-far' : ''}"
+                 id="bakery-opt-${b.id}"
+                 onclick="selectBakery('${b.id}')">
+            <div class="bakery-opt-radio">
+              <div class="radio-dot ${
+                isSelected ? 'radio-dot-on' : ''
+              }" id="radio-${b.id}">
+              </div>
+            </div>
+            <div class="bakery-opt-body">
+              <p class="bakery-opt-name">
+                ${b.name}${distBadge}
+                ${isSelected
+                  ? '<span class="ai-pick">⭐ AI Pick</span>'
+                  : ''}
+              </p>
+              <p class="bakery-opt-meta">
+                ${outOfRangeWarning}
+                ${(b.specialty || []).join(' · ')}
+                ${b.allergenFree
+                  ? '· <strong>Allergen-Free</strong>'
+                  : ''}
+              </p>
+            </div>
+          </label>
+        `;
+      }).join('');
+    }
+
+
+    /* ── Select bakery ─────────────────────────── */
+    function selectBakery(bakeryId) {
+      selectedBakery = bakeryId;
+
+      // Update visual state
+      document.querySelectorAll('.bakery-option')
+        .forEach(el => {
+          el.classList.remove(
+            'bakery-option-selected'
+          );
+        });
+      document.querySelectorAll('.radio-dot')
+        .forEach(el => {
+          el.classList.remove('radio-dot-on');
+        });
+
+      const opt =
+        document.getElementById(
+          `bakery-opt-${bakeryId}`
+        );
+      const dot =
+        document.getElementById(
+          `radio-${bakeryId}`
+        );
+
+      if (opt) opt.classList.add(
+        'bakery-option-selected'
+      );
+      if (dot) dot.classList.add('radio-dot-on');
+    }
+
+
+    /* ── Confirm routing ───────────────────────── */
+    async function confirmRouting() {
+      if (!selectedBakery) {
+        showToast(
+          'Please select a bakery', 'error'
+        );
+        return;
+      }
+
+      const btn =
+        document.getElementById('confirmRouteBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Routing...';
+
+      const notes =
+        document.getElementById('routeNotes').value;
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${currentOrderId}/route`,
+          {
+            method: 'POST',
+            body:   JSON.stringify({
+              bakerId: selectedBakery,
+              notes,
+            }),
+          }
+        );
+
+        if (res && res.ok) {
+          hideRouteModal();
+          showToast(
+            'Order routed! Baker notified. ✅',
+            'success'
+          );
+          await loadOrders();
+        } else {
+          const err = await res.json();
+          showToast(
+            err.error || 'Routing failed',
+            'error'
+          );
+        }
+      } catch (err) {
+        showToast('Routing failed', 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Confirm Routing →';
+      }
+    }
+
+    function hideRouteModal() {
+      document.getElementById('routeModal')
+        .style.display = 'none';
+      currentOrderId = null;
+      selectedBakery = null;
+    }
+
+
+    /* ════════════════════════════════════════════
+       VIEW ORDER MODAL
+    ════════════════════════════════════════════ */
+
+    async function viewOrder(orderId) {
+      document.getElementById('orderDetailModal')
+        .style.display = 'flex';
+      document.getElementById('orderDetailBody')
+        .innerHTML = `
+          <div class="loading-rows">
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+            <div class="loading-row"></div>
+          </div>
+        `;
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${orderId}`
+        );
+        if (!res || !res.ok) {
+          showToast('Order not found', 'error');
+          hideOrderDetailModal();
+          return;
+        }
+
+        const data  = await res.json();
+        const order = data.order;
+
+        document.getElementById('orderDetailTitle')
+          .textContent =
+            `Order #${orderId.slice(-6)
+              .toUpperCase()}`;
+
+        const badge   = getStatusBadge(order.status);
+        const dietary = renderDietaryFlags(
+          order.dietaryFlags
+        );
+
+        document.getElementById('orderDetailBody')
+          .innerHTML = `
+            <div class="order-detail-grid">
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Status
+                </span>
+                <span>
+                  ${renderStatusBadge(order.status)}
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  ${order.eventType === 'celebration' ? 'Occasion' : 'Employee'}
+                </span>
+                <span class="detail-field-value">
+                  ${order.eventType === 'celebration'
+                      ? (order.celebrationName || order.employeeName || '—')
+                      : (order.employeeName || '—')}
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Event
+                </span>
+                <span class="detail-field-value">
+                  ${order.eventType === 'birthday'
+                      ? '🎂 Birthday'
+                      : order.eventType === 'celebration'
+                      ? '🎉 Celebration'
+                      : order.eventType || '—'}
+                </span>
+              </div>
+              ${order.eventType === 'celebration' && order.bakerNotes ? `
+              <div class="detail-field-row">
+                <span class="detail-field-label">Special Instructions</span>
+                <span class="detail-field-value">${order.bakerNotes}</span>
+              </div>` : ''}
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Product
+                </span>
+                <span class="detail-field-value">
+                  ${order.productName}
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Bakery
+                </span>
+                <span class="detail-field-value">
+                  ${order.bakeryName || '— Not assigned'}
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Delivery Date
+                </span>
+                <span class="detail-field-value">
+                  ${formatDate(order.deliveryDate)}
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Address
+                </span>
+                <span class="detail-field-value">
+                  ${order.deliveryAddress || '—'}
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Dietary
+                </span>
+                <span>${dietary}</span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Card Message
+                </span>
+                <span class="detail-field-value"
+                      style="font-style:italic">
+                  "${order.customMessage || 'None'}"
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Baker Notes
+                </span>
+                <span class="detail-field-value">
+                  ${order.bakerNotes || '—'}
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Charge
+                </span>
+                <span class="detail-field-value"
+                      style="color:#FF6B6B;
+                             font-weight:700">
+                  
+$$
+{order.chargeAmount} CAD
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Wholesale Cost
+                </span>
+                <span class="detail-field-value">
+$$
+{order.wholesaleCost} CAD
+                </span>
+              </div>
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Margin
+                </span>
+                <span class="detail-field-value"
+                      style="color:#2E7D32;
+                             font-weight:700">
+                  $${(
+                    (order.chargeAmount || 0) -
+                    (order.wholesaleCost || 0)
+                  ).toFixed(2)} CAD
+                </span>
+              </div>
+              ${order.stripeChargeId ? `
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Stripe Charge
+                </span>
+                <span class="detail-field-value"
+                      style="font-size:0.8rem;
+                             color:#888">
+                  ${order.stripeChargeId}
+                </span>
+              </div>
+              ` : ''}
+              ${order.refundId ? `
+              <div class="detail-field-row">
+                <span class="detail-field-label">
+                  Refund
+                </span>
+                <span class="detail-field-value">
+                  <span style="color:#EF9A9A;font-weight:700">
+                    −$${(order.refundAmount || 0).toFixed(2)} CAD
+                  </span>
+                  <span style="font-size:0.75rem;color:#888;margin-left:6px">
+                    (${order.refundStatus || 'issued'})
+                  </span>
+                </span>
+              </div>
+              ` : ''}
+            </div>
+
+            ${order.exceptionReason ? `
+              <div class="exception-banner">
+                🚨 ${order.exceptionReason}
+              </div>
+            ` : ''}
+          `;
+
+
+        // Footer action buttons
+        const footer =
+          document.getElementById(
+            'orderDetailFooter'
+          );
+
+        let footerBtns = `
+          <button class="btn btn-ghost"
+                  onclick="hideOrderDetailModal()">
+            Close
+          </button>
+        `;
+
+        if (order.status !== 'delivered' &&
+            order.status !== 'cancelled') {
+          footerBtns += `
+            <button class="btn btn-outline"
+                    onclick="
+                      hideOrderDetailModal();
+                      cancelOrderById('${order.id}')
+                    ">
+              Cancel Order
+            </button>
+          `;
+        }
+
+        if (order.status === 'confirmed' ||
+            order.status === 'exception') {
+          footerBtns += `
+            <button class="btn btn-primary"
+                    onclick="
+                      hideOrderDetailModal();
+                      openRouteModal('${order.id}')
+                    ">
+              Route Order →
+            </button>
+          `;
+        }
+
+        if (order.status === 'routed') {
+          footerBtns += `
+            <button class="btn btn-primary"
+                    onclick="
+                      hideOrderDetailModal();
+                      markDelivered('${order.id}')
+                    ">
+              Mark Delivered
+            </button>
+          `;
+        }
+
+        footer.innerHTML = footerBtns;
+
+      } catch (err) {
+        console.error('View order error:', err);
+        showToast('Failed to load order', 'error');
+        hideOrderDetailModal();
+      }
+    }
+
+    function hideOrderDetailModal() {
+      document.getElementById('orderDetailModal')
+        .style.display = 'none';
+    }
+
+
+    /* ════════════════════════════════════════════
+       ORDER ACTIONS
+    ════════════════════════════════════════════ */
+
+    async function markDelivered(orderId) {
+      const confirmed = await confirmDialog(
+        'Mark this order as delivered? ' +
+        'This will charge the company via Stripe.',
+        'Mark as Delivered'
+      );
+      if (!confirmed) return;
+
+      showLoading();
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${orderId}/deliver`,
+          { method: 'PATCH' }
+        );
+
+        hideLoading();
+
+        if (res && res.ok) {
+          showToast(
+            'Order delivered! Company charged. ✅',
+            'success'
+          );
+          await loadOrders();
+        } else {
+          showToast('Failed to mark delivered', 'error');
+        }
+      } catch (err) {
+        hideLoading();
+        showToast('Action failed', 'error');
+      }
+    }
+
+
+    async function cancelOrderById(orderId) {
+      const confirmed = await confirmDialog(
+        'Cancel this order? ' +
+        'The company will not be charged.',
+        'Cancel Order'
+      );
+      if (!confirmed) return;
+
+      showLoading();
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${orderId}/cancel`,
+          {
+            method: 'PATCH',
+            body:   JSON.stringify({
+              reason: 'Cancelled by admin'
+            }),
+          }
+        );
+
+        hideLoading();
+
+        if (res && res.ok) {
+          const data = await res.json();
+          const msg  = data.refundId
+            ? `Order cancelled — refund issued 💸`
+            : 'Order cancelled';
+          showToast(msg, 'success');
+          await loadOrders();
+        } else {
+          showToast('Failed to cancel order', 'error');
+        }
+      } catch (err) {
+        hideLoading();
+        showToast('Action failed', 'error');
+      }
+    }
+
+
+    async function resendConfirmation(orderId) {
+      showLoading();
+
+      try {
+        const res = await apiCall(
+          '/api/emails/send-confirmation',
+          {
+            method: 'POST',
+            body:   JSON.stringify({ orderId }),
+          }
+        );
+
+        hideLoading();
+
+        if (res && res.ok) {
+          showToast(
+            'Confirmation email resent!',
+            'success'
+          );
+        } else {
+          showToast('Failed to resend email', 'error');
+        }
+      } catch (err) {
+        hideLoading();
+        showToast('Action failed', 'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       CREATE ORDER MODAL
+    ════════════════════════════════════════════ */
+
+    function showCreateOrderModal() {
+      document.getElementById('createOrderModal')
+        .style.display = 'flex';
+    }
+
+    function hideCreateOrderModal() {
+      document.getElementById('createOrderModal')
+        .style.display = 'none';
+      document.getElementById('createOrderForm')
+        .reset();
+    }
+
+    async function submitCreateOrder(e) {
+      e.preventDefault();
+
+      const btn =
+        document.getElementById('createOrderBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Creating...';
+
+      try {
+        const res = await apiCall('/api/orders', {
+          method: 'POST',
+          body:   JSON.stringify({
+            companyId:       document
+              .getElementById('coCompanyId')
+              .value.trim(),
+            employeeId:      document
+              .getElementById('coEmployeeId')
+              .value.trim(),
+            productId:       document
+              .getElementById('coProductId')
+              .value.trim(),
+            eventType:       document
+              .getElementById('coEventType').value,
+            deliveryDate:    document
+              .getElementById('coDeliveryDate').value,
+            chargeAmount:    parseFloat(
+              document.getElementById('coChargeAmount')
+                .value || 0
+            ),
+            deliveryAddress: document
+              .getElementById('coDeliveryAddress')
+              .value.trim(),
+            customMessage:   document
+              .getElementById('coCustomMessage')
+              .value.trim(),
+          }),
+        });
+
+        if (res && res.ok) {
+          hideCreateOrderModal();
+          showToast('Order created!', 'success');
+          await loadOrders();
+        } else {
+          const err = await res.json();
+          showToast(
+            err.error || 'Failed to create order',
+            'error'
+          );
+        }
+      } catch (err) {
+        showToast('Failed to create order', 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Create Order →';
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       LOAD BAKERIES (for route modal)
+    ════════════════════════════════════════════ */
+
+    async function loadBakeries() {
+      try {
+        const snap = await db
+          .collection('bakeries')
+          .where('active', '==', true)
+          .get();
+
+        allBakeries = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+      } catch (err) {
+        console.error('Load bakeries error:', err);
+      }
+    }
+
+
+    /* ── Haversine distance (km) ───────────────────── */
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const R    = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a    =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function fmtDist(km) {
+      return km < 1
+        ? `${Math.round(km * 1000)} m`
+        : `${km.toFixed(1)} km`;
+    }
+
+
+    /* ── Table UI helpers ──────────────────────── */
+    function showTableLoading() {
+      document.getElementById('ordersTableBody')
+        .innerHTML = `
+          <tr>
+            <td colspan="9" class="table-loading">
+              <div class="loading-rows">
+                <div class="loading-row"></div>
+                <div class="loading-row"></div>
+                <div class="loading-row"></div>
+                <div class="loading-row"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+    }
+
+    function showTableError() {
+      document.getElementById('ordersTableBody')
+        .innerHTML = `
+          <tr>
+            <td colspan="9"
+                style="text-align:center;
+                       padding:40px;
+                       color:#888">
+              Failed to load orders.
+              <button onclick="loadOrders()"
+                      style="color:#FF6B6B;
+                             background:none;
+                             border:none;
+                             cursor:pointer">
+                Retry
+              </button>
+            </td>
+          </tr>
+        `;
+    }
+
+
+    /* ── Mobile menu ───────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+</body>
+</html>

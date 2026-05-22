@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Menu — Delightmaker Baker</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* ── Menu page specific styles ──────────────────── */
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .product-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1.5px solid #f0ece8;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: box-shadow 0.18s, border-color 0.18s;
+      position: relative;
+    }
+    .product-card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+      border-color: #e0d5cc;
+    }
+
+    .product-category-badge {
+      display: inline-block;
+      background: #FFF3EE;
+      color: #FF6B6B;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      width: fit-content;
+    }
+
+    .product-name {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 1.08rem;
+      color: #2d2d2d;
+      margin: 0;
+      line-height: 1.3;
+    }
+
+    .product-description {
+      font-size: 0.85rem;
+      color: #888;
+      line-height: 1.5;
+      margin: 0;
+      flex: 1;
+    }
+
+    .product-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+      padding-top: 14px;
+      border-top: 1px solid #f5f0eb;
+    }
+
+    .product-price {
+      font-size: 1.18rem;
+      font-weight: 700;
+      color: #2d2d2d;
+    }
+
+    .product-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1.5px solid #ebe6e0;
+      background: #fafaf9;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-icon:hover {
+      background: #fff3ee;
+      border-color: #FF6B6B;
+    }
+    .btn-icon.delete:hover {
+      background: #fff0f0;
+      border-color: #e53e3e;
+    }
+
+    .stripe-badge {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #6772e5;
+      background: #f5f4ff;
+      border-radius: 6px;
+      padding: 2px 7px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Empty state ────────────────────────────────── */
+    .menu-empty {
+      text-align: center;
+      padding: 64px 20px;
+      color: #aaa;
+    }
+    .menu-empty-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+    .menu-empty h3 {
+      font-family: 'Libre Baskerville', serif;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    .menu-empty p {
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    /* ── Modal form ─────────────────────────────────── */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      padding: 11px 14px;
+      border: 1.5px solid #e8e2db;
+      border-radius: 10px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      color: #2d2d2d;
+      background: #fafaf9;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: #FF6B6B;
+      background: #fff;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .price-input-wrap {
+      position: relative;
+    }
+    .price-input-wrap .currency-symbol {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #888;
+      font-weight: 600;
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+    .price-input-wrap input {
+      padding-left: 26px;
+    }
+
+    .stripe-notice {
+      background: #f5f4ff;
+      border: 1px solid #d8d5ff;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.82rem;
+      color: #5a52c7;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* ── Toast ──────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: #2d2d2d;
+      color: #fff;
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s;
+      z-index: 9999;
+      pointer-events: none;
+      max-width: 320px;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast.success { background: #2d6a4f; }
+    .toast.error   { background: #c0392b; }
+
+    /* ── Stats strip ────────────────────────────────── */
+    .menu-stats {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .menu-stat {
+      background: #fff;
+      border: 1.5px solid #f0ece8;
+      border-radius: 12px;
+      padding: 14px 20px;
+      min-width: 110px;
+      text-align: center;
+    }
+    .menu-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2d2d2d;
+      font-family: 'Libre Baskerville', serif;
+    }
+    .menu-stat-label {
+      font-size: 0.75rem;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+      </a>
+      <a href="dashboard.html?view=week" class="nav-item">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Week View</span>
+      </a>
+      <a href="menu.html" class="nav-item active">
+        <span class="nav-icon">🍰</span>
+        <span class="nav-label">My Menu</span>
+      </a>
+      <a href="dashboard.html?view=invoice" class="nav-item">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Invoice</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="bakerAvatarLetter">B</div>
+        <div class="user-info">
+          <p class="user-name" id="bakeryName">Loading...</p>
+          <p class="user-role">Baker</p>
+        </div>
+      </div>
+      <button class="sidebar-logout" onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- Header -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">My Menu</h1>
+          <p class="dash-subtitle" id="menuSubtitle">
+            Manage the treats you offer
+          </p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <button class="btn btn-primary" onclick="openAddModal()">
+          + Add Item
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats -->
+    <div class="menu-stats" id="menuStats" style="display:none">
+      <div class="menu-stat">
+        <div class="menu-stat-value" id="statTotal">0</div>
+        <div class="menu-stat-label">Items</div>
+      </div>
+      <div class="menu-stat">
+        <div class="menu-stat-value" id="statAvgPrice">—</div>
+        <div class="menu-stat-label">Avg Price</div>
+      </div>
+    </div>
+
+    <!-- Product grid -->
+    <div id="menuGrid">
+      <!-- Loading skeleton -->
+      <div class="menu-grid" id="loadingSkeleton">
+        <div class="product-card" style="opacity:0.4">
+          <div class="loading-row" style="width:60px;height:20px;border-radius:20px"></div>
+          <div class="loading-row" style="width:80%;height:20px"></div>
+          <div class="loading-row" style="width:100%;height:14px"></div>
+          <div class="loading-row" style="width:70%;height:14px"></div>
+        </div>
+        <div class="product-card" style="opacity:0.25">
+          <div class="loading-row" style="width:60px;height:20px;border-radius:20px"></div>
+          <div class="loading-row" style="width:80%;height:20px"></div>
+          <div class="loading-row" style="width:100%;height:14px"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       ADD / EDIT MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="itemModal" style="display:none">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Menu Item</h2>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="stripe-notice">
+          <span>⚡</span>
+          <span>This item will be automatically created in Stripe so companies can be charged for it.</span>
+        </div>
+
+        <div class="form-group">
+          <label>Item Name *</label>
+          <input type="text" id="fieldName"
+                 placeholder="e.g. Dozen Chocolate Chip Cookies"
+                 maxlength="100"/>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="fieldDesc"
+                    placeholder="What's included, serving size, any details..."
+                    rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Price (CAD) *</label>
+            <div class="price-input-wrap">
+              <span class="currency-symbol">$</span>
+              <input type="number" id="fieldPrice"
+                     placeholder="0.00"
+                     min="0.01" step="0.01"/>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0">
+            <label>Category</label>
+            <select id="fieldCategory">
+              <option value="Cookies">🍪 Cookies</option>
+              <option value="Cupcakes">🧁 Cupcakes</option>
+              <option value="Cakes">🎂 Cakes</option>
+              <option value="Brownies">🍫 Brownies</option>
+              <option value="Macarons">🫐 Macarons</option>
+              <option value="Muffins">🫓 Muffins</option>
+              <option value="Tarts">🥧 Tarts</option>
+              <option value="Other">✨ Other</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="modalError"
+           style="color:#e53e3e;font-size:0.85rem;margin-top:14px;display:none">
+        </p>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveItem()">
+          Save Item
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       DELETE CONFIRM MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="deleteModal" style="display:none">
+    <div class="modal modal-sm">
+
+      <div class="modal-header">
+        <h2>Remove Item?</h2>
+        <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="color:#555;line-height:1.6">
+          Are you sure you want to remove
+          <strong id="deleteItemName"></strong>
+          from your menu? This will also archive it in Stripe.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeDeleteModal()">
+          Keep It
+        </button>
+        <button class="btn btn-primary"
+                style="background:#e53e3e;box-shadow:none"
+                onclick="confirmDelete()">
+          Yes, Remove
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+    /* ── State ───────────────────────────────────── */
+    let bakeryId  = null;
+    let products  = [];
+    let editingId = null;   // null = add, string = edit
+    let deletingId = null;
+
+    /* ── Auth guard ──────────────────────────────── */
+    requireAuth('baker').then(async user => {
+      bakeryId = user.bakerId;
+
+      // Sidebar name
+      document.getElementById('bakeryName').textContent =
+        auth.currentUser?.displayName || 'My Bakery';
+      document.getElementById('bakerAvatarLetter').textContent =
+        (auth.currentUser?.displayName || 'B')[0].toUpperCase();
+
+      await loadProducts();
+    });
+
+    /* ── Load products ───────────────────────────── */
+    async function loadProducts() {
+      try {
+        const data = await call(`/api/products/${bakeryId}`);
+        products   = data.products || [];
+        renderGrid();
+      } catch (err) {
+        console.error('Load error:', err);
+        showToast('Failed to load menu items', 'error');
+        document.getElementById('loadingSkeleton').innerHTML =
+          '<p style="color:#e53e3e;padding:20px">Could not load products. Please refresh.</p>';
+      }
+    }
+
+    /* ── Render grid ─────────────────────────────── */
+    function renderGrid() {
+      const grid = document.getElementById('menuGrid');
+
+      if (products.length === 0) {
+        grid.innerHTML = `
+          <div class="menu-empty">
+            <div class="menu-empty-icon">🍰</div>
+            <h3>Your menu is empty</h3>
+            <p>Add your first item and it'll appear here — and in company gifting rules.</p>
+            <button class="btn btn-primary" onclick="openAddModal()">
+              + Add Your First Item
+            </button>
+          </div>`;
+        document.getElementById('menuStats').style.display = 'none';
+        return;
+      }
+
+      // Stats
+      const avgPrice = products.reduce((s, p) => s + p.price, 0) / products.length;
+      document.getElementById('statTotal').textContent    = products.length;
+      document.getElementById('statAvgPrice').textContent = `$${avgPrice.toFixed(2)}`;
+      document.getElementById('menuStats').style.display  = 'flex';
+
+      // Cards
+      grid.innerHTML = `<div class="menu-grid">
+        ${products.map(p => productCard(p)).join('')}
+      </div>`;
+    }
+
+    function productCard(p) {
+      const hasStripe = p.stripePriceId ? true : false;
+      return `
+        <div class="product-card" id="card-${p.id}">
+          ${hasStripe ? '<span class="stripe-badge">⚡ Stripe</span>' : ''}
+          <span class="product-category-badge">${categoryEmoji(p.category)} ${p.category || 'Other'}</span>
+          <p class="product-name">${escHtml(p.name)}</p>
+          ${p.description
+            ? `<p class="product-description">${escHtml(p.description)}</p>`
+            : '<p class="product-description" style="color:#ccc;font-style:italic">No description</p>'
+          }
+          <div class="product-footer">
+            <span class="product-price">$${parseFloat(p.price).toFixed(2)}</span>
+            <div class="product-actions">
+              <button class="btn-icon" title="Edit" onclick="openEditModal('${p.id}')">✏️</button>
+              <button class="btn-icon delete" title="Remove" onclick="openDeleteModal('${p.id}', '${escHtml(p.name)}')">🗑️</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function categoryEmoji(cat) {
+      const map = {
+        'Cookies': '🍪', 'Cupcakes': '🧁', 'Cakes': '🎂',
+        'Brownies': '🍫', 'Macarons': '🫐', 'Muffins': '🫓',
+        'Tarts': '🥧', 'Other': '✨',
+      };
+      return map[cat] || '🍬';
+    }
+
+    /* ── Add modal ───────────────────────────────── */
+    function openAddModal() {
+      editingId = null;
+      document.getElementById('modalTitle').textContent = 'Add Menu Item';
+      document.getElementById('fieldName').value    = '';
+      document.getElementById('fieldDesc').value    = '';
+      document.getElementById('fieldPrice').value   = '';
+      document.getElementById('fieldCategory').value = 'Cookies';
+      document.getElementById('saveBtn').textContent = 'Add to Menu';
+      hideModalError();
+      document.getElementById('itemModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('fieldName').focus(), 50);
+    }
+
+    /* ── Edit modal ──────────────────────────────── */
+    function openEditModal(productId) {
+      const p = products.find(x => x.id === productId);
+      if (!p) return;
+
+      editingId = productId;
+      document.getElementById('modalTitle').textContent = 'Edit Item';
+      document.getElementById('fieldName').value     = p.name;
+      document.getElementById('fieldDesc').value     = p.description || '';
+      document.getElementById('fieldPrice').value    = p.price;
+      document.getElementById('fieldCategory').value = p.category || 'Other';
+      document.getElementById('saveBtn').textContent = 'Save Changes';
+      hideModalError();
+      document.getElementById('itemModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('itemModal').style.display = 'none';
+    }
+
+    /* ── Save (add or edit) ──────────────────────── */
+    async function saveItem() {
+      const name        = document.getElementById('fieldName').value.trim();
+      const description = document.getElementById('fieldDesc').value.trim();
+      const price       = parseFloat(document.getElementById('fieldPrice').value);
+      const category    = document.getElementById('fieldCategory').value;
+
+      if (!name)           return showModalError('Please enter a product name.');
+      if (!price || price <= 0) return showModalError('Please enter a valid price.');
+
+      const btn = document.getElementById('saveBtn');
+      btn.disabled    = true;
+      btn.textContent = editingId ? 'Saving...' : 'Adding...';
+
+      try {
+        if (editingId) {
+          // PATCH
+          await call(`/api/products/${bakeryId}/${editingId}`, 'PATCH', {
+            name, description, price, category,
+          });
+          showToast('Item updated ✅', 'success');
+        } else {
+          // POST
+          await call(`/api/products/${bakeryId}`, 'POST', {
+            name, description, price, category,
+          });
+          showToast('Item added to menu + Stripe ⚡', 'success');
+        }
+
+        closeModal();
+        await loadProducts();
+
+      } catch (err) {
+        showModalError(err.message || 'Something went wrong. Please try again.');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = editingId ? 'Save Changes' : 'Add to Menu';
+      }
+    }
+
+    /* ── Delete modal ────────────────────────────── */
+    function openDeleteModal(productId, productName) {
+      deletingId = productId;
+      document.getElementById('deleteItemName').textContent = productName;
+      document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'none';
+      deletingId = null;
+    }
+
+    async function confirmDelete() {
+      if (!deletingId) return;
+      try {
+        await call(`/api/products/${bakeryId}/${deletingId}`, 'DELETE');
+        showToast('Item removed from menu', 'success');
+        closeDeleteModal();
+        await loadProducts();
+      } catch (err) {
+        showToast(err.message || 'Failed to remove item', 'error');
+        closeDeleteModal();
+      }
+    }
+
+    /* ── API helper ──────────────────────────────── */
+    // Wraps the global apiCall (from firebase-config.js)
+    // and parses JSON + throws on error for us
+    async function call(url, method = 'GET', body = null) {
+      const opts = { method };
+      if (body) {
+        opts.body    = JSON.stringify(body);
+      }
+      const res  = await apiCall(url, opts);
+      if (!res) throw new Error('Not authenticated');
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `Request failed (${res.status})`);
+      }
+      return data;
+    }
+
+    /* ── Helpers ─────────────────────────────────── */
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showModalError(msg) {
+      const el = document.getElementById('modalError');
+      el.textContent  = msg;
+      el.style.display = 'block';
+    }
+
+    function hideModalError() {
+      document.getElementById('modalError').style.display = 'none';
+    }
+
+    let toastTimer;
+    function showToast(msg, type = '') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className   = `toast show ${type}`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        t.className = 'toast';
+      }, 3500);
+    }
+
+    // logout() is provided by firebase-config.js
+
+    /* ── Mobile sidebar ──────────────────────────── */
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+
+    /* ── Close modal on overlay click ────────────── */
+    document.getElementById('itemModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('itemModal')) closeModal();
+    });
+    document.getElementById('deleteModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
+    });
+
+    /* ── Enter key in modal ──────────────────────── */
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeModal();
+        closeDeleteModal();
+      }
+    });
+  </script>
+
+</body>
+</html>

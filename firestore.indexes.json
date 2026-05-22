@@ -1,0 +1,215 @@
+{
+  "indexes": [
+
+    // ── ORDERS ──────────────────────────────────────
+    // companyId + deliveryDate (approvals, spending,
+    //   dashboard upcoming, company order lists)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "companyId",    "order": "ASCENDING" },
+        { "fieldPath": "deliveryDate", "order": "ASCENDING" }
+      ]
+    },
+
+    // companyId + status + deliveryDate (dashboard
+    //   MTD spend, spending page delivered filter)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "companyId",    "order": "ASCENDING" },
+        { "fieldPath": "status",       "order": "ASCENDING" },
+        { "fieldPath": "deliveryDate", "order": "ASCENDING" }
+      ]
+    },
+
+    // companyId + status (pending approvals count)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "status",    "order": "ASCENDING" }
+      ]
+    },
+
+    // bakerId + deliveryDate (baker dashboard active
+    //   orders and earnings)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bakerId",      "order": "ASCENDING" },
+        { "fieldPath": "deliveryDate", "order": "ASCENDING" }
+      ]
+    },
+
+    // bakerId + status + deliveryDate (baker
+    //   dashboard active orders filtered by status)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bakerId",      "order": "ASCENDING" },
+        { "fieldPath": "status",       "order": "ASCENDING" },
+        { "fieldPath": "deliveryDate", "order": "ASCENDING" }
+      ]
+    },
+
+    // status + deliveryDate (admin revenue page,
+    //   scheduler overdue scan)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",       "order": "ASCENDING" },
+        { "fieldPath": "deliveryDate", "order": "ASCENDING" }
+      ]
+    },
+
+    // status + confirmationSentAt (scheduler
+    //   auto-confirmation check)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",              "order": "ASCENDING" },
+        { "fieldPath": "confirmationSentAt",  "order": "ASCENDING" }
+      ]
+    },
+
+    // status + deliveredAt (revenue monthly totals)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",      "order": "ASCENDING" },
+        { "fieldPath": "deliveredAt", "order": "ASCENDING" }
+      ]
+    },
+
+    // employeeId + eventType + deliveryDate
+    //   (duplicate order check in scheduler + routes)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "employeeId",   "order": "ASCENDING" },
+        { "fieldPath": "eventType",    "order": "ASCENDING" },
+        { "fieldPath": "deliveryDate", "order": "ASCENDING" }
+      ]
+    },
+
+    // employeeId + deliveryDate (trigger functions:
+    //   dietary change, address update)
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "employeeId",   "order": "ASCENDING" },
+        { "fieldPath": "deliveryDate", "order": "ASCENDING" }
+      ]
+    },
+
+
+    // ── EMPLOYEES ───────────────────────────────────
+    // companyId + active + name (employee list pages)
+    {
+      "collectionGroup": "employees",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "active",    "order": "ASCENDING" },
+        { "fieldPath": "name",      "order": "ASCENDING" }
+      ]
+    },
+
+    // companyId + active (scheduler scan, dashboard
+    //   team size)
+    {
+      "collectionGroup": "employees",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "active",    "order": "ASCENDING" }
+      ]
+    },
+
+    // companyId + name (import duplicate check)
+    {
+      "collectionGroup": "employees",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "name",      "order": "ASCENDING" }
+      ]
+    },
+
+
+    // ── INVOICES ────────────────────────────────────
+    // bakerId + status + createdAt (baker invoices
+    //   list)
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bakerId",    "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
+    },
+
+    // bakerId + month + year (invoice lookup)
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "bakerId", "order": "ASCENDING" },
+        { "fieldPath": "month",   "order": "ASCENDING" },
+        { "fieldPath": "year",    "order": "ASCENDING" }
+      ]
+    },
+
+
+    // ── CELEBRATIONS ────────────────────────────────
+    // companyId + active + month (celebrations list
+    //   filtered by company and active status)
+    {
+      "collectionGroup": "celebrations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "active",    "order": "ASCENDING" },
+        { "fieldPath": "month",     "order": "ASCENDING" }
+      ]
+    },
+
+    // companyId + month (celebrations list ordered by
+    //   month — used in loadCelebrations query)
+    {
+      "collectionGroup": "celebrations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "companyId", "order": "ASCENDING" },
+        { "fieldPath": "month",     "order": "ASCENDING" }
+      ]
+    },
+
+
+    // ── USERS ───────────────────────────────────────
+    // role + createdAt (admin users list filtered
+    //   by role)
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+
+  ],
+  "fieldOverrides": []
+}

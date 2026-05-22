@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Celebrations — Delightmaker</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a href="employees.html" class="nav-item">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Team</span>
+      </a>
+      <a href="celebrations.html" class="nav-item active">
+        <span class="nav-icon">🎉</span>
+        <span class="nav-label">Celebrations</span>
+      </a>
+      <a href="approvals.html" class="nav-item">
+        <span class="nav-icon">✅</span>
+        <span class="nav-label">Approvals</span>
+      </a>
+      <a href="rules.html" class="nav-item">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Rules</span>
+      </a>
+      <a href="spending.html" class="nav-item">
+        <span class="nav-icon">💳</span>
+        <span class="nav-label">Spending</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <p class="user-name" id="userName">—</p>
+          <p class="user-role" id="companyName">—</p>
+        </div>
+      </div>
+      <button class="sidebar-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <div id="impersonationBanner" style="display:none;
+         background:#1a1a2e;color:#fff;padding:10px 24px;
+         align-items:center;justify-content:space-between;
+         font-family:inherit;font-size:0.88rem;font-weight:600;gap:12px">
+      <span>👁 Admin view — you are browsing as <span id="impersonatingAs"></span></span>
+      <button onclick="exitImpersonation()"
+              style="background:rgba(255,255,255,0.15);border:none;
+                     color:#fff;padding:6px 14px;border-radius:8px;
+                     cursor:pointer;font-size:0.82rem;font-weight:700;font-family:inherit">
+        ✕ Exit &amp; Close
+      </button>
+    </div>
+
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Celebrations</h1>
+          <p class="dash-subtitle">
+            Company-wide events that get a treat delivery every year
+          </p>
+        </div>
+      </div>
+      <div class="dash-header-right">
+        <button class="btn btn-primary"
+                onclick="openCelebModal()">
+          + Add Celebration
+        </button>
+      </div>
+    </header>
+
+
+    <!-- ── CELEBRATIONS GRID ─────────────────── -->
+    <section id="celebGrid" class="celeb-grid">
+      <!-- skeleton -->
+      <div class="celeb-card celeb-skeleton"></div>
+      <div class="celeb-card celeb-skeleton"></div>
+      <div class="celeb-card celeb-skeleton"></div>
+    </section>
+
+    <!-- Empty state (hidden until loaded) -->
+    <div id="celebEmpty" style="display:none">
+      <div class="empty-state" style="padding:60px 24px">
+        <span>🎊</span>
+        <p>No celebrations yet</p>
+        <p style="font-size:0.85rem;color:#aaa;margin-top:4px">
+          Add a company occasion — Mother's Day, a product launch, whatever you're celebrating.
+        </p>
+        <button class="btn btn-primary"
+                style="margin-top:20px"
+                onclick="openCelebModal()">
+          + Add First Celebration
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       ADD / EDIT MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="celebModal" style="display:none">
+    <div class="modal celeb-modal-wide">
+
+      <div class="modal-header">
+        <div>
+          <h2 id="celebModalTitle">Add Celebration</h2>
+          <p style="font-size:0.82rem;color:var(--gray);margin-top:2px">
+            Treat deliveries happen automatically every year
+          </p>
+        </div>
+        <button class="modal-close" onclick="closeCelebModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Name -->
+        <div class="form-group">
+          <label>Occasion name <span style="color:#C62828">*</span></label>
+          <input type="text"
+                 id="celebName"
+                 class="dash-input"
+                 placeholder="e.g. Mother's Day, Company Anniversary, Holiday Party"
+                 maxlength="80"/>
+        </div>
+
+        <!-- Date row -->
+        <div style="display:flex;gap:16px;margin-top:16px">
+          <div class="form-group" style="flex:1">
+            <label>Month <span style="color:#C62828">*</span></label>
+            <select id="celebMonth" class="dash-input">
+              <option value="">— month —</option>
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1">
+            <label>Day <span style="color:#C62828">*</span></label>
+            <select id="celebDay" class="dash-input">
+              <option value="">— day —</option>
+              <!-- 1–31 injected by JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Repeat toggle -->
+        <div style="display:flex;align-items:center;
+                    gap:12px;margin-top:16px;
+                    padding:14px 16px;
+                    background:rgba(255,255,255,0.04);
+                    border:1px solid rgba(255,255,255,0.08);
+                    border-radius:10px">
+          <div style="flex:1">
+            <p style="font-weight:600;font-size:0.9rem">
+              Repeat every year
+            </p>
+            <p style="font-size:0.78rem;color:#888;margin-top:2px">
+              Turn off to make this a one-time delivery
+            </p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="celebRepeat" checked/>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Delivery address override -->
+        <div class="form-group" style="margin-top:16px">
+          <label>Delivery address
+            <span style="font-weight:400;font-size:0.78rem;color:#888;margin-left:4px">
+              Leave blank to use company default
+            </span>
+          </label>
+          <input type="text"
+                 id="celebAddress"
+                 class="dash-input"
+                 placeholder="123 Main St, Halifax, NS — or leave blank"/>
+        </div>
+
+        <!-- Bundle builder -->
+        <div style="margin-top:24px">
+          <div class="bundle-header" style="margin-bottom:12px">
+            <div>
+              <label style="margin-bottom:2px">Choose treats <span style="color:#C62828">*</span></label>
+              <p style="font-size:0.78rem;color:#888;margin-top:2px">
+                What gets delivered for this celebration
+              </p>
+            </div>
+            <span class="bundle-total-pill" id="celebBundleTotal">—</span>
+          </div>
+
+          <div class="bundle-list" id="celebBundleList">
+            <!-- rows injected by JS -->
+          </div>
+
+          <button type="button"
+                  class="bundle-add-btn"
+                  onclick="addCelebBundleRow()"
+                  style="margin-top:8px">
+            + Add treat
+          </button>
+        </div>
+
+        <!-- Special instructions -->
+        <div class="form-group" style="margin-top:24px">
+          <label>Special instructions
+            <span style="font-weight:400;font-size:0.78rem;color:#888;margin-left:4px">
+              Optional — e.g. "Write Happy Mother's Day on the cake"
+            </span>
+          </label>
+          <textarea id="celebNote"
+                    class="dash-input"
+                    rows="3"
+                    placeholder="Any decoration requests, messages to write, dietary notes for this occasion…"
+                    style="resize:vertical;min-height:72px;font-family:inherit;font-size:0.9rem"></textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeCelebModal()">
+          Cancel
+        </button>
+        <button class="btn btn-primary"
+                id="celebSaveBtn"
+                onclick="saveCelebration()">
+          Save Celebration
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       DELETE CONFIRM MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="deleteModal" style="display:none">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Remove Celebration</h2>
+        <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--gray);line-height:1.7">
+          Remove <strong id="deleteModalName"></strong>?
+        </p>
+        <p style="font-size:0.83rem;color:#888;margin-top:8px;line-height:1.6">
+          Future orders won't be created. Any already-scheduled or confirmed orders for this celebration are unaffected.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeDeleteModal()">Keep it</button>
+        <button class="btn"
+                style="background:#C62828;color:white"
+                onclick="confirmDelete()">
+          Remove
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ───────────────────────────────────────
+    let companyId       = null;
+    let allCelebrations = [];
+    let editingCelebId  = null;
+    let deletingCelebId = null;
+    let BAKERIES        = [];
+    let BAKERY_PRODUCTS = {};
+
+    const MONTHS = [
+      '', 'January', 'February', 'March', 'April',
+      'May', 'June', 'July', 'August',
+      'September', 'October', 'November', 'December',
+    ];
+
+
+    // ── Impersonation banner ──────────────────────
+    (function checkImpersonation() {
+      const company = sessionStorage.getItem('impersonatingCompany');
+      if (sessionStorage.getItem('impersonating') && company) {
+        const banner = document.getElementById('impersonationBanner');
+        document.getElementById('impersonatingAs').textContent = company;
+        banner.style.display = 'flex';
+      }
+    })();
+    function exitImpersonation() {
+      sessionStorage.removeItem('impersonating');
+      sessionStorage.removeItem('impersonatingCompany');
+      firebase.auth().signOut().then(() => window.close());
+    }
+
+    // ── Auth guard ──────────────────────────────────
+    requireAuth('company_user').then(async user => {
+      companyId = user.companyId;
+
+      // Populate user info
+      const nameEl = document.getElementById('userName');
+      if (nameEl) nameEl.textContent =
+        user.displayName || user.email || 'You';
+
+      const avatarEl = document.getElementById('userAvatar');
+      if (avatarEl) avatarEl.textContent =
+        (user.displayName || user.email || 'U')[0].toUpperCase();
+
+      // Load company name
+      try {
+        const compDoc = await db
+          .collection('companies').doc(companyId).get();
+        const nameEl2 = document.getElementById('companyName');
+        if (nameEl2 && compDoc.exists)
+          nameEl2.textContent = compDoc.data().name || '';
+      } catch (_) {}
+
+      // Populate day dropdown
+      const dayEl = document.getElementById('celebDay');
+      for (let d = 1; d <= 31; d++) {
+        const opt = document.createElement('option');
+        opt.value       = d;
+        opt.textContent = d;
+        dayEl.appendChild(opt);
+      }
+
+      await Promise.all([
+        loadBakeries(),
+        loadCelebrations(),
+      ]);
+    });
+
+
+    /* ════════════════════════════════════════════
+       BAKERY + PRODUCT LOADING
+    ════════════════════════════════════════════ */
+
+    async function loadBakeries() {
+      try {
+        const res  = await apiCall('/api/bakeries');
+        const data = await res.json();
+        BAKERIES   = data.bakeries || [];
+      } catch (err) {
+        console.error('Failed to load bakeries:', err);
+        BAKERIES = [];
+      }
+    }
+
+    async function loadBakeryProducts(bakeryId) {
+      if (!bakeryId) return [];
+      if (BAKERY_PRODUCTS[bakeryId] !== undefined)
+        return BAKERY_PRODUCTS[bakeryId];
+      try {
+        const res  = await apiCall(`/api/products/${bakeryId}`);
+        const data = await res.json();
+        BAKERY_PRODUCTS[bakeryId] = data.products || [];
+      } catch (err) {
+        BAKERY_PRODUCTS[bakeryId] = [];
+      }
+      return BAKERY_PRODUCTS[bakeryId];
+    }
+
+    function buildTreatOptions(products, selectedId = '') {
+      if (!products || products.length === 0)
+        return '<option value="">— no items yet —</option>';
+      return '<option value="">— choose treat —</option>' +
+        products.map(p =>
+          `<option value="${p.id}"
+             ${p.id === selectedId ? 'selected' : ''}>
+             ${p.name} — $${parseFloat(p.price || 0).toFixed(2)}
+           </option>`
+        ).join('');
+    }
+
+
+    /* ════════════════════════════════════════════
+       BUNDLE BUILDER
+    ════════════════════════════════════════════ */
+
+    async function addCelebBundleRow(item = {}) {
+      const list = document.getElementById('celebBundleList');
+
+      const bakeryOpts = BAKERIES.map(b =>
+        `<option value="${b.id}"
+           ${item.bakeryId === b.id ? 'selected' : ''}>
+           ${b.name}
+         </option>`
+      ).join('');
+
+      let treatOpts  = '<option value="">— choose treat —</option>';
+      let treatClass = 'bundle-treat treat-disabled';
+
+      if (item.bakeryId) {
+        const products = await loadBakeryProducts(item.bakeryId);
+        if (products.length > 0) {
+          treatOpts  = buildTreatOptions(products, item.treatType || '');
+          treatClass = 'bundle-treat';
+        }
+      }
+
+      const qty = item.qty || 1;
+      const row = document.createElement('div');
+      row.className = 'bundle-row';
+      row.innerHTML = `
+        <select class="bundle-bakery"
+                onchange="onCelebRowBakeryChange(this)">
+          <option value="">— bakery —</option>
+          ${bakeryOpts}
+        </select>
+        <select class="${treatClass}"
+                onchange="updateCelebBundleTotal()">
+          ${treatOpts}
+        </select>
+        <div class="qty-stepper">
+          <button type="button" class="qty-btn"
+                  onclick="changeCelebQty(this,-1)">−</button>
+          <span class="qty-value">${qty}</span>
+          <button type="button" class="qty-btn"
+                  onclick="changeCelebQty(this,1)">+</button>
+        </div>
+        <button type="button" class="bundle-remove"
+                onclick="removeCelebBundleRow(this)"
+                title="Remove">✕</button>
+      `;
+      list.appendChild(row);
+      updateCelebBundleTotal();
+    }
+
+    async function onCelebRowBakeryChange(sel) {
+      const row      = sel.closest('.bundle-row');
+      const treatSel = row.querySelector('.bundle-treat');
+      const bakeryId = sel.value;
+
+      if (!bakeryId) {
+        treatSel.innerHTML =
+          '<option value="">— choose treat —</option>';
+        treatSel.className = 'bundle-treat treat-disabled';
+        updateCelebBundleTotal();
+        return;
+      }
+
+      treatSel.className = 'bundle-treat';
+      treatSel.innerHTML = '<option value="">Loading...</option>';
+      treatSel.disabled  = true;
+
+      const products = await loadBakeryProducts(bakeryId);
+      treatSel.disabled  = false;
+      treatSel.innerHTML = buildTreatOptions(products);
+      updateCelebBundleTotal();
+    }
+
+    function changeCelebQty(btn, delta) {
+      const row  = btn.closest('.bundle-row');
+      const el   = row.querySelector('.qty-value');
+      const next = Math.max(1, Math.min(20,
+        (parseInt(el.textContent) || 1) + delta));
+      el.textContent = next;
+      updateCelebBundleTotal();
+    }
+
+    function removeCelebBundleRow(btn) {
+      const list = document.getElementById('celebBundleList');
+      if (list.children.length <= 1) {
+        showToast('Bundle needs at least one treat', 'error');
+        return;
+      }
+      btn.closest('.bundle-row').remove();
+      updateCelebBundleTotal();
+    }
+
+    function updateCelebBundleTotal() {
+      const rows  = document.querySelectorAll(
+        '#celebBundleList .bundle-row'
+      );
+      let total = 0;
+      rows.forEach(row => {
+        const treatSel = row.querySelector('.bundle-treat');
+        const qty      = parseInt(
+          row.querySelector('.qty-value').textContent) || 1;
+        const opt = treatSel?.options[treatSel.selectedIndex];
+        if (opt && opt.value) {
+          const match = opt.text.match(/\$([0-9.]+)/);
+          if (match) total += parseFloat(match[1]) * qty;
+        }
+      });
+      const pill = document.getElementById('celebBundleTotal');
+      pill.textContent = total > 0
+        ? `~$${total.toFixed(0)} CAD / event`
+        : '—';
+    }
+
+    function getCelebBundleItems() {
+      return Array.from(
+        document.querySelectorAll('#celebBundleList .bundle-row')
+      ).map(row => ({
+        bakeryId:  row.querySelector('.bundle-bakery').value,
+        treatType: row.querySelector('.bundle-treat').value,
+        qty: parseInt(
+          row.querySelector('.qty-value').textContent) || 1,
+      })).filter(i => i.bakeryId && i.treatType);
+    }
+
+
+    /* ════════════════════════════════════════════
+       LOAD & RENDER CELEBRATIONS
+    ════════════════════════════════════════════ */
+
+    async function loadCelebrations() {
+      try {
+        const snap = await db
+          .collection('celebrations')
+          .where('companyId', '==', companyId)
+          .get();
+
+        allCelebrations = snap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) => (a.month - b.month) || (a.day - b.day));
+
+        renderCelebrations();
+      } catch (err) {
+        console.error('Load celebrations error:', err);
+        showToast('Failed to load celebrations', 'error');
+      }
+    }
+
+    function renderCelebrations() {
+      const grid  = document.getElementById('celebGrid');
+      const empty = document.getElementById('celebEmpty');
+
+      if (allCelebrations.length === 0) {
+        grid.style.display  = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+
+      grid.style.display  = '';
+      empty.style.display = 'none';
+
+      grid.innerHTML = allCelebrations.map(c => {
+        const monthName = MONTHS[c.month] || '—';
+        const dayOrd    = ordinal(c.day || 1);
+        const bundleSummary = c.bundle && c.bundle.length > 0
+          ? `${c.bundle.length} treat${c.bundle.length !== 1 ? 's' : ''} selected`
+          : 'No treats configured';
+        const nextYear = getNextOccurrenceYear(c.month, c.day);
+
+        return `
+          <div class="celeb-card ${c.active === false ? 'celeb-card--inactive' : ''}">
+            <div class="celeb-card-top">
+              <div class="celeb-date-badge">
+                <span class="celeb-date-month">${monthName.slice(0,3).toUpperCase()}</span>
+                <span class="celeb-date-day">${c.day || '—'}</span>
+              </div>
+              <div class="celeb-card-meta">
+                <h3 class="celeb-name">${c.name}</h3>
+                <p class="celeb-sub">
+                  ${monthName} ${dayOrd}
+                  ${c.repeatYearly !== false
+                    ? `· Repeats yearly · Next: ${nextYear}`
+                    : '· One-time'}
+                </p>
+              </div>
+              <div class="celeb-card-actions">
+                <button class="celeb-btn celeb-btn--icon"
+                        onclick="toggleCelebActive('${c.id}', ${c.active !== false})"
+                        title="${c.active !== false ? 'Pause' : 'Resume'}">
+                  ${c.active !== false ? '⏸' : '▶️'}
+                </button>
+                <button class="celeb-btn celeb-btn--icon"
+                        onclick="openCelebModal('${c.id}')"
+                        title="Edit">
+                  ✏️
+                </button>
+                <button class="celeb-btn celeb-btn--icon celeb-btn--danger"
+                        onclick="openDeleteModal('${c.id}', '${c.name.replace(/'/g, "\\'")}')"
+                        title="Remove">
+                  🗑
+                </button>
+              </div>
+            </div>
+            <div class="celeb-card-body">
+              <span class="celeb-treat-pill">🎁 ${bundleSummary}</span>
+              ${c.deliveryAddress
+                ? `<span class="celeb-treat-pill">📍 ${c.deliveryAddress}</span>`
+                : ''}
+              ${c.specialInstructions
+                ? `<span class="celeb-treat-pill celeb-pill--note" title="${c.specialInstructions.replace(/"/g,'&quot;')}">📝 ${c.specialInstructions.length > 40 ? c.specialInstructions.slice(0,40) + '…' : c.specialInstructions}</span>`
+                : ''}
+              ${c.active === false
+                ? `<span class="celeb-treat-pill celeb-pill--paused">⏸ Paused</span>`
+                : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getNextOccurrenceYear(month, day) {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const next  = new Date(today.getFullYear(), (month||1)-1, day||1);
+      if (next < today) next.setFullYear(today.getFullYear() + 1);
+      return next.getFullYear();
+    }
+
+    function ordinal(n) {
+      const s = ['th','st','nd','rd'];
+      const v = n % 100;
+      return n + (s[(v-20)%10] || s[v] || s[0]);
+    }
+
+
+    /* ════════════════════════════════════════════
+       ADD / EDIT MODAL
+    ════════════════════════════════════════════ */
+
+    async function openCelebModal(celebId = null) {
+      editingCelebId = celebId;
+
+      const title = document.getElementById('celebModalTitle');
+      const btn   = document.getElementById('celebSaveBtn');
+
+      // Reset form
+      document.getElementById('celebName').value    = '';
+      document.getElementById('celebMonth').value    = '';
+      document.getElementById('celebDay').value      = '';
+      document.getElementById('celebRepeat').checked  = true;
+      document.getElementById('celebAddress').value  = '';
+      document.getElementById('celebNote').value     = '';
+      document.getElementById('celebBundleList').innerHTML = '';
+      document.getElementById('celebBundleTotal').textContent = '—';
+
+      if (celebId) {
+        title.textContent = 'Edit Celebration';
+        btn.textContent   = 'Save Changes';
+
+        const celeb = allCelebrations.find(c => c.id === celebId);
+        if (celeb) {
+          document.getElementById('celebName').value   = celeb.name || '';
+          document.getElementById('celebMonth').value  = celeb.month || '';
+          document.getElementById('celebDay').value    = celeb.day || '';
+          document.getElementById('celebRepeat').checked =
+            celeb.repeatYearly !== false;
+          document.getElementById('celebAddress').value =
+            celeb.deliveryAddress || '';
+          document.getElementById('celebNote').value =
+            celeb.specialInstructions || '';
+
+          // Pre-populate bundle
+          if (celeb.bundle && celeb.bundle.length > 0) {
+            for (const item of celeb.bundle) {
+              await addCelebBundleRow(item);
+            }
+          } else {
+            await addCelebBundleRow();
+          }
+        }
+      } else {
+        title.textContent = 'Add Celebration';
+        btn.textContent   = 'Save Celebration';
+        await addCelebBundleRow();
+      }
+
+      document.getElementById('celebModal').style.display = 'flex';
+    }
+
+    function closeCelebModal() {
+      document.getElementById('celebModal').style.display = 'none';
+      editingCelebId = null;
+    }
+
+    async function saveCelebration() {
+      const name    = document.getElementById('celebName').value.trim();
+      const month   = parseInt(document.getElementById('celebMonth').value);
+      const day     = parseInt(document.getElementById('celebDay').value);
+      const repeat  = document.getElementById('celebRepeat').checked;
+      const address = document.getElementById('celebAddress').value.trim();
+      const note    = document.getElementById('celebNote').value.trim();
+      const bundle  = getCelebBundleItems();
+
+      // Validate
+      if (!name) {
+        showToast('Please enter an occasion name', 'error');
+        document.getElementById('celebName').focus();
+        return;
+      }
+      if (!month || !day) {
+        showToast('Please pick a month and day', 'error');
+        return;
+      }
+      if (bundle.length === 0) {
+        showToast('Please add at least one treat', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('celebSaveBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        const data = {
+          companyId,
+          name,
+          month,
+          day,
+          repeatYearly:    repeat,
+          bundle,
+          active:          true,
+          updatedAt:       firebase.firestore.FieldValue.serverTimestamp(),
+          ...(address && { deliveryAddress: address }),
+          ...(note    && { specialInstructions: note }),
+        };
+
+        if (editingCelebId) {
+          await db.collection('celebrations')
+            .doc(editingCelebId)
+            .update(data);
+          showToast('Celebration updated!', 'success');
+        } else {
+          data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('celebrations').add(data);
+          showToast('Celebration added! 🎉', 'success');
+        }
+
+        closeCelebModal();
+        await loadCelebrations();
+
+      } catch (err) {
+        console.error('Save celebration error:', err);
+        showToast('Failed to save', 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = editingCelebId
+          ? 'Save Changes'
+          : 'Save Celebration';
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       TOGGLE ACTIVE / PAUSE
+    ════════════════════════════════════════════ */
+
+    async function toggleCelebActive(celebId, currentlyActive) {
+      try {
+        await db.collection('celebrations').doc(celebId)
+          .update({
+            active: !currentlyActive,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+
+        const idx = allCelebrations.findIndex(c => c.id === celebId);
+        if (idx !== -1) allCelebrations[idx].active = !currentlyActive;
+        renderCelebrations();
+
+        showToast(
+          !currentlyActive ? 'Celebration resumed' : 'Celebration paused',
+          'success'
+        );
+      } catch (err) {
+        showToast('Failed to update', 'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       DELETE
+    ════════════════════════════════════════════ */
+
+    function openDeleteModal(celebId, name) {
+      deletingCelebId = celebId;
+      document.getElementById('deleteModalName').textContent = name;
+      document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'none';
+      deletingCelebId = null;
+    }
+
+    async function confirmDelete() {
+      if (!deletingCelebId) return;
+      try {
+        await db.collection('celebrations')
+          .doc(deletingCelebId)
+          .delete();
+        closeDeleteModal();
+        allCelebrations = allCelebrations
+          .filter(c => c.id !== deletingCelebId);
+        renderCelebrations();
+        showToast('Celebration removed', 'success');
+      } catch (err) {
+        showToast('Failed to remove', 'error');
+      }
+    }
+
+
+    /* ── Mobile menu ───────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+  <style>
+
+    /* ── Celebrations grid ───────────────────── */
+    .celeb-grid {
+      display:               grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap:                   20px;
+      padding:               0;
+    }
+
+    /* ── Celebration card ────────────────────── */
+    .celeb-card {
+      background:    var(--surface);
+      border:        1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius);
+      overflow:      hidden;
+      transition:    transform 0.18s, box-shadow 0.18s;
+    }
+    .celeb-card:hover {
+      transform:   translateY(-2px);
+      box-shadow:  0 8px 24px rgba(0,0,0,0.12);
+    }
+    .celeb-card--inactive {
+      opacity: 0.6;
+    }
+
+    .celeb-card-top {
+      display:     flex;
+      align-items: flex-start;
+      gap:         14px;
+      padding:     20px 20px 14px;
+    }
+
+    .celeb-date-badge {
+      display:         flex;
+      flex-direction:  column;
+      align-items:     center;
+      background:      linear-gradient(135deg,
+                         rgba(255,107,107,0.2) 0%,
+                         rgba(255,107,107,0.08) 100%);
+      border:          1px solid rgba(255,107,107,0.25);
+      border-radius:   10px;
+      padding:         8px 12px;
+      flex-shrink:     0;
+      min-width:       52px;
+    }
+    .celeb-date-month {
+      font-size:     0.6rem;
+      font-weight:   800;
+      letter-spacing: 0.08em;
+      color:         var(--coral);
+    }
+    .celeb-date-day {
+      font-size:   1.5rem;
+      font-weight: 800;
+      color:       var(--dark);
+      line-height: 1.1;
+    }
+
+    .celeb-card-meta {
+      flex: 1;
+      min-width: 0;
+    }
+    .celeb-name {
+      font-size:     1rem;
+      font-weight:   700;
+      color:         var(--dark);
+      margin-bottom: 4px;
+      white-space:   nowrap;
+      overflow:      hidden;
+      text-overflow: ellipsis;
+    }
+    .celeb-sub {
+      font-size: 0.78rem;
+      color:     #888;
+      line-height: 1.5;
+    }
+
+    .celeb-card-actions {
+      display:    flex;
+      gap:        4px;
+      flex-shrink: 0;
+    }
+    .celeb-btn {
+      background: none;
+      border:     none;
+      cursor:     pointer;
+      padding:    6px 8px;
+      border-radius: 8px;
+      font-size:  1rem;
+      transition: background 0.15s;
+    }
+    .celeb-btn:hover { background: rgba(255,255,255,0.08); }
+    .celeb-btn--danger:hover { background: rgba(198,40,40,0.15); }
+
+    .celeb-card-body {
+      display:     flex;
+      flex-wrap:   wrap;
+      gap:         6px;
+      padding:     0 20px 18px;
+    }
+    .celeb-treat-pill {
+      display:       inline-flex;
+      align-items:   center;
+      gap:           4px;
+      background:    rgba(255,255,255,0.05);
+      border:        1px solid rgba(255,255,255,0.08);
+      border-radius: 100px;
+      padding:       4px 12px;
+      font-size:     0.75rem;
+      color:         #aaa;
+    }
+    .celeb-pill--note {
+      background: rgba(var(--color-primary-rgb, 198,98,40), 0.08);
+      color:      var(--color-primary, #C66228);
+      cursor:     default;
+    }
+    .celeb-pill--paused {
+      background: rgba(230,81,0,0.1);
+      border-color: rgba(230,81,0,0.2);
+      color: #E65100;
+    }
+
+    /* ── Skeleton ────────────────────────────── */
+    .celeb-skeleton {
+      height:  120px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 0.4; }
+      50%      { opacity: 0.8; }
+    }
+
+    /* ── Wide modal ──────────────────────────── */
+    .celeb-modal-wide {
+      width:      min(640px, 96vw);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    /* ── Bundle builder ──────────────────────── */
+    .bundle-header {
+      display:         flex;
+      align-items:     center;
+      justify-content: space-between;
+      gap:             12px;
+    }
+    .bundle-total-pill {
+      background:    rgba(255,107,107,0.12);
+      color:         var(--coral);
+      border-radius: 100px;
+      padding:       4px 14px;
+      font-size:     0.82rem;
+      font-weight:   700;
+      white-space:   nowrap;
+    }
+    .bundle-list {
+      display:        flex;
+      flex-direction: column;
+      gap:            10px;
+      margin-top:     4px;
+    }
+    .bundle-row {
+      display:       flex;
+      align-items:   center;
+      gap:           10px;
+      background:    rgba(255,255,255,0.04);
+      border:        1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding:       10px 12px;
+    }
+    .bundle-bakery,
+    .bundle-treat {
+      flex:          1;
+      background:    var(--bg);
+      border:        1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color:         var(--dark);
+      font-size:     0.85rem;
+      padding:       8px 10px;
+      min-width:     0;
+    }
+    .treat-disabled { opacity:.45; pointer-events:none; }
+    .qty-stepper {
+      display:     flex;
+      align-items: center;
+      gap:         6px;
+      flex-shrink: 0;
+    }
+    .qty-btn {
+      width:  28px; height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: var(--bg);
+      color:  var(--dark);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .qty-btn:hover { background: rgba(255,107,107,0.15); }
+    .qty-value {
+      min-width: 24px; text-align: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .bundle-remove {
+      background: none; border: none;
+      color: #888; cursor: pointer;
+      font-size: 1rem; padding: 4px;
+      flex-shrink: 0; transition: color 0.15s;
+    }
+    .bundle-remove:hover { color: #C62828; }
+    .bundle-add-btn {
+      width: 100%; padding: 10px;
+      border: 1px dashed rgba(255,255,255,0.15);
+      border-radius: 10px;
+      background: transparent; color: #888;
+      font-size: 0.85rem; cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .bundle-add-btn:hover {
+      border-color: var(--coral); color: var(--coral);
+    }
+
+  </style>
+
+</body>
+</html>

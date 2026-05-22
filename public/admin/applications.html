@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Applications — Delightmaker Admin</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* ── Filter tabs ─────────────────────────── */
+    .filter-tabs {
+      display: flex;
+      gap:     8px;
+    }
+    .filter-tab {
+      padding:       7px 18px;
+      border-radius: 100px;
+      border:        1.5px solid #E8E0D8;
+      background:    white;
+      color:         #777;
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.85rem;
+      font-weight:   700;
+      cursor:        pointer;
+      transition:    all 0.2s;
+    }
+    .filter-tab.active {
+      background:   #FF6B6B;
+      border-color: #FF6B6B;
+      color:        white;
+    }
+    .filter-tab:hover:not(.active) {
+      border-color: #FF6B6B;
+      color:        #FF6B6B;
+    }
+
+    /* ── Application cards ───────────────────── */
+    .apps-list {
+      display:        flex;
+      flex-direction: column;
+      gap:            16px;
+    }
+    .app-card {
+      background:    white;
+      border-radius: 14px;
+      border:        1.5px solid #E8E0D8;
+      padding:       24px;
+      display:       grid;
+      grid-template-columns: 1fr auto;
+      gap:           16px;
+      align-items:   start;
+      transition:    box-shadow 0.2s;
+    }
+    .app-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+    }
+    .app-card.approved   { border-left: 4px solid #22c55e; }
+    .app-card.rejected   { border-left: 4px solid #ef4444; opacity: 0.7; }
+    .app-card.waitlisted { border-left: 4px solid #F59E0B; }
+    .app-card.out-of-range { border-left: 4px solid #C62828; }
+
+    .dist-badge {
+      display:       inline-flex;
+      align-items:   center;
+      gap:           4px;
+      padding:       2px 9px;
+      border-radius: 100px;
+      font-size:     0.73rem;
+      font-weight:   700;
+      white-space:   nowrap;
+    }
+    .dist-badge.near   { background: rgba(46,125,50,0.1);  color: #2E7D32; }
+    .dist-badge.mid    { background: rgba(230,81,0,0.1);   color: #E65100; }
+    .dist-badge.far    { background: rgba(198,40,40,0.12); color: #C62828; }
+    .dist-badge.unknown{ background: rgba(0,0,0,0.05);     color: #999; }
+
+    .out-of-range-banner {
+      display:       flex;
+      align-items:   center;
+      gap:           8px;
+      padding:       8px 14px;
+      background:    rgba(198,40,40,0.08);
+      border:        1px solid rgba(198,40,40,0.25);
+      border-radius: 8px;
+      font-size:     0.82rem;
+      font-weight:   700;
+      color:         #C62828;
+      margin-top:    6px;
+    }
+
+    .app-meta { display: flex; flex-direction: column; gap: 6px; }
+    .app-top  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .app-name {
+      font-size:   1.05rem;
+      font-weight: 700;
+      color:       #2D2D2D;
+    }
+    .app-org {
+      font-size: 0.9rem;
+      color:     #888;
+    }
+
+    /* Type badge */
+    .type-badge {
+      padding:       3px 10px;
+      border-radius: 100px;
+      font-size:     0.75rem;
+      font-weight:   700;
+    }
+    .type-badge.company {
+      background: rgba(99,102,241,0.1);
+      color:      #6366f1;
+    }
+    .type-badge.baker {
+      background: rgba(245,158,11,0.12);
+      color:      #d97706;
+    }
+
+    /* Status badge */
+    .status-badge {
+      padding:       3px 10px;
+      border-radius: 100px;
+      font-size:     0.75rem;
+      font-weight:   700;
+    }
+    .status-badge.pending    { background: rgba(234,179,8,0.12);  color: #ca8a04; }
+    .status-badge.approved   { background: rgba(34,197,94,0.12);  color: #16a34a; }
+    .status-badge.rejected   { background: rgba(239,68,68,0.1);   color: #dc2626; }
+    .status-badge.waitlisted { background: rgba(245,158,11,0.12); color: #b45309; }
+
+    .app-details {
+      display:   flex;
+      flex-wrap: wrap;
+      gap:       12px 24px;
+      font-size: 0.85rem;
+      color:     #666;
+    }
+    .app-detail-item strong { color: #2D2D2D; }
+
+    .app-message {
+      font-size:     0.85rem;
+      color:         #555;
+      background:    #FAFAFA;
+      border:        1px solid #eee;
+      border-radius: 8px;
+      padding:       10px 14px;
+      margin-top:    4px;
+      font-style:    italic;
+    }
+
+    .app-date {
+      font-size: 0.78rem;
+      color:     #bbb;
+      margin-top: 4px;
+    }
+
+    /* Actions */
+    .app-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+    .btn-approve {
+      padding:       9px 18px;
+      background:    #22c55e;
+      color:         white;
+      border:        none;
+      border-radius: 8px;
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.85rem;
+      font-weight:   700;
+      cursor:        pointer;
+      white-space:   nowrap;
+    }
+    .btn-approve:hover  { background: #16a34a; }
+    .btn-approve:disabled { background: #ccc; cursor: not-allowed; }
+
+    .btn-reject {
+      padding:       9px 18px;
+      background:    transparent;
+      color:         #ef4444;
+      border:        1.5px solid #ef4444;
+      border-radius: 8px;
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.85rem;
+      font-weight:   700;
+      cursor:        pointer;
+      white-space:   nowrap;
+    }
+    .btn-reject:hover { background: rgba(239,68,68,0.06); }
+    .btn-reject:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-waitlist {
+      padding:       9px 18px;
+      background:    transparent;
+      color:         #b45309;
+      border:        1.5px solid #F59E0B;
+      border-radius: 8px;
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.85rem;
+      font-weight:   700;
+      cursor:        pointer;
+      white-space:   nowrap;
+    }
+    .btn-waitlist:hover    { background: rgba(245,158,11,0.08); }
+    .btn-waitlist:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .app-reviewed {
+      font-size:  0.8rem;
+      color:      #aaa;
+      text-align: right;
+    }
+
+    /* Empty state */
+    .apps-empty {
+      text-align:    center;
+      padding:       60px 24px;
+      color:         #aaa;
+      background:    white;
+      border-radius: 14px;
+      border:        1.5px dashed #E8E0D8;
+    }
+    .apps-empty .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .apps-empty p           { font-size: 0.95rem; }
+
+    /* Loading skeleton */
+    .apps-loading {
+      display:        flex;
+      flex-direction: column;
+      gap:            12px;
+    }
+    .skeleton-card {
+      height:        90px;
+      background:    linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation:     shimmer 1.4s infinite;
+      border-radius: 14px;
+    }
+    @keyframes shimmer {
+      0%   { background-position:  200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Modals ──────────────────────────────── */
+    .modal-overlay {
+      display:          none;
+      position:         fixed;
+      inset:            0;
+      background:       rgba(0,0,0,0.45);
+      z-index:          1000;
+      align-items:      center;
+      justify-content:  center;
+      padding:          24px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background:    white;
+      border-radius: 20px;
+      padding:       36px;
+      width:         100%;
+      max-width:     520px;
+      max-height:    90vh;
+      overflow-y:    auto;
+      position:      relative;
+    }
+    .modal h3   { font-size: 1.3rem; color: #2D2D2D; margin: 0 0 8px; }
+    .modal p    { color: #777; font-size: 0.9rem; margin: 0 0 24px; }
+    .modal-close {
+      position:   absolute;
+      top:        16px;
+      right:      16px;
+      background: none;
+      border:     none;
+      font-size:  1.3rem;
+      cursor:     pointer;
+      color:      #aaa;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #2D2D2D; }
+
+    .modal-form { display: flex; flex-direction: column; gap: 16px; }
+    .modal-form label {
+      font-size:   0.82rem;
+      font-weight: 700;
+      color:       #555;
+      display:     block;
+      margin-bottom: 5px;
+    }
+    .modal-form input,
+    .modal-form select {
+      width:         100%;
+      padding:       10px 14px;
+      border:        1.5px solid #E8E0D8;
+      border-radius: 8px;
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.9rem;
+      color:         #2D2D2D;
+      box-sizing:    border-box;
+    }
+    .modal-form input:focus,
+    .modal-form select:focus {
+      outline: none; border-color: #FF6B6B;
+    }
+    .modal-type-toggle {
+      display:   flex;
+      gap:       8px;
+      margin-bottom: 4px;
+    }
+    .modal-type-btn {
+      flex:          1;
+      padding:       9px;
+      border:        1.5px solid #E8E0D8;
+      border-radius: 8px;
+      background:    white;
+      font-family:   'Nunito', sans-serif;
+      font-size:     0.85rem;
+      font-weight:   700;
+      cursor:        pointer;
+      text-align:    center;
+      color:         #777;
+    }
+    .modal-type-btn.active {
+      border-color: #FF6B6B;
+      background:   rgba(255,107,107,0.07);
+      color:        #FF6B6B;
+    }
+    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
+    .btn-modal-cancel {
+      padding:       10px 20px;
+      background:    transparent;
+      border:        1.5px solid #E8E0D8;
+      border-radius: 8px;
+      font-family:   'Nunito', sans-serif;
+      font-weight:   700;
+      font-size:     0.9rem;
+      cursor:        pointer;
+      color:         #777;
+    }
+    .btn-modal-submit {
+      padding:       10px 24px;
+      background:    #FF6B6B;
+      color:         white;
+      border:        none;
+      border-radius: 8px;
+      font-family:   'Nunito', sans-serif;
+      font-weight:   700;
+      font-size:     0.9rem;
+      cursor:        pointer;
+    }
+    .btn-modal-submit:hover    { background: #e85555; }
+    .btn-modal-submit:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* Approve modal plan field */
+    #approveModal .modal-form { gap: 14px; }
+
+    .modal-type-toggle,
+    .modal-type-btn { display: none; } /* invite removed */
+</style>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin/clients" class="nav-item">
+        <span class="nav-icon">🏢</span>
+        <span class="nav-label">Clients</span>
+      </a>
+      <a href="/admin/orders" class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+      </a>
+      <a href="/admin/bakeries" class="nav-item">
+        <span class="nav-icon">🧁</span>
+        <span class="nav-label">Bakeries</span>
+      </a>
+      <a href="/admin/revenue" class="nav-item">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Revenue</span>
+      </a>
+      <a href="/admin/applications" class="nav-item active">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Applications</span>
+        <span class="nav-badge" id="pendingBadge" style="display:none">0</span>
+      </a>
+      <a href="/admin/invoices" class="nav-item">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Invoices</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">C</div>
+        <div class="user-info">
+          <p class="user-name">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout" onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- Header -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Applications</h1>
+          <p class="dash-subtitle">Review company and bakery applications</p>
+        </div>
+      </div>
+      <div class="dash-header-right"></div>
+    </header>
+
+    <!-- Filter tabs -->
+    <div class="filter-tabs" style="margin-bottom:24px;margin-top:24px">
+      <button class="filter-tab active" onclick="setFilter('pending')"    id="tab-pending">⏳ Pending</button>
+      <button class="filter-tab"        onclick="setFilter('approved')"  id="tab-approved">✅ Approved</button>
+      <button class="filter-tab"        onclick="setFilter('rejected')"  id="tab-rejected">❌ Rejected</button>
+      <button class="filter-tab"        onclick="setFilter('waitlisted')" id="tab-waitlisted">⏸ Waitlist</button>
+      <button class="filter-tab"        onclick="setFilter('all')"       id="tab-all">All</button>
+    </div>
+
+    <!-- Loading state -->
+    <div class="apps-loading" id="appsLoading">
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+
+    <!-- Applications list -->
+    <div class="apps-list" id="appsList" style="display:none"></div>
+
+    <!-- Empty state -->
+    <div class="apps-empty" id="appsEmpty" style="display:none">
+      <div class="empty-icon">📭</div>
+      <p id="appsEmptyText">No applications yet.</p>
+    </div>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       APPROVE MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="approveModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeApproveModal()">✕</button>
+      <h3>Approve Application</h3>
+      <p id="approveModalDesc">Their account is already created — approving will activate it so they can log in.</p>
+      <div class="modal-form">
+        <input type="hidden" id="approveAppId"/>
+        <div id="approveCompanyFields">
+          <div>
+            <label>Default Delivery Address (optional)</label>
+            <input type="text" id="approveAddress" placeholder="123 Barrington St, Halifax, NS"/>
+          </div>
+        </div>
+        <div>
+          <label>Internal Notes (optional)</label>
+          <input type="text" id="approveNotes" placeholder="Any notes for your records"/>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="closeApproveModal()">Cancel</button>
+          <button class="btn-modal-submit" id="approveSubmitBtn" onclick="submitApprove()">
+            ✅ Approve Account
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       REJECT MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="rejectModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeRejectModal()">✕</button>
+      <h3>Reject Application</h3>
+      <p>A polite rejection email will be sent to the applicant.</p>
+      <div class="modal-form">
+        <input type="hidden" id="rejectAppId"/>
+        <div>
+          <label>Internal Notes (optional)</label>
+          <input type="text" id="rejectNotes" placeholder="Reason for rejection (not sent to applicant)"/>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="closeRejectModal()">Cancel</button>
+          <button class="btn-modal-submit"
+                  id="rejectSubmitBtn"
+                  onclick="submitReject()"
+                  style="background:#ef4444">
+            ❌ Reject Application
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── Mobile menu toggle ────────────────────────
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+    // ── State ─────────────────────────────────────
+    let currentFilter = 'pending';
+    let applications  = [];
+
+    // ── Init ──────────────────────────────────────
+    requireAuth('admin').then(() => {
+      loadApplications();
+    });
+
+    // ── Load applications ─────────────────────────
+    async function loadApplications() {
+      showAppsLoading();
+
+      try {
+        const params = currentFilter === 'all'
+          ? ''
+          : `?status=${currentFilter}`;
+
+        const res  = await apiCall(`/api/applications${params}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load');
+        applications = data.applications || [];
+        renderApplications();
+        updatePendingBadge();
+      } catch (err) {
+        console.error('Load applications error:', err);
+        showToast('Failed to load applications', 'error');
+        showEmpty('Failed to load applications.');
+      }
+    }
+
+    // ── Render ────────────────────────────────────
+    function renderApplications() {
+      const list = document.getElementById('appsList');
+
+      if (applications.length === 0) {
+        const labels = {
+          pending:    'No pending applications — all clear! 🎉',
+          approved:   'No approved applications yet.',
+          rejected:   'No rejected applications.',
+          waitlisted: 'No waitlisted applications.',
+          all:        'No applications yet.',
+        };
+        showEmpty(labels[currentFilter] || 'No applications.');
+        return;
+      }
+
+      list.innerHTML = applications.map(app => renderCard(app)).join('');
+      document.getElementById('appsLoading').style.display = 'none';
+      document.getElementById('appsEmpty').style.display   = 'none';
+      list.style.display = 'flex';
+    }
+
+    /* ── Haversine distance (km) ──────────────── */
+    const HALIFAX_LAT = 44.6488;
+    const HALIFAX_LNG = -63.5752;
+    const HRM_RADIUS_KM = 40;
+
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const R    = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a    =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function renderDistBadge(app) {
+      if (!app.addressLat || !app.addressLng) {
+        return `<span class="dist-badge unknown">📍 No coords</span>`;
+      }
+      const km  = haversineKm(HALIFAX_LAT, HALIFAX_LNG,
+                               app.addressLat, app.addressLng);
+      const lbl = km < 1
+        ? `${Math.round(km * 1000)} m`
+        : `${km.toFixed(1)} km`;
+      const cls = km <= 10 ? 'near' : km <= 25 ? 'mid' : 'far';
+      return `<span class="dist-badge ${cls}">📍 ${lbl} from Halifax</span>`;
+    }
+
+    function renderCard(app) {
+      const typeLabel  = app.type === 'baker' ? '🧁 Baker' : '🏢 Company';
+      const typeClass  = app.type;
+
+      const statusLabels = {
+        pending:    '⏳ Pending',
+        approved:   '✅ Approved',
+        rejected:   '❌ Rejected',
+        waitlisted: '⏸ Waitlisted',
+      };
+
+      const date = app.createdAt
+        ? new Date(app.createdAt).toLocaleDateString('en-CA', {
+            month: 'short', day: 'numeric', year: 'numeric',
+          })
+        : '—';
+
+      // Distance badge — shown for all baker applications
+      const distBadge = app.type === 'baker'
+        ? renderDistBadge(app)
+        : '';
+
+      // Out-of-range banner — only when flagged
+      const outOfRangeBanner = app.outOfRange
+        ? `<div class="out-of-range-banner">
+             🚨 Outside HRM service area — confirm delivery is feasible before approving
+           </div>`
+        : '';
+
+      const extraDetails = app.type === 'company'
+        ? `<span><strong>Phone:</strong> ${escHtml(app.phone || '—')}</span>
+           <span><strong>Address:</strong> ${escHtml(app.address || '—')}</span>`
+        : `<span><strong>Phone:</strong> ${escHtml(app.phone || '—')}</span>
+           <span><strong>Address:</strong> ${escHtml(app.address || '—')}</span>
+           <span><strong>Specialty:</strong> ${escHtml(app.specialty || '—')}</span>
+           <span><strong>Allergen-free:</strong> ${app.allergenFree || 'no'}</span>`;
+
+      const messageHtml = app.message
+        ? `<div class="app-message">"${escHtml(app.message)}"</div>`
+        : '';
+
+      let actionsHtml;
+      if (app.status === 'pending') {
+        actionsHtml = `
+          <button class="btn-approve"
+              data-id="${app.id}"
+              data-type="${app.type}"
+              data-name="${escAttr(app.name)}"
+              data-org="${escAttr(app.orgName)}"
+              onclick="openApproveModalFromBtn(this)">
+            ✅ Approve
+          </button>
+          <button class="btn-waitlist"
+              data-id="${app.id}"
+              data-org="${escAttr(app.orgName)}"
+              onclick="waitlistApplicationFromBtn(this)">
+            ⏸ Waitlist
+          </button>
+          <button class="btn-reject"
+              data-id="${app.id}"
+              data-org="${escAttr(app.orgName)}"
+              onclick="openRejectModalFromBtn(this)">
+            ❌ Reject
+          </button>`;
+      } else if (app.status === 'waitlisted') {
+        actionsHtml = `
+          <button class="btn-approve"
+              data-id="${app.id}"
+              data-type="${app.type}"
+              data-name="${escAttr(app.name)}"
+              data-org="${escAttr(app.orgName)}"
+              onclick="openApproveModalFromBtn(this)">
+            ✅ Approve
+          </button>
+          <button class="btn-reject"
+              data-id="${app.id}"
+              data-org="${escAttr(app.orgName)}"
+              onclick="openRejectModalFromBtn(this)">
+            ❌ Reject
+          </button>`;
+      } else {
+        actionsHtml = `<div class="app-reviewed">${statusLabels[app.status] || app.status}</div>`;
+      }
+
+      const cardClass = app.outOfRange
+        ? `${app.status} out-of-range`
+        : app.status;
+
+      return `
+        <div class="app-card ${cardClass}" id="card-${app.id}">
+          <div class="app-meta">
+            <div class="app-top">
+              <span class="app-name">${escHtml(app.name)}</span>
+              <span class="app-org">— ${escHtml(app.orgName)}</span>
+              <span class="type-badge ${typeClass}">${typeLabel}</span>
+              <span class="status-badge ${app.status}">${statusLabels[app.status] || app.status}</span>
+              ${distBadge}
+            </div>
+            <div class="app-details">
+              <span><strong>Email:</strong> <a href="mailto:${app.email}">${app.email}</a></span>
+              ${extraDetails}
+            </div>
+            ${outOfRangeBanner}
+            ${messageHtml}
+            <div class="app-date">Applied ${date}</div>
+          </div>
+          <div class="app-actions">${actionsHtml}</div>
+        </div>
+      `;
+    }
+
+    // ── Filter ────────────────────────────────────
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-tab').forEach(t => {
+        t.classList.remove('active');
+      });
+      document.getElementById(`tab-${filter}`).classList.add('active');
+      loadApplications();
+    }
+
+    // ── Pending badge ─────────────────────────────
+    async function updatePendingBadge() {
+      try {
+        const res  = await apiCall('/api/applications?status=pending');
+        const data = await res.json();
+        const count = (data.applications || []).length;
+        const badge = document.getElementById('pendingBadge');
+        badge.style.display = count > 0 ? 'flex' : 'none';
+        badge.textContent   = count;
+      } catch (_) {}
+    }
+
+
+    /* ════════════════════════════════════════════
+       APPROVE FLOW
+    ═════════════════════════════════════════════ */
+
+    function openApproveModal(id, type, name, orgName) {
+      document.getElementById('approveAppId').value = id;
+      document.getElementById('approveModalDesc').textContent =
+        `Approve ${orgName} (${name}). Their account is already created — this will activate it so they can log in.`;
+
+      // Show/hide company fields
+      document.getElementById('approveCompanyFields').style.display =
+        type === 'company' ? 'block' : 'none';
+
+      document.getElementById('approveModal').classList.add('open');
+    }
+
+    function closeApproveModal() {
+      document.getElementById('approveModal').classList.remove('open');
+      document.getElementById('approveNotes').value   = '';
+      document.getElementById('approveAddress').value = '';
+    }
+
+    async function submitApprove() {
+      const id      = document.getElementById('approveAppId').value;
+      const address  = document.getElementById('approveAddress').value.trim();
+      const notes    = document.getElementById('approveNotes').value.trim();
+      const btn      = document.getElementById('approveSubmitBtn');
+
+      btn.disabled    = true;
+      btn.textContent = 'Approving...';
+
+      try {
+        const res  = await apiCall(`/api/applications/${id}/approve`, {
+          method: 'POST',
+          body:   JSON.stringify({ deliveryAddress: address, notes }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Approval failed');
+
+        closeApproveModal();
+        showToast('✅ Account activated! They can now log in.', 'success');
+
+        // Refresh
+        loadApplications();
+      } catch (err) {
+        showToast('Failed to approve: ' + err.message, 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '✅ Approve Account';
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       REJECT FLOW
+    ═════════════════════════════════════════════ */
+
+    function openRejectModal(id, orgName) {
+      document.getElementById('rejectAppId').value = id;
+      document.getElementById('rejectModal').classList.add('open');
+    }
+
+    function closeRejectModal() {
+      document.getElementById('rejectModal').classList.remove('open');
+      document.getElementById('rejectNotes').value = '';
+    }
+
+    async function submitReject() {
+      const id    = document.getElementById('rejectAppId').value;
+      const notes = document.getElementById('rejectNotes').value.trim();
+      const btn   = document.getElementById('rejectSubmitBtn');
+
+      btn.disabled    = true;
+      btn.textContent = 'Rejecting...';
+
+      try {
+        const res  = await apiCall(`/api/applications/${id}/reject`, {
+          method: 'POST',
+          body:   JSON.stringify({ notes }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Rejection failed');
+
+        closeRejectModal();
+        showToast('Application rejected. Notification sent.', 'success');
+        loadApplications();
+      } catch (err) {
+        showToast('Failed to reject: ' + err.message, 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '❌ Reject Application';
+      }
+    }
+
+
+
+
+    /* ════════════════════════════════════════════
+       WAITLIST FLOW
+    ═════════════════════════════════════════════ */
+
+    function waitlistApplicationFromBtn(btn) {
+      waitlistApplication(btn.dataset.id, btn.dataset.org);
+    }
+
+    async function waitlistApplication(id, orgName) {
+      if (!confirm(`Add "${orgName}" to the waitlist?\n\nThey'll receive an email letting them know they're on the waitlist and will hear back when a spot opens up.`)) return;
+
+      try {
+        const res  = await apiCall(`/api/applications/${id}/waitlist`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Waitlist failed');
+
+        showToast('⏸ Added to waitlist. Notification sent.', 'success');
+        loadApplications();
+      } catch (err) {
+        showToast('Failed to waitlist: ' + err.message, 'error');
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       UI HELPERS
+    ═════════════════════════════════════════════ */
+
+    function showAppsLoading() {
+      document.getElementById('appsLoading').style.display = 'flex';
+      document.getElementById('appsList').style.display    = 'none';
+      document.getElementById('appsEmpty').style.display   = 'none';
+    }
+
+    function showEmpty(msg) {
+      document.getElementById('appsLoading').style.display  = 'none';
+      document.getElementById('appsList').style.display     = 'none';
+      document.getElementById('appsEmpty').style.display    = 'block';
+      document.getElementById('appsEmptyText').textContent  = msg;
+    }
+
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
+
+    // Safe for HTML attribute values (double-quote safe)
+    function escAttr(str) {
+      if (!str) return '';
+      return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Read data-* attrs from button so apostrophes never break JS
+    function openApproveModalFromBtn(btn) {
+      openApproveModal(
+        btn.dataset.id,
+        btn.dataset.type,
+        btn.dataset.name,
+        btn.dataset.org
+      );
+    }
+
+    function openRejectModalFromBtn(btn) {
+      openRejectModal(btn.dataset.id, btn.dataset.org);
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('open');
+      });
+    });
+
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Order Detail — Delightmaker Baker</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="dash-body">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Orders</span>
+      </a>
+      <a href="dashboard.html?view=week"
+         class="nav-item">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Week View</span>
+      </a>
+      <a href="dashboard.html?view=invoice"
+         class="nav-item">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Invoice</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"
+             id="bakerAvatarLetter">B</div>
+        <div class="user-info">
+          <p class="user-name"
+             id="bakeryName">Loading...</p>
+          <p class="user-role">Baker</p>
+        </div>
+      </div>
+      <button class="sidebar-logout"
+              onclick="logout()">
+        Sign Out
+      </button>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main class="dash-main">
+
+    <!-- Top bar -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn"
+                id="mobileMenuBtn">☰</button>
+        <div>
+          <button class="back-btn"
+                  onclick="window.history.back()">
+            ← Back to Orders
+          </button>
+        </div>
+      </div>
+      <div class="dash-header-right"
+           id="headerActions">
+        <!-- Populated once order loads -->
+      </div>
+    </header>
+
+
+    <!-- ── LOADING STATE ─────────────────── -->
+    <div id="loadingState">
+      <div class="dash-card">
+        <div class="loading-rows">
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+          <div class="loading-row"></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ── ORDER CONTENT ─────────────────── -->
+    <div id="orderContent"
+         style="display:none">
+
+      <!-- ── STATUS BANNER ──────────────── -->
+      <div class="order-status-banner"
+           id="statusBanner">
+        <!-- Populated by JS -->
+      </div>
+
+
+      <!-- ── MAIN GRID ──────────────────── -->
+      <div class="order-detail-main-grid">
+
+
+        <!-- ── LEFT COLUMN ────────────── -->
+        <div class="order-detail-left">
+
+
+          <!-- Treat & delivery card -->
+          <section class="dash-card order-main-card">
+
+            <div class="order-main-header"
+                 id="orderMainHeader">
+              <!-- Populated by JS -->
+            </div>
+
+            <!-- Dietary alert (shown if needed) -->
+            <div class="order-dietary-block"
+                 id="orderDietaryBlock"
+                 style="display:none">
+              <div class="dietary-big-alert">
+                <span class="dietary-alert-icon">
+                  ⚠️
+                </span>
+                <div>
+                  <p class="dietary-alert-title">
+                    DIETARY REQUIREMENT
+                  </p>
+                  <p class="dietary-alert-detail"
+                     id="dietaryAlertDetail">
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detail fields -->
+            <div class="order-fields"
+                 id="orderFields">
+              <!-- Populated by JS -->
+            </div>
+
+          </section>
+
+
+          <!-- Card message block -->
+          <section class="dash-card card-message-block">
+
+            <div class="card-header">
+              <h2 class="card-title">
+                💌 Card Message
+              </h2>
+            </div>
+
+            <div class="card-message-preview"
+                 id="cardMessagePreview">
+              <!-- Populated by JS -->
+            </div>
+
+            <p class="card-print-hint">
+              Print or handwrite this message on the
+              card included with the treat.
+            </p>
+
+          </section>
+
+
+        </div><!-- /order-detail-left -->
+
+
+        <!-- ── RIGHT COLUMN ───────────── -->
+        <div class="order-detail-right">
+
+
+          <!-- Delivery info card -->
+          <section class="dash-card delivery-info-card">
+
+            <div class="card-header">
+              <h2 class="card-title">
+                📍 Delivery Details
+              </h2>
+            </div>
+
+            <div id="deliveryDetails">
+              <!-- Populated by JS -->
+            </div>
+
+          </section>
+
+
+          <!-- Notes from Colton -->
+          <section class="dash-card colton-notes-card"
+                   id="coltonNotesCard"
+                   style="display:none">
+
+            <div class="card-header">
+              <h2 class="card-title">
+                📝 Notes from Colton
+              </h2>
+            </div>
+
+            <p class="colton-notes-text"
+               id="coltonNotesText">
+            </p>
+
+          </section>
+
+
+          <!-- Mark as delivered (today only) -->
+          <div id="deliverActionCard"
+               style="display:none">
+
+            <button class="btn deliver-action-btn"
+                    onclick="openDeliverModal()">
+              ✅ MARK AS DELIVERED
+            </button>
+
+            <p class="deliver-action-note">
+              Only mark as delivered once the treat
+              has been physically handed over.
+              This triggers the company's charge.
+            </p>
+
+          </div>
+
+
+          <!-- Status timeline -->
+          <section class="dash-card timeline-card">
+
+            <div class="card-header">
+              <h2 class="card-title">
+                🕐 Order Timeline
+              </h2>
+            </div>
+
+            <div class="order-timeline"
+                 id="orderTimeline">
+              <!-- Populated by JS -->
+            </div>
+
+          </section>
+
+
+        </div><!-- /order-detail-right -->
+
+      </div><!-- /order-detail-main-grid -->
+
+    </div><!-- /orderContent -->
+
+
+    <!-- ── NOT FOUND STATE ────────────── -->
+    <div id="notFoundState"
+         style="display:none">
+      <div class="dash-card"
+           style="text-align:center;
+                  padding:60px 40px">
+        <div style="font-size:3rem;
+                    margin-bottom:16px">
+          📦
+        </div>
+        <h2 style="font-family:var(--font-head);
+                   font-size:1.5rem;
+                   color:var(--dark);
+                   margin-bottom:8px">
+          Order Not Found
+        </h2>
+        <p style="color:var(--gray);
+                  margin-bottom:24px">
+          This order may have been removed or
+          you may not have access to it.
+        </p>
+        <a href="dashboard.html"
+           class="btn btn-primary">
+          ← Back to Orders
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+
+  <!-- ═══════════════════════════════════════
+       DELIVER CONFIRM MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="deliverModal"
+       style="display:none">
+    <div class="modal modal-sm">
+
+      <div class="modal-header">
+        <h2>Confirm Delivery</h2>
+        <button class="modal-close"
+                onclick="hideDeliverModal()">
+          ✕
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <p style="font-size:0.9rem;
+                  color:var(--gray);
+                  line-height:1.6;
+                  margin-bottom:20px">
+          Please confirm all of the following
+          before marking as delivered:
+        </p>
+
+        <div class="deliver-checklist"
+             id="deliverChecklist">
+          <!-- Populated by JS based on order -->
+        </div>
+
+        <div class="deliver-billing-warning">
+          <span>💳</span>
+          <span>
+            Confirming will automatically charge
+            the company. This cannot be undone.
+          </span>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost"
+                onclick="hideDeliverModal()">
+          Not Yet
+        </button>
+        <button class="btn deliver-confirm-btn"
+                id="confirmDeliverBtn"
+                onclick="confirmDelivery()"
+                disabled>
+          ✅ Confirm Delivery
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════ -->
+  <script src="../js/firebase-config.js"></script>
+  <script>
+
+    // ── State ─────────────────────────────────────
+    let bakerId    = null;
+    let bakeryData = null;
+    let order      = null;
+    let orderId    = null;
+
+
+    // ── Auth guard ────────────────────────────────
+    requireAuth('baker').then(async user => {
+      bakerId = user.bakerId;
+
+      // Load bakery info
+      const bDoc = await db
+        .collection('bakeries')
+        .doc(bakerId)
+        .get();
+
+      bakeryData = bDoc.data();
+      const name = bakeryData?.name || 'Bakery';
+
+      document.getElementById('bakeryName')
+        .textContent = name;
+      document.getElementById('bakerAvatarLetter')
+        .textContent = name.charAt(0).toUpperCase();
+
+      // Get order ID from URL
+      const params = new URLSearchParams(
+        window.location.search
+      );
+      orderId = params.get('id');
+
+      if (!orderId) {
+        showNotFound();
+        return;
+      }
+
+      await loadOrder(orderId);
+    });
+
+
+    /* ════════════════════════════════════════════
+       LOAD ORDER
+    ════════════════════════════════════════════ */
+
+    async function loadOrder(id) {
+      try {
+        const doc = await db
+          .collection('orders')
+          .doc(id)
+          .get();
+
+        if (!doc.exists) {
+          showNotFound();
+          return;
+        }
+
+        order = { id: doc.id, ...doc.data() };
+
+        // Security — ensure this order belongs
+        // to this bakery
+        if (order.bakerId !== bakerId) {
+          showNotFound();
+          return;
+        }
+
+        document.getElementById('loadingState')
+          .style.display = 'none';
+        document.getElementById('orderContent')
+          .style.display = 'block';
+
+        renderOrder(order);
+
+      } catch (err) {
+        console.error('Load order error:', err);
+        showNotFound();
+      }
+    }
+
+
+    /* ── Render everything ───────────────────────── */
+    function renderOrder(o) {
+      const days    = daysUntil(o.deliveryDate);
+      const isToday = days === 0;
+      const isPast  = days < 0;
+      const dateStr = formatDate(o.deliveryDate);
+
+      // ── Page title ────────────────────────────
+      document.title =
+        `Order #${(o.orderNumber
+          ? String(o.orderNumber).padStart(3,'0')
+          : o.id.slice(-6).toUpperCase()
+        )} — Delightmaker`;
+
+      // ── Status banner ─────────────────────────
+      renderStatusBannerEl(o, days);
+
+      // ── Header actions ────────────────────────
+      if (isToday && o.status !== 'delivered') {
+        document.getElementById('headerActions')
+          .innerHTML = `
+            <button class="btn btn-primary"
+                    onclick="openDeliverModal()">
+              ✅ Mark as Delivered
+            </button>
+          `;
+      }
+
+      // ── Main header ───────────────────────────
+      const orderNum = o.orderNumber
+        ? `#${String(o.orderNumber).padStart(3,'0')}`
+        : `#${o.id.slice(-6).toUpperCase()}`;
+
+      const eventIcon =
+        o.eventType === 'birthday' ? '🎂' : '🎉';
+
+      document.getElementById('orderMainHeader')
+        .innerHTML = `
+          <div class="order-main-title-row">
+            <div class="order-num-chip">
+              ORDER ${orderNum}
+            </div>
+            <div class="order-due-chip ${
+              isToday
+                ? 'chip-today'
+                : days === 1
+                ? 'chip-tomorrow'
+                : isPast
+                ? 'chip-past'
+                : ''
+            }">
+              ${isToday
+                ? '🔴 Deliver Today'
+                : days === 1
+                ? '🟡 Deliver Tomorrow'
+                : isPast
+                ? `Delivered ${Math.abs(days)}d ago`
+                : `Deliver in ${days} days`}
+            </div>
+          </div>
+          <h1 class="order-main-product">
+            ${o.productName || 'Order'}
+          </h1>
+          <p class="order-main-meta">
+            ${eventIcon}
+            For <strong>${
+              o.employeeName || 'Unknown'
+            }</strong>
+            at <strong>${
+              o.companyName || o.companyId || 'Company'
+            }</strong> · ${dateStr}
+          </p>
+        `;
+
+      // ── Dietary alert ─────────────────────────
+      const hasDietary =
+        o.dietaryFlags && o.dietaryFlags.length > 0;
+
+      if (hasDietary) {
+        document.getElementById('orderDietaryBlock')
+          .style.display = 'block';
+        document.getElementById('dietaryAlertDetail')
+          .textContent =
+            o.dietaryFlags
+              .map(f => f.toUpperCase())
+              .join(' + ') +
+            ' — This must be strictly observed.';
+      }
+
+      // ── Order fields ──────────────────────────
+      const fields = [
+        {
+          icon:  '📦',
+          label: 'Treat',
+          value: o.productName || '—',
+          bold:  true,
+        },
+        {
+          icon:  '🏢',
+          label: 'Company',
+          value: o.companyName || o.companyId || '—',
+        },
+        {
+          icon:  '👤',
+          label: 'Recipient',
+          value: o.employeeName || '—',
+        },
+        {
+          icon:  '📅',
+          label: 'Delivery Date',
+          value: dateStr,
+          bold:  isToday,
+        },
+      ];
+
+      if (hasDietary) {
+        fields.push({
+          icon:  '⚠️',
+          label: 'Dietary',
+          value: o.dietaryFlags.join(', '),
+          warn:  true,
+        });
+      }
+
+      document.getElementById('orderFields')
+        .innerHTML = fields.map(f => `
+          <div class="order-field-row">
+            <span class="order-field-icon">
+              ${f.icon}
+            </span>
+            <div class="order-field-body">
+              <p class="order-field-label">
+                ${f.label}
+              </p>
+              <p class="order-field-value ${
+                f.bold ? 'order-field-bold' : ''
+              } ${
+                f.warn ? 'order-field-warn' : ''
+              }">
+                ${f.value}
+              </p>
+            </div>
+          </div>
+        `).join('');
+
+      // ── Card message ──────────────────────────
+      const msg =
+        o.customMessage ||
+        'Happy Birthday from the whole team! 🎂';
+
+      document.getElementById('cardMessagePreview')
+        .innerHTML = `
+          <div class="card-msg-bubble">
+            <p class="card-msg-text">"${msg}"</p>
+            <p class="card-msg-from">
+              — With love from
+              <span>${
+                o.companyName || 'the team'
+              }</span>
+            </p>
+          </div>
+        `;
+
+      // ── Delivery details ──────────────────────
+      document.getElementById('deliveryDetails')
+        .innerHTML = `
+          <div class="delivery-address-block">
+            <p class="delivery-address-main">
+              ${o.deliveryAddress || 'No address set'}
+            </p>
+            ${o.deliveryInstructions
+              ? `<p class="delivery-instructions">
+                   <strong>Instructions:</strong>
+                   ${o.deliveryInstructions}
+                 </p>`
+              : ''}
+          </div>
+
+          <div class="delivery-time-row">
+            <span class="delivery-time-icon">⏰</span>
+            <div>
+              <p class="delivery-time-label">
+                Deliver by
+              </p>
+              <p class="delivery-time-value">
+                10:00 AM on ${dateStr}
+              </p>
+            </div>
+          </div>
+
+          ${o.deliveryWindow
+            ? `<div class="delivery-window-note">
+                 Preferred window: ${
+                   o.deliveryWindow === 'morning'
+                   ? 'Morning (9am–12pm)'
+                   : o.deliveryWindow === 'afternoon'
+                   ? 'Afternoon (12pm–3pm)'
+                   : 'Any time'
+                 }
+               </div>`
+            : ''}
+        `;
+
+      // ── Colton notes ──────────────────────────
+      if (o.bakerNotes) {
+        document.getElementById('coltonNotesCard')
+          .style.display = 'block';
+        document.getElementById('coltonNotesText')
+          .textContent = o.bakerNotes;
+      }
+
+      // ── Show deliver button (today only) ──────
+      if (isToday &&
+          o.status !== 'delivered' &&
+          o.status !== 'cancelled') {
+        document.getElementById('deliverActionCard')
+          .style.display = 'block';
+      }
+
+      // ── Timeline ──────────────────────────────
+      renderTimeline(o);
+    }
+
+
+    /* ── Status banner ───────────────────────────── */
+    function renderStatusBannerEl(o, days) {
+      const banner =
+        document.getElementById('statusBanner');
+
+      const configs = {
+        routed: {
+          bg:    days === 0
+                   ? '#FFEBEE'
+                   : days === 1
+                   ? '#FFF3E0'
+                   : '#F5F5F5',
+          color: days === 0 ? '#C62828'
+                 : days === 1 ? '#E65100'
+                 : '#555',
+          icon:  days === 0 ? '🔴'
+                 : days === 1 ? '🟡' : '🔵',
+          label: days === 0
+                   ? 'Deliver TODAY'
+                   : days === 1
+                   ? 'Deliver TOMORROW'
+                   : `Deliver in ${days} days`,
+        },
+        in_preparation: {
+          bg: '#E3F2FD', color: '#1565C0',
+          icon: '🔵', label: 'In Preparation',
+        },
+        delivered: {
+          bg: '#E8F5E9', color: '#2E7D32',
+          icon: '✅', label: 'Delivered — Thank you!',
+        },
+        cancelled: {
+          bg: '#FFEBEE', color: '#C62828',
+          icon: '❌', label: 'Order Cancelled',
+        },
+      };
+
+      const cfg =
+        configs[o.status] || configs.routed;
+
+      banner.style.background = cfg.bg;
+      banner.style.color      = cfg.color;
+      banner.innerHTML = `
+        <span class="status-banner-icon">
+          ${cfg.icon}
+        </span>
+        <span class="status-banner-text">
+          ${cfg.label}
+        </span>
+      `;
+      banner.style.display = 'flex';
+    }
+
+
+    /* ── Timeline ────────────────────────────────── */
+    function renderTimeline(o) {
+      const steps = [
+        {
+          key:   'created',
+          icon:  '📋',
+          label: 'Order Created',
+          done:  true,
+          ts:    o.createdAt,
+        },
+        {
+          key:   'confirmed',
+          icon:  '✅',
+          label: 'Approved by Company',
+          done:  ['confirmed','routed',
+                  'in_preparation',
+                  'delivered'].includes(o.status),
+          ts:    o.confirmedAt,
+        },
+        {
+          key:   'routed',
+          icon:  '🧁',
+          label: 'Routed to You',
+          done:  ['routed','in_preparation',
+                  'delivered'].includes(o.status),
+          ts:    o.routedAt,
+        },
+        {
+          key:   'delivered',
+          icon:  '🎉',
+          label: 'Delivered',
+          done:  o.status === 'delivered',
+          ts:    o.deliveredAt,
+          current: o.status !== 'delivered' &&
+                   o.status !== 'cancelled',
+        },
+      ];
+
+      document.getElementById('orderTimeline')
+        .innerHTML = steps.map((step, i) => `
+          <div class="timeline-step ${
+            step.done    ? 'step-done'    : ''
+          } ${
+            step.current ? 'step-current' : ''
+          }">
+            <div class="timeline-dot">
+              <span>${
+                step.done ? '✓' : step.icon
+              }</span>
+            </div>
+            ${i < steps.length - 1
+              ? '<div class="timeline-line"></div>'
+              : ''}
+            <div class="timeline-body">
+              <p class="timeline-label">
+                ${step.label}
+              </p>
+              ${step.ts
+                ? `<p class="timeline-ts">
+                     ${formatTimestamp(step.ts)}
+                   </p>`
+                : step.current
+                ? '<p class="timeline-ts pending">Pending</p>'
+                : ''}
+            </div>
+          </div>
+        `).join('');
+    }
+
+
+    /* ── Format timestamp ────────────────────────── */
+    function formatTimestamp(ts) {
+      if (!ts) return '';
+      const d = ts?.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('en-CA', {
+        month:  'short',
+        day:    'numeric',
+        hour:   'numeric',
+        minute: '2-digit',
+      });
+    }
+
+
+    /* ════════════════════════════════════════════
+       DELIVER MODAL
+    ════════════════════════════════════════════ */
+
+    function openDeliverModal() {
+      if (!order) return;
+
+      const hasDietary =
+        order.dietaryFlags &&
+        order.dietaryFlags.length > 0;
+
+      const checks = [
+        {
+          id:    'chkTreats',
+          label: `Treats prepared correctly: <strong>${
+            order.productName || 'Order'
+          }</strong>`,
+        },
+      ];
+
+      if (hasDietary) {
+        checks.push({
+          id:    'chkDietary',
+          label: `⚠️ <strong style="color:#C62828">
+                    Dietary requirements met:
+                    ${order.dietaryFlags
+                      .map(f => f.toUpperCase())
+                      .join(', ')}
+                  </strong>`,
+          warn:  true,
+        });
+      }
+
+      checks.push(
+        {
+          id:    'chkCard',
+          label: 'Card with message included',
+        },
+        {
+          id:    'chkAddress',
+          label: `Delivered to:
+                  <strong>${
+                    order.deliveryAddress ||
+                    'correct address'
+                  }</strong>`,
+        }
+      );
+
+      const checkIds = checks.map(c => c.id);
+
+      document.getElementById('deliverChecklist')
+        .innerHTML = checks.map(c => `
+          <label class="deliver-check-row ${
+            c.warn ? 'deliver-check-warn' : ''
+          }">
+            <input type="checkbox"
+                   id="${c.id}"
+                   onchange="validateChecks(
+                     ${JSON.stringify(checkIds)}
+                   )"/>
+            <span>${c.label}</span>
+          </label>
+        `).join('');
+
+      document.getElementById('confirmDeliverBtn')
+        .disabled = true;
+
+      document.getElementById('deliverModal')
+        .style.display = 'flex';
+    }
+
+    function validateChecks(checkIds) {
+      const allDone = checkIds.every(id => {
+        const el = document.getElementById(id);
+        return el && el.checked;
+      });
+      document.getElementById('confirmDeliverBtn')
+        .disabled = !allDone;
+    }
+
+    function hideDeliverModal() {
+      document.getElementById('deliverModal')
+        .style.display = 'none';
+    }
+
+    async function confirmDelivery() {
+      const btn =
+        document.getElementById('confirmDeliverBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Confirming...';
+
+      try {
+        const res = await apiCall(
+          `/api/orders/${orderId}/deliver`,
+          { method: 'PATCH' }
+        );
+
+        if (res && res.ok) {
+          hideDeliverModal();
+          showToast(
+            '✅ Delivery confirmed! ' +
+            'Company has been charged.',
+            'success',
+            4000
+          );
+          // Reload order to show delivered state
+          await loadOrder(orderId);
+
+          // Hide deliver button
+          document.getElementById(
+            'deliverActionCard'
+          ).style.display = 'none';
+          document.getElementById(
+            'headerActions'
+          ).innerHTML = '';
+
+        } else {
+          showToast(
+            'Failed to confirm delivery', 'error'
+          );
+          btn.disabled    = false;
+          btn.textContent = '✅ Confirm Delivery';
+        }
+      } catch (err) {
+        showToast('Action failed', 'error');
+        btn.disabled    = false;
+        btn.textContent = '✅ Confirm Delivery';
+      }
+    }
+
+
+    /* ── Not found ───────────────────────────────── */
+    function showNotFound() {
+      document.getElementById('loadingState')
+        .style.display = 'none';
+      document.getElementById('notFoundState')
+        .style.display = 'block';
+    }
+
+
+    /* ── Mobile menu ─────────────────────────────── */
+    document.getElementById('mobileMenuBtn')
+      .addEventListener('click', () => {
+        document.getElementById('sidebar')
+          .classList.toggle('sidebar-open');
+      });
+
+  </script>
+
+  <style>
+    /* ── Status banner ───────────────────────── */
+    .order-status-banner {
+      display:       flex;
+      align-items:   center;
+      gap:           12px;
+      padding:       14px 20px;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      font-weight:   700;
+      font-size:     0.95rem;
+    }
+
+    .status-banner-icon {
+      font-size: 1.3rem;
+    }
+
+    /* ── Main grid ───────────────────────────── */
+    .order-detail-main-grid {
+      display:               grid;
+      grid-template-columns: 1fr 380px;
+      gap:                   20px;
+      align-items:           start;
+    }
+
+    /* ── Main card ───────────────────────────── */
+    .order-main-card {
+      margin-bottom: 20px;
+    }
+
+    .order-main-header {
+      padding:       0 0 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+    }
+
+    .order-main-title-row {
+      display:   flex;
+      gap:       10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .order-num-chip {
+      font-size:     0.72rem;
+      font-weight:   700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color:         var(--gray);
+      background:    var(--bg);
+      padding:       4px 10px;
+      border-radius: 100px;
+      border:        1px solid rgba(0,0,0,0.08);
+    }
+
+    .order-due-chip {
+      font-size:     0.72rem;
+      font-weight:   700;
+      padding:       4px 10px;
+      border-radius: 100px;
+    }
+
+    .chip-today {
+      background: #FFEBEE;
+      color:      #C62828;
+    }
+
+    .chip-tomorrow {
+      background: #FFF3E0;
+      color:      #E65100;
+    }
+
+    .chip-past {
+      background: var(--green-light);
+      color:      #2E7D32;
+    }
+
+    .order-main-product {
+      font-family:   var(--font-head);
+      font-size:     1.8rem;
+      color:         var(--dark);
+      margin-bottom: 8px;
+    }
+
+    .order-main-meta {
+      font-size:   0.9rem;
+      color:       var(--gray);
+      line-height: 1.5;
+    }
+
+    /* ── Dietary block ───────────────────────── */
+    .order-dietary-block {
+      margin-bottom: 20px;
+    }
+
+    .dietary-big-alert {
+      display:       flex;
+      align-items:   flex-start;
+      gap:           14px;
+      padding:       16px 20px;
+      background:    #FFEBEE;
+      border:        2px solid rgba(198,40,40,0.25);
+      border-radius: var(--radius-sm);
+    }
+
+    .dietary-alert-icon {
+      font-size:   1.8rem;
+      flex-shrink: 0;
+    }
+
+    .dietary-alert-title {
+      font-size:     0.72rem;
+      font-weight:   700;
+      letter-spacing: 0.1em;
+      color:         #C62828;
+      margin-bottom: 4px;
+    }
+
+    .dietary-alert-detail {
+      font-size:   0.88rem;
+      font-weight: 600;
+      color:       #C62828;
+      line-height: 1.4;
+    }
+
+    /* ── Order fields ────────────────────────── */
+    .order-fields {
+      display:        flex;
+      flex-direction: column;
+      gap:            0;
+    }
+
+    .order-field-row {
+      display:       flex;
+      align-items:   flex-start;
+      gap:           14px;
+      padding:       12px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .order-field-row:last-child {
+      border-bottom: none;
+    }
+
+    .order-field-icon {
+      font-size:   1.2rem;
+      flex-shrink: 0;
+      margin-top:  2px;
+    }
+
+    .order-field-label {
+      font-size:     0.72rem;
+      font-weight:   700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color:         var(--gray);
+      margin-bottom: 3px;
+    }
+
+    .order-field-value {
+      font-size:   0.92rem;
+      color:       var(--dark);
+      line-height: 1.4;
+    }
+
+    .order-field-bold {
+      font-weight: 700;
+      font-size:   1rem;
+    }
+
+    .order-field-warn {
+      color:       #C62828;
+      font-weight: 700;
+    }
+
+    /* ── Card message block ──────────────────── */
+    .card-message-block {
+      margin-bottom: 0;
+    }
+
+    .card-msg-bubble {
+      background:    var(--vanilla);
+      border:        2px dashed rgba(196,98,29,0.1);
+      border-radius: var(--radius-md);
+      padding:       20px 24px;
+      margin-bottom: 12px;
+    }
+
+    .card-msg-text {
+      font-family:   var(--font-head);
+      font-size:     1.1rem;
+      color:         var(--dark);
+      line-height:   1.5;
+      margin-bottom: 10px;
+    }
+
+    .card-msg-from {
+      font-size:  0.82rem;
+      color:      var(--gray);
+      text-align: right;
+    }
+
+    .card-msg-from span {
+      font-weight: 600;
+      color:       var(--dark);
+    }
+
+    .card-print-hint {
+      font-size:   0.8rem;
+      color:       var(--gray);
+      line-height: 1.5;
+    }
+
+    /* ── Delivery info card ──────────────────── */
+    .delivery-address-block {
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .delivery-address-main {
+      font-size:   1rem;
+      font-weight: 600;
+      color:       var(--dark);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .delivery-instructions {
+      font-size:   0.85rem;
+      color:       var(--gray);
+      line-height: 1.5;
+    }
+
+    .delivery-time-row {
+      display:   flex;
+      gap:       12px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .delivery-time-icon {
+      font-size:   1.4rem;
+      flex-shrink: 0;
+    }
+
+    .delivery-time-label {
+      font-size:     0.72rem;
+      font-weight:   700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color:         var(--gray);
+      margin-bottom: 3px;
+    }
+
+    .delivery-time-value {
+      font-size:   0.9rem;
+      font-weight: 600;
+      color:       var(--dark);
+    }
+
+    .delivery-window-note {
+      font-size:     0.82rem;
+      color:         var(--gray);
+      padding:       8px 12px;
+      background:    var(--bg);
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── Colton notes ────────────────────────── */
+    .colton-notes-text {
+      font-size:   0.92rem;
+      color:       var(--dark);
+      line-height: 1.6;
+      font-style:  italic;
+    }
+
+    /* ── Deliver action card ─────────────────── */
+    .deliver-action-btn {
+      width:           100%;
+      padding:         18px;
+      font-size:       1.05rem;
+      font-weight:     700;
+      background:      var(--dark);
+      color:           white;
+      border-radius:   var(--radius-sm);
+      text-align:      center;
+      letter-spacing:  0.02em;
+      margin-bottom:   10px;
+      transition:      var(--transition);
+    }
+
+    .deliver-action-btn:hover {
+      background: #2E7D32;
+      transform:  translateY(-2px);
+      box-shadow: 0 6px 20px rgba(46,125,50,0.3);
+    }
+
+    .deliver-action-note {
+      font-size:   0.8rem;
+      color:       var(--gray);
+      line-height: 1.5;
+      text-align:  center;
+      margin-bottom: 20px;
+    }
+
+    /* ── Timeline ────────────────────────────── */
+    .order-timeline {
+      display:        flex;
+      flex-direction: column;
+      gap:            0;
+    }
+
+    .timeline-step {
+      display:    grid;
+      grid-template-columns: 32px 1fr;
+      grid-template-rows:    1fr auto;
+      gap:        0 14px;
+      position:   relative;
+    }
+
+    .timeline-dot {
+      width:           32px;
+      height:          32px;
+      border-radius:   50%;
+      background:      rgba(0,0,0,0.06);
+      display:         flex;
+      align-items:     center;
+      justify-content: center;
+      font-size:       0.85rem;
+      grid-row:        1;
+      flex-shrink:     0;
+      z-index:         1;
+      color:           var(--gray);
+    }
+
+    .step-done .timeline-dot {
+      background: var(--green-light);
+      color:      #2E7D32;
+      font-size:  0.9rem;
+    }
+
+    .step-current .timeline-dot {
+      background: rgba(255,107,107,0.15);
+      color:      var(--coral);
+      animation:  pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0
+                   rgba(255,107,107,0.3); }
+      50%       { box-shadow: 0 0 0 6px
+                   rgba(255,107,107,0); }
+    }
+
+    .timeline-line {
+      width:        2px;
+      background:   rgba(0,0,0,0.08);
+      margin:       4px auto;
+      min-height:   24px;
+      grid-column:  1;
+      grid-row:     2;
+      justify-self: center;
+    }
+
+    .step-done .timeline-line {
+      background: var(--green);
+    }
+
+    .timeline-body {
+      grid-column:   2;
+      grid-row:      1 / 3;
+      padding-bottom: 16px;
+    }
+
+    .timeline-label {
+      font-size:   0.88rem;
+      font-weight: 600;
+      color:       var(--dark);
+      padding-top: 6px;
+    }
+
+    .timeline-ts {
+      font-size:  0.78rem;
+      color:      var(--gray);
+      margin-top: 2px;
+    }
+
+    .timeline-ts.pending {
+      color: var(--coral);
+    }
+
+    /* ── Deliver modal checklist ─────────────── */
+    .deliver-checklist {
+      display:        flex;
+      flex-direction: column;
+      gap:            10px;
+      margin-bottom:  16px;
+    }
+
+    .deliver-check-row {
+      display:       flex;
+      align-items:   flex-start;
+      gap:           10px;
+      font-size:     0.88rem;
+      color:         var(--dark);
+      cursor:        pointer;
+      line-height:   1.4;
+      padding:       8px 12px;
+      border-radius: var(--radius-sm);
+      background:    var(--bg);
+    }
+
+    .deliver-check-warn {
+      background: rgba(255,235,238,0.7);
+    }
+
+    .deliver-check-row input {
+      width:      18px;
+      height:     18px;
+      flex-shrink: 0;
+      cursor:     pointer;
+      margin-top: 1px;
+    }
+
+    .deliver-billing-warning {
+      display:       flex;
+      align-items:   flex-start;
+      gap:           10px;
+      padding:       12px 14px;
+      background:    #FFF3E0;
+      border-radius: var(--radius-sm);
+      font-size:     0.82rem;
+      color:         #E65100;
+      line-height:   1.5;
+    }
+
+    .deliver-confirm-btn:not(:disabled) {
+      background: #2E7D32 !important;
+      color:      white;
+    }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 900px) {
+      .order-detail-main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+</body>
+</html>
