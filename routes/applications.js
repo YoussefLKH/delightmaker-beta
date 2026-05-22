@@ -178,30 +178,31 @@ router.post('/', async (req, res) => {
 
     console.log(`📋 New ${type} application: ${docRef.id} — ${orgName} (${cleanEmail}) uid:${uid}`);
 
-    // ── Send confirmation to applicant ────────────
-    sendApplicationConfirmationEmail({
-      type,
-      name:   name.trim(),
-      orgName: orgName.trim(),
-      email:  cleanEmail,
-    }).catch(err => console.error('Confirmation email failed:', err.message));
+    // ── Send emails (awaited so Vercel doesn't kill the function early) ──
+    await Promise.allSettled([
+      sendApplicationConfirmationEmail({
+        type,
+        name:    name.trim(),
+        orgName: orgName.trim(),
+        email:   cleanEmail,
+      }).catch(err => console.error('Confirmation email failed:', err.message)),
 
-    // ── Notify Colton ──────────────────────────────
-    sendApplicationNotification({
-      id: docRef.id,
-      type,
-      name:         name.trim(),
-      orgName:      orgName.trim(),
-      email:        cleanEmail,
-      phone:        phone.trim(),
-      address:      address.trim(),
-      planInterest: planInterest || null,
-      specialty:    specialty    || null,
-      allergenFree: allergenFree || null,
-      capacity:     capacity     || null,
-      website:      website      || null,
-      message:      message      || '',
-    }).catch(err => console.error('Application notification failed:', err.message));
+      sendApplicationNotification({
+        id:          docRef.id,
+        type,
+        name:        name.trim(),
+        orgName:     orgName.trim(),
+        email:       cleanEmail,
+        phone:       phone.trim(),
+        address:     address.trim(),
+        planInterest: planInterest || null,
+        specialty:   specialty    || null,
+        allergenFree: allergenFree || null,
+        capacity:    capacity     || null,
+        website:     website      || null,
+        message:     message      || '',
+      }).catch(err => console.error('Application notification failed:', err.message)),
+    ]);
 
     return res.status(200).json({
       success: true,
