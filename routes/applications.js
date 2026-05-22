@@ -692,20 +692,20 @@ async function activateAccount({ app, deliveryAddress, approvedBy }) {
     });
   }
 
-  // Generate email verification link (expires in 24h)
-  // User must click this before they can log in
-  let verifyLink;
+  // Mark email as verified — admin approval is implicit email trust.
+  // The user set their password during the application form, so there
+  // is no need to send a separate verification link. Marking verified
+  // here lets them log in immediately after receiving the approval email.
   try {
-    verifyLink = await auth.generateEmailVerificationLink(email, {
-      url: `${process.env.APP_URL}/login`,
-    });
+    await auth.updateUser(uid, { emailVerified: true });
   } catch (err) {
-    console.error('Could not generate verification link:', err.message);
-    verifyLink = `${process.env.APP_URL}/login`; // fallback
+    console.error('Could not mark email as verified:', err.message);
   }
 
-  // Send approval email with the verification link
-  await sendApprovalEmail({ type, name, orgName, email, verifyLink });
+  const loginLink = `${process.env.APP_URL || 'https://delightmaker-beta.vercel.app'}/login`;
+
+  // Send approval email with a direct login link
+  await sendApprovalEmail({ type, name, orgName, email, verifyLink: loginLink });
 
   console.log(`✅ Account activated: ${uid} (${type}) — ${orgName} <${email}>`);
   return { uid, orgId };
@@ -1049,7 +1049,7 @@ async function sendApprovalEmail({ type, name, orgName, email, verifyLink }) {
             </div>
 
             <div class="cta-wrap">
-              <a href="${verifyLink}" class="cta">Verify My Email & Log In →</a>
+              <a href="${verifyLink}" class="cta">Log In to Your Dashboard →</a>
               <div class="expire-note">This link expires in 24 hours.</div>
             </div>
 
