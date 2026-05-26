@@ -135,12 +135,12 @@ router.post('/', async (req, res) => {
     let outOfRange = false;
     const lat = typeof addressLat === 'number' ? addressLat : null;
     const lng = typeof addressLng === 'number' ? addressLng : null;
-    if (type === 'baker' && lat !== null && lng !== null) {
+    if (lat !== null && lng !== null) {
       const distKm = haversineKm(HALIFAX_LAT, HALIFAX_LNG, lat, lng);
       if (distKm > HRM_RADIUS_KM) {
         outOfRange = true;
         console.log(
-          `⚠️  Baker application "${orgName}" is ${distKm.toFixed(1)}km` +
+          `⚠️  Application "${orgName}" is ${distKm.toFixed(1)}km` +
           ` from Halifax — flagged as out-of-range`
         );
       }
