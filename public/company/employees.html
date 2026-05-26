@@ -567,6 +567,17 @@
     }
 
 
+    /* ── Date helper ───────────────────────────────
+       Dates are stored as UTC midnight (or noon UTC).
+       Using local .getDate() shifts them 1 day back in
+       UTC-offset timezones. Always extract UTC components
+       and rebuild as a local date to avoid the shift.   */
+    function empDate(val) {
+      if (!val) return null;
+      const d = val?.toDate ? val.toDate() : new Date(val);
+      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    }
+
     /* ── Render table ──────────────────────────── */
     function renderEmployeesTable(employees) {
       const tbody =
@@ -636,32 +647,14 @@
              </div>`
           : '<span style="color:#bbb">—</span>';
 
-        const birthday = emp.birthday?.toDate
-          ? emp.birthday.toDate()
-              .toLocaleDateString('en-CA', {
-                month: 'short',
-                day:   'numeric',
-              })
-          : emp.birthday
-          ? new Date(emp.birthday)
-              .toLocaleDateString('en-CA', {
-                month: 'short',
-                day:   'numeric',
-              })
+        const bdObj  = empDate(emp.birthday);
+        const birthday = bdObj
+          ? bdObj.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
           : '—';
 
-        const startDate = emp.startDate?.toDate
-          ? emp.startDate.toDate()
-              .toLocaleDateString('en-CA', {
-                month: 'short',
-                year:  'numeric',
-              })
-          : emp.startDate
-          ? new Date(emp.startDate)
-              .toLocaleDateString('en-CA', {
-                month: 'short',
-                year:  'numeric',
-              })
+        const sdObj   = empDate(emp.startDate);
+        const startDate = sdObj
+          ? sdObj.toLocaleDateString('en-CA', { month: 'short', year: 'numeric' })
           : '—';
 
         return `
@@ -729,9 +722,7 @@
 
       // Birthday
       if (emp.birthday) {
-        const bd = emp.birthday?.toDate
-          ? emp.birthday.toDate()
-          : new Date(emp.birthday);
+        const bd = empDate(emp.birthday);
 
         const nextBd = new Date(
           today.getFullYear(),
@@ -861,16 +852,11 @@
 
       // Birthday — use month/day only for display
       if (emp.birthday) {
-        const bd = emp.birthday?.toDate
-          ? emp.birthday.toDate()
-          : new Date(emp.birthday);
+        const bd = empDate(emp.birthday);
         const y  = bd.getFullYear();
-        const m  = String(bd.getMonth() + 1)
-                     .padStart(2, '0');
-        const d  = String(bd.getDate())
-                     .padStart(2, '0');
-        document.getElementById('empBirthday')
-          .value = `${y}-${m}-${d}`;
+        const m  = String(bd.getMonth() + 1).padStart(2, '0');
+        const d  = String(bd.getDate()).padStart(2, '0');
+        document.getElementById('empBirthday').value = `${y}-${m}-${d}`;
       }
 
       // Dietary pills — set active state
@@ -987,7 +973,7 @@
 
       const empData = {
         name:     `${firstName} ${lastName}`,
-        birthday: new Date(birthday),
+        birthday: new Date(birthday + 'T12:00:00.000Z'),
         dietaryFlags,
         email:
           document.getElementById('empEmail')
