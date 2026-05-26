@@ -27,9 +27,9 @@
     .apply-toggle-btn {
       padding:       10px 24px;
       border-radius: 100px;
-      border:        2px solid #FF6B6B;
-      background:    transparent;
-      color:         #FF6B6B;
+      border:        2px solid rgba(255,255,255,0.55);
+      background:    rgba(255,255,255,0.15);
+      color:         white;
       font-family:   'Nunito', sans-serif;
       font-size:     0.95rem;
       font-weight:   700;
@@ -37,11 +37,25 @@
       transition:    all 0.2s;
     }
     .apply-toggle-btn.active {
-      background: #FF6B6B;
-      color:      white;
+      background: white;
+      color:      #C0392B;
+      border-color: white;
     }
     .apply-toggle-btn:hover:not(.active) {
-      background: rgba(255,107,107,0.08);
+      background: rgba(255,255,255,0.28);
+      border-color: rgba(255,255,255,0.8);
+    }
+    /* Field-level validation errors */
+    .field-error {
+      display:     none;
+      color:       #ef4444;
+      font-size:   0.78rem;
+      font-weight: 600;
+      margin-top:  4px;
+    }
+    .field-error.visible { display: block; }
+    input.input-invalid, select.input-invalid {
+      border-color: #ef4444 !important;
     }
     /* Textarea in apply form */
     .demo-form textarea {
@@ -715,11 +729,13 @@
               <label for="applyName">Your Name</label>
               <input type="text" id="applyName"
                      placeholder="Jane Smith" required/>
+              <span class="field-error" id="errName">Enter your full name (letters only)</span>
             </div>
             <div class="form-group">
               <label for="applyOrg" id="applyOrgLabel">Company Name</label>
               <input type="text" id="applyOrg"
                      placeholder="Acme Corp" required/>
+              <span class="field-error" id="errOrg">This field is required</span>
             </div>
           </div>
 
@@ -729,11 +745,13 @@
               <label for="applyEmail">Work Email</label>
               <input type="email" id="applyEmail"
                      placeholder="jane@acmecorp.com" required/>
+              <span class="field-error" id="errEmail">Enter a valid email address</span>
             </div>
             <div class="form-group">
               <label for="applyPhone">Phone Number</label>
               <input type="tel" id="applyPhone"
                      placeholder="(902) 555-0123" required/>
+              <span class="field-error" id="errPhone">Enter a valid phone number (min. 10 digits)</span>
             </div>
           </div>
 
@@ -743,11 +761,13 @@
               <label for="applyPassword">Create a Password</label>
               <input type="password" id="applyPassword"
                      placeholder="Min. 8 characters" required minlength="8"/>
+              <span class="field-error" id="errPassword">Password must be at least 8 characters</span>
             </div>
             <div class="form-group">
               <label for="applyPasswordConfirm">Confirm Password</label>
               <input type="password" id="applyPasswordConfirm"
                      placeholder="Repeat your password" required/>
+              <span class="field-error" id="errConfirm">Passwords don't match</span>
             </div>
           </div>
 
@@ -761,6 +781,7 @@
                    autocomplete="off" required/>
             <input type="hidden" id="applyLat"/>
             <input type="hidden" id="applyLng"/>
+            <span class="field-error" id="errAddress">Enter your full street address</span>
             <p id="addressVerified"
                style="display:none;
                       color:#2E7D32;
@@ -824,11 +845,10 @@
                       placeholder="Tell us about your team, your bakery, any special requirements..."></textarea>
           </div>
 
-          <!-- Password mismatch error -->
-          <div id="applyPwError"
+          <!-- General form error -->
+          <div id="applyFormError"
                style="display:none;color:#ef4444;font-size:.85rem;
-                      margin-bottom:12px;font-weight:600">
-            ⚠️ Passwords don't match.
+                      margin-bottom:12px;font-weight:600;text-align:center">
           </div>
 
           <button type="submit"
@@ -1005,21 +1025,83 @@
     const applySuccess = document.getElementById('applySuccess');
     const applyBtn     = document.getElementById('applyBtn');
 
+    // ── Validation helpers ────────────────────────
+    function fieldErr(id, errId, invalid) {
+      const input = document.getElementById(id);
+      const err   = document.getElementById(errId);
+      if (!input || !err) return !invalid;
+      if (invalid) {
+        input.classList.add('input-invalid');
+        err.classList.add('visible');
+      } else {
+        input.classList.remove('input-invalid');
+        err.classList.remove('visible');
+      }
+      return !invalid;
+    }
+
+    function isValidEmail(e) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+    }
+    function isValidPhone(p) {
+      // Strip everything non-numeric and check for 10+ digits
+      return (p.replace(/\D/g, '').length >= 10);
+    }
+    function isValidName(n) {
+      // Letters, spaces, hyphens, apostrophes — at least 2 chars
+      return n.trim().length >= 2 && /^[a-zA-ZÀ-ÿ\s'\-]+$/.test(n.trim());
+    }
+
+    function validateApplyForm() {
+      const type    = document.getElementById('applyType').value;
+      const name    = document.getElementById('applyName').value.trim();
+      const org     = document.getElementById('applyOrg').value.trim();
+      const email   = document.getElementById('applyEmail').value.trim();
+      const phone   = document.getElementById('applyPhone').value.trim();
+      const pw      = document.getElementById('applyPassword').value;
+      const pwc     = document.getElementById('applyPasswordConfirm').value;
+      const address = document.getElementById('applyAddress').value.trim();
+
+      let valid = true;
+      valid = fieldErr('applyName',            'errName',     !isValidName(name))    && valid;
+      valid = fieldErr('applyOrg',             'errOrg',      org.length < 2)        && valid;
+      valid = fieldErr('applyEmail',           'errEmail',    !isValidEmail(email))  && valid;
+      valid = fieldErr('applyPhone',           'errPhone',    !isValidPhone(phone))  && valid;
+      valid = fieldErr('applyPassword',        'errPassword', pw.length < 8)         && valid;
+      valid = fieldErr('applyPasswordConfirm', 'errConfirm',  pw !== pwc)            && valid;
+      valid = fieldErr('applyAddress',         'errAddress',  address.length < 5)    && valid;
+
+      return valid;
+    }
+
+    // Clear error styling on input
+    ['applyName','applyOrg','applyEmail','applyPhone',
+     'applyPassword','applyPasswordConfirm','applyAddress'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => {
+        el.classList.remove('input-invalid');
+        const errEl = document.getElementById('err' + id.replace('apply',''));
+        if (errEl) errEl.classList.remove('visible');
+      });
+    });
+
     applyForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const type     = document.getElementById('applyType').value;
-      const password = document.getElementById('applyPassword').value;
-      const confirm  = document.getElementById('applyPasswordConfirm').value;
-      const pwError  = document.getElementById('applyPwError');
+      const formError = document.getElementById('applyFormError');
+      formError.style.display = 'none';
 
-      // Password match check
-      if (password !== confirm) {
-        pwError.style.display = 'block';
-        document.getElementById('applyPasswordConfirm').focus();
+      if (!validateApplyForm()) {
+        formError.textContent  = '⚠️ Please fix the errors above before submitting.';
+        formError.style.display = 'block';
+        // Scroll to first error
+        const firstErr = applyForm.querySelector('.input-invalid');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
-      pwError.style.display = 'none';
+
+      const type     = document.getElementById('applyType').value;
+      const password = document.getElementById('applyPassword').value;
 
       const data = {
         type,
@@ -1067,12 +1149,15 @@
         } else {
           applyBtn.disabled    = false;
           applyBtn.textContent = 'Create Account & Apply →';
-          alert(json.error || 'Something went wrong. Please email hello@delightmaker.ca');
+          formError.textContent   = '⚠️ ' + (json.error || 'Something went wrong. Please email hello@delightmaker.ca');
+          formError.style.display = 'block';
+          formError.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       } catch (err) {
         applyBtn.disabled    = false;
         applyBtn.textContent = 'Create Account & Apply →';
-        alert('Something went wrong. Please email hello@delightmaker.ca');
+        formError.textContent   = '⚠️ Something went wrong. Please email hello@delightmaker.ca';
+        formError.style.display = 'block';
       }
     });
 
