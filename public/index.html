@@ -57,6 +57,15 @@
     input.input-invalid, select.input-invalid {
       border-color: #ef4444 !important;
     }
+    /* Password requirements checklist */
+    .pw-req {
+      font-size:   0.78rem;
+      font-weight: 600;
+      color:       #aaa;
+      line-height: 1.6;
+      transition:  color 0.2s;
+    }
+    .pw-req.met { color: #16a34a; }
     /* Textarea in apply form */
     .demo-form textarea {
       width:         100%;
@@ -723,45 +732,59 @@
         <form class="demo-form" id="applyForm">
           <input type="hidden" id="applyType" value="company"/>
 
-          <!-- Row 1: Name + Org -->
+          <!-- Row 1: First + Last Name -->
           <div class="form-row">
             <div class="form-group">
-              <label for="applyName">Your Name</label>
-              <input type="text" id="applyName"
-                     placeholder="Jane Smith" required/>
-              <span class="field-error" id="errName">Enter your full name (letters only)</span>
+              <label for="applyFirstName">First Name</label>
+              <input type="text" id="applyFirstName"
+                     placeholder="Jane" required autocomplete="given-name"/>
+              <span class="field-error" id="errFirstName">Letters only, no numbers</span>
             </div>
             <div class="form-group">
-              <label for="applyOrg" id="applyOrgLabel">Company Name</label>
-              <input type="text" id="applyOrg"
-                     placeholder="Acme Corp" required/>
-              <span class="field-error" id="errOrg">This field is required</span>
+              <label for="applyLastName">Last Name</label>
+              <input type="text" id="applyLastName"
+                     placeholder="Smith" required autocomplete="family-name"/>
+              <span class="field-error" id="errLastName">Letters only, no numbers</span>
             </div>
           </div>
 
-          <!-- Row 2: Email + Phone -->
+          <!-- Row 2: Org Name (full width) -->
+          <div class="form-group">
+            <label for="applyOrg" id="applyOrgLabel">Company Name</label>
+            <input type="text" id="applyOrg"
+                   placeholder="Acme Corp" required/>
+            <span class="field-error" id="errOrg">This field is required</span>
+          </div>
+
+          <!-- Row 3: Email + Phone -->
           <div class="form-row">
             <div class="form-group">
               <label for="applyEmail">Work Email</label>
               <input type="email" id="applyEmail"
-                     placeholder="jane@acmecorp.com" required/>
-              <span class="field-error" id="errEmail">Enter a valid email address</span>
+                     placeholder="jane@acmecorp.com" required autocomplete="email"/>
+              <span class="field-error" id="errEmail">Enter a valid email address (e.g. jane@company.com)</span>
             </div>
             <div class="form-group">
               <label for="applyPhone">Phone Number</label>
               <input type="tel" id="applyPhone"
-                     placeholder="(902) 555-0123" required/>
-              <span class="field-error" id="errPhone">Enter a valid phone number (min. 10 digits)</span>
+                     placeholder="(902) 555-0123" required
+                     maxlength="14" autocomplete="tel"/>
+              <span class="field-error" id="errPhone">Enter a valid 10-digit phone number</span>
             </div>
           </div>
 
-          <!-- Row 3: Password + Confirm -->
+          <!-- Row 4: Password + Confirm -->
           <div class="form-row">
             <div class="form-group">
               <label for="applyPassword">Create a Password</label>
               <input type="password" id="applyPassword"
-                     placeholder="Min. 8 characters" required minlength="8"/>
-              <span class="field-error" id="errPassword">Password must be at least 8 characters</span>
+                     placeholder="Min. 8 characters" required/>
+              <div id="pwRequirements" style="margin-top:6px;display:none">
+                <div class="pw-req" id="reqLength">✗ At least 8 characters</div>
+                <div class="pw-req" id="reqLetter">✗ At least one letter</div>
+                <div class="pw-req" id="reqNumber">✗ At least one number</div>
+              </div>
+              <span class="field-error" id="errPassword">Password doesn't meet requirements</span>
             </div>
             <div class="form-group">
               <label for="applyPasswordConfirm">Confirm Password</label>
@@ -1041,46 +1064,101 @@
     }
 
     function isValidEmail(e) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+      // Must have something@something.tld (tld at least 2 chars, no spaces)
+      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim());
     }
     function isValidPhone(p) {
-      // Strip everything non-numeric and check for 10+ digits
-      return (p.replace(/\D/g, '').length >= 10);
+      return p.replace(/\D/g, '').length === 10;
     }
-    function isValidName(n) {
-      // Letters, spaces, hyphens, apostrophes — at least 2 chars
-      return n.trim().length >= 2 && /^[a-zA-ZÀ-ÿ\s'\-]+$/.test(n.trim());
+    function isValidNamePart(n) {
+      // Letters, hyphens, apostrophes only — no numbers, min 2 chars
+      return n.trim().length >= 2 && /^[a-zA-ZÀ-ÿ'\-]+$/.test(n.trim());
+    }
+    function isValidPassword(p) {
+      return p.length >= 8 && /[a-zA-Z]/.test(p) && /[0-9]/.test(p);
+    }
+
+    // ── Phone auto-formatter ─────────────────────
+    const phoneInput = document.getElementById('applyPhone');
+    if (phoneInput) {
+      phoneInput.addEventListener('input', function(e) {
+        // Only allow digits
+        const digits = this.value.replace(/\D/g, '').slice(0, 10);
+        let formatted = '';
+        if (digits.length === 0)      formatted = '';
+        else if (digits.length <= 3)  formatted = `(${digits}`;
+        else if (digits.length <= 6)  formatted = `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+        else                          formatted = `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+        this.value = formatted;
+        // Clear error once 10 digits entered
+        if (digits.length === 10) {
+          this.classList.remove('input-invalid');
+          document.getElementById('errPhone').classList.remove('visible');
+        }
+      });
+      // Block non-numeric keys (allow control keys)
+      phoneInput.addEventListener('keydown', function(e) {
+        const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Home','End'];
+        if (allowed.includes(e.key)) return;
+        if (!/^\d$/.test(e.key)) e.preventDefault();
+      });
+    }
+
+    // ── Live password requirements ───────────────
+    const pwInput = document.getElementById('applyPassword');
+    if (pwInput) {
+      pwInput.addEventListener('focus', () => {
+        document.getElementById('pwRequirements').style.display = 'block';
+      });
+      pwInput.addEventListener('input', function() {
+        const v = this.value;
+        const lenOk    = v.length >= 8;
+        const letterOk = /[a-zA-Z]/.test(v);
+        const numOk    = /[0-9]/.test(v);
+        document.getElementById('reqLength').textContent = (lenOk    ? '✓' : '✗') + ' At least 8 characters';
+        document.getElementById('reqLetter').textContent = (letterOk ? '✓' : '✗') + ' At least one letter';
+        document.getElementById('reqNumber').textContent = (numOk    ? '✓' : '✗') + ' At least one number';
+        document.getElementById('reqLength').className = 'pw-req' + (lenOk    ? ' met' : '');
+        document.getElementById('reqLetter').className = 'pw-req' + (letterOk ? ' met' : '');
+        document.getElementById('reqNumber').className = 'pw-req' + (numOk    ? ' met' : '');
+        if (isValidPassword(v)) {
+          this.classList.remove('input-invalid');
+          document.getElementById('errPassword').classList.remove('visible');
+        }
+      });
     }
 
     function validateApplyForm() {
-      const type    = document.getElementById('applyType').value;
-      const name    = document.getElementById('applyName').value.trim();
-      const org     = document.getElementById('applyOrg').value.trim();
-      const email   = document.getElementById('applyEmail').value.trim();
-      const phone   = document.getElementById('applyPhone').value.trim();
-      const pw      = document.getElementById('applyPassword').value;
-      const pwc     = document.getElementById('applyPasswordConfirm').value;
-      const address = document.getElementById('applyAddress').value.trim();
+      const firstName = document.getElementById('applyFirstName').value.trim();
+      const lastName  = document.getElementById('applyLastName').value.trim();
+      const org       = document.getElementById('applyOrg').value.trim();
+      const email     = document.getElementById('applyEmail').value.trim();
+      const phone     = document.getElementById('applyPhone').value.trim();
+      const pw        = document.getElementById('applyPassword').value;
+      const pwc       = document.getElementById('applyPasswordConfirm').value;
+      const address   = document.getElementById('applyAddress').value.trim();
 
       let valid = true;
-      valid = fieldErr('applyName',            'errName',     !isValidName(name))    && valid;
-      valid = fieldErr('applyOrg',             'errOrg',      org.length < 2)        && valid;
-      valid = fieldErr('applyEmail',           'errEmail',    !isValidEmail(email))  && valid;
-      valid = fieldErr('applyPhone',           'errPhone',    !isValidPhone(phone))  && valid;
-      valid = fieldErr('applyPassword',        'errPassword', pw.length < 8)         && valid;
-      valid = fieldErr('applyPasswordConfirm', 'errConfirm',  pw !== pwc)            && valid;
-      valid = fieldErr('applyAddress',         'errAddress',  address.length < 5)    && valid;
+      valid = fieldErr('applyFirstName',       'errFirstName', !isValidNamePart(firstName)) && valid;
+      valid = fieldErr('applyLastName',        'errLastName',  !isValidNamePart(lastName))  && valid;
+      valid = fieldErr('applyOrg',             'errOrg',       org.length < 2)              && valid;
+      valid = fieldErr('applyEmail',           'errEmail',     !isValidEmail(email))         && valid;
+      valid = fieldErr('applyPhone',           'errPhone',     !isValidPhone(phone))         && valid;
+      valid = fieldErr('applyPassword',        'errPassword',  !isValidPassword(pw))         && valid;
+      valid = fieldErr('applyPasswordConfirm', 'errConfirm',   pw !== pwc)                  && valid;
+      valid = fieldErr('applyAddress',         'errAddress',   address.length < 5)           && valid;
 
       return valid;
     }
 
-    // Clear error styling on input
-    ['applyName','applyOrg','applyEmail','applyPhone',
-     'applyPassword','applyPasswordConfirm','applyAddress'].forEach(id => {
-      const el = document.getElementById(id);
+    // Clear error styling on input for text/email fields
+    ['applyFirstName','applyLastName','applyOrg','applyEmail',
+     'applyPasswordConfirm','applyAddress'].forEach(id => {
+      const el  = document.getElementById(id);
+      const errId = 'err' + id.charAt(5).toUpperCase() + id.slice(6); // applyFirstName → errFirstName
       if (el) el.addEventListener('input', () => {
         el.classList.remove('input-invalid');
-        const errEl = document.getElementById('err' + id.replace('apply',''));
+        const errEl = document.getElementById(errId);
         if (errEl) errEl.classList.remove('visible');
       });
     });
@@ -1103,13 +1181,16 @@
       const type     = document.getElementById('applyType').value;
       const password = document.getElementById('applyPassword').value;
 
+      const firstName = document.getElementById('applyFirstName').value.trim();
+      const lastName  = document.getElementById('applyLastName').value.trim();
+
       const data = {
         type,
-        name:         document.getElementById('applyName').value.trim(),
+        name:         `${firstName} ${lastName}`,
         orgName:      document.getElementById('applyOrg').value.trim(),
         email:        document.getElementById('applyEmail').value.trim(),
         password,
-        phone:        document.getElementById('applyPhone').value.trim(),
+        phone:        document.getElementById('applyPhone').value.replace(/\D/g, ''),
         address:      document.getElementById('applyAddress').value.trim(),
         addressLat:   parseFloat(document.getElementById('applyLat').value)  || null,
         addressLng:   parseFloat(document.getElementById('applyLng').value)  || null,
