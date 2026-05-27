@@ -1523,12 +1523,14 @@ router.post('/import-employees',
 
         // Normalise column names
         // (CSV headers lowercased by parseSimpleCSV)
+        const toTitleCase = s =>
+          s.trim().toLowerCase()
+           .replace(/\b\w/g, c => c.toUpperCase());
+
         const firstName =
-          (row['first name'] || row['firstname'] || '')
-            .trim();
+          toTitleCase(row['first name'] || row['firstname'] || '');
         const lastName  =
-          (row['last name'] || row['lastname'] || '')
-            .trim();
+          toTitleCase(row['last name']  || row['lastname']  || '');
         const birthday  =
           (row['birthday'] || '').trim();
         const dietary   =
@@ -1580,7 +1582,7 @@ router.post('/import-employees',
           birthday:        birthdayDate,
           dietaryFlags,
           deliveryAddress: address  || null,
-          email:           email    || null,
+          email:           email ? email.toLowerCase() : null,
           companyId,
           active:          true,
           removedAt:       null,   // clear if previously removed
@@ -1588,13 +1590,27 @@ router.post('/import-employees',
                              .FieldValue.serverTimestamp(),
         };
 
-        // Check if employee already exists (name match)
-        const existing = await db
-          .collection('employees')
-          .where('companyId', '==', companyId)
-          .where('name', '==', empData.name)
-          .limit(1)
-          .get();
+        // Check if employee already exists
+        // Prefer email match (reliable), fall back to name match
+        let existing = null;
+        if (email) {
+          const byEmail = await db
+            .collection('employees')
+            .where('companyId', '==', companyId)
+            .where('email', '==', email.toLowerCase())
+            .limit(1)
+            .get();
+          if (!byEmail.empty) existing = byEmail;
+        }
+        if (!existing || existing.empty) {
+          const byName = await db
+            .collection('employees')
+            .where('companyId', '==', companyId)
+            .where('name', '==', empData.name)
+            .limit(1)
+            .get();
+          if (!byName.empty) existing = byName;
+        }
 
         if (!existing.empty) {
           // Update existing
