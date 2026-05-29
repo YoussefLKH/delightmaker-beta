@@ -99,12 +99,6 @@
           </p>
         </div>
       </div>
-      <div class="dash-header-right">
-        <button class="btn btn-primary"
-                onclick="showCreateOrderModal()">
-          + Manual Order
-        </button>
-      </div>
     </header>
 
 
@@ -322,112 +316,6 @@
         <!-- Populated by JS -->
       </div>
 
-    </div>
-  </div>
-
-
-  <!-- ═══════════════════════════════════════
-       CREATE ORDER MODAL
-  ════════════════════════════════════════ -->
-  <div class="modal-overlay"
-       id="createOrderModal"
-       style="display:none">
-    <div class="modal">
-
-      <div class="modal-header">
-        <h2>Create Manual Order</h2>
-        <button class="modal-close"
-                onclick="hideCreateOrderModal()">
-          ✕
-        </button>
-      </div>
-
-      <form id="createOrderForm"
-            onsubmit="submitCreateOrder(event)">
-        <div class="modal-body">
-
-          <div class="form-group">
-            <label>Company ID *</label>
-            <input type="text"
-                   id="coCompanyId"
-                   placeholder="Firestore company ID"
-                   required/>
-          </div>
-
-          <div class="form-group">
-            <label>Employee ID *</label>
-            <input type="text"
-                   id="coEmployeeId"
-                   placeholder="Firestore employee ID"
-                   required/>
-          </div>
-
-          <div class="form-row-2">
-            <div class="form-group">
-              <label>Product ID *</label>
-              <input type="text"
-                     id="coProductId"
-                     placeholder="Product ID"
-                     required/>
-            </div>
-            <div class="form-group">
-              <label>Event Type *</label>
-              <select id="coEventType" required>
-                <option value="birthday">
-                  🎂 Birthday
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row-2">
-            <div class="form-group">
-              <label>Delivery Date *</label>
-              <input type="date"
-                     id="coDeliveryDate"
-                     required/>
-            </div>
-            <div class="form-group">
-              <label>Charge Amount (CAD)</label>
-              <input type="number"
-                     id="coChargeAmount"
-                     placeholder="55.00"
-                     step="0.01"
-                     min="0"/>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Delivery Address *</label>
-            <input type="text"
-                   id="coDeliveryAddress"
-                   placeholder="123 Barrington St, Halifax"
-                   required/>
-          </div>
-
-          <div class="form-group">
-            <label>Card Message</label>
-            <input type="text"
-                   id="coCustomMessage"
-                   placeholder="Happy Birthday from the whole team!"/>
-          </div>
-
-        </div>
-
-        <div class="modal-footer">
-          <button type="button"
-                  class="btn btn-ghost"
-                  onclick="hideCreateOrderModal()">
-            Cancel
-          </button>
-          <button type="submit"
-                  class="btn btn-primary"
-                  id="createOrderBtn">
-            Create Order →
-          </button>
-        </div>
-
-      </form>
     </div>
   </div>
 
@@ -1679,80 +1567,6 @@ $$
       } catch (err) {
         hideLoading();
         showToast('Action failed', 'error');
-      }
-    }
-
-
-    /* ════════════════════════════════════════════
-       CREATE ORDER MODAL
-    ════════════════════════════════════════════ */
-
-    function showCreateOrderModal() {
-      document.getElementById('createOrderModal')
-        .style.display = 'flex';
-    }
-
-    function hideCreateOrderModal() {
-      document.getElementById('createOrderModal')
-        .style.display = 'none';
-      document.getElementById('createOrderForm')
-        .reset();
-    }
-
-    async function submitCreateOrder(e) {
-      e.preventDefault();
-
-      const btn =
-        document.getElementById('createOrderBtn');
-      btn.disabled    = true;
-      btn.textContent = 'Creating...';
-
-      try {
-        const res = await apiCall('/api/orders', {
-          method: 'POST',
-          body:   JSON.stringify({
-            companyId:       document
-              .getElementById('coCompanyId')
-              .value.trim(),
-            employeeId:      document
-              .getElementById('coEmployeeId')
-              .value.trim(),
-            productId:       document
-              .getElementById('coProductId')
-              .value.trim(),
-            eventType:       document
-              .getElementById('coEventType').value,
-            deliveryDate:    document
-              .getElementById('coDeliveryDate').value,
-            chargeAmount:    parseFloat(
-              document.getElementById('coChargeAmount')
-                .value || 0
-            ),
-            deliveryAddress: document
-              .getElementById('coDeliveryAddress')
-              .value.trim(),
-            customMessage:   document
-              .getElementById('coCustomMessage')
-              .value.trim(),
-          }),
-        });
-
-        if (res && res.ok) {
-          hideCreateOrderModal();
-          showToast('Order created!', 'success');
-          await loadOrders();
-        } else {
-          const err = await res.json();
-          showToast(
-            err.error || 'Failed to create order',
-            'error'
-          );
-        }
-      } catch (err) {
-        showToast('Failed to create order', 'error');
-      } finally {
-        btn.disabled    = false;
-        btn.textContent = 'Create Order →';
       }
     }
 
