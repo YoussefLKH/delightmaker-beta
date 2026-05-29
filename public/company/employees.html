@@ -1114,19 +1114,24 @@
       showLoading();
 
       try {
-        // Soft delete — keep record, mark inactive
-        await db
-          .collection('employees')
-          .doc(removeEmpId)
-          .update({
-            active:    false,
-            removedAt: firebase.firestore
-                         .FieldValue.serverTimestamp(),
-          });
+        const res = await apiCall(
+          `/api/orders/employees/${removeEmpId}`,
+          { method: 'DELETE' }
+        );
+        const data = await res.json();
 
         hideLoading();
+
+        if (!res.ok) {
+          showToast(data.error || 'Failed to remove employee', 'error');
+          return;
+        }
+
         hideRemoveModal();
-        showToast('Employee removed', 'success');
+        const cancelledNote = data.cancelledOrders > 0
+          ? ` (${data.cancelledOrders} upcoming order${data.cancelledOrders !== 1 ? 's' : ''} cancelled)`
+          : '';
+        showToast(`Employee removed${cancelledNote}`, 'success');
         await loadEmployees();
 
       } catch (err) {

@@ -1390,24 +1390,23 @@ $$
       showLoading();
 
       try {
-        // Delete products subcollection first
-        const productsSnap = await db
-          .collection('bakeries')
-          .doc(bakeryId)
-          .collection('products')
-          .get();
-
-        if (!productsSnap.empty) {
-          const batch = db.batch();
-          productsSnap.docs.forEach(d => batch.delete(d.ref));
-          await batch.commit();
-        }
-
-        // Delete the bakery doc itself
-        await db.collection('bakeries').doc(bakeryId).delete();
+        const res = await apiCall(
+          `/api/admin/bakeries/${bakeryId}`,
+          { method: 'DELETE' }
+        );
+        const data = await res.json();
 
         hideLoading();
-        showToast(`"${name}" deleted.`, 'success');
+
+        if (!res.ok) {
+          showToast(data.error || 'Failed to delete bakery', 'error');
+          return;
+        }
+
+        showToast(
+          `"${name}" deleted (${data.deletedUsers} account${data.deletedUsers !== 1 ? 's' : ''}, ${data.deletedProducts} product${data.deletedProducts !== 1 ? 's' : ''})`,
+          'success'
+        );
 
         // If we were in detail view, go back to list
         if (currentBakery?.id === bakeryId) {

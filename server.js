@@ -219,6 +219,9 @@ app.use('/api/products',
 app.use('/api/invoices',
   require('./routes/invoices'));
 
+app.use('/api/admin',
+  require('./routes/admin'));
+
 // ── Bakeries list (company + admin + baker) ────────
 app.get('/api/bakeries', async (req, res) => {
   try {

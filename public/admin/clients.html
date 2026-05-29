@@ -556,11 +556,82 @@
                                    '${(client.name || '').replace(/'/g, "\\'")}')">
                   👁 View as
                 </button>
+                <button class="btn-sm"
+                        style="background:rgba(198,40,40,0.1);
+                               color:#C62828;border:none;border-radius:8px;
+                               padding:6px 10px;font-size:0.95rem;
+                               cursor:pointer;font-family:inherit"
+                        title="Delete company"
+                        onclick="event.stopPropagation();
+                                 deleteCompany('${client.id}',
+                                   '${(client.name || '').replace(/'/g, "\\'")}')">
+                  🗑
+                </button>
               </div>
             </td>
           </tr>
         `;
       }).join('');
+    }
+
+
+    /* ── Delete company (cascading hard delete) ─── */
+    async function deleteCompany(companyId, companyName) {
+      // Pre-check active orders just to inform the user
+      let activeOrderCount = 0;
+      try {
+        const activeSnap = await db
+          .collection('orders')
+          .where('companyId', '==', companyId)
+          .where('status', 'not-in', ['delivered', 'cancelled'])
+          .get();
+        activeOrderCount = activeSnap.size;
+      } catch (e) { /* non-fatal */ }
+
+      const warningLine = activeOrderCount > 0
+        ? `⚠️ ${activeOrderCount} active order${activeOrderCount !== 1 ? 's are' : ' is'} in flight — they will stay in the system for accounting but won't be visible to this company anymore.\n\n`
+        : '';
+
+      const confirmed = await confirmDialog(
+        `${warningLine}Permanently delete "${companyName}"?\n\n` +
+        `This will remove their login, employees, and gifting rules. ` +
+        `They'll have to re-apply to come back.\n\n` +
+        `Orders and invoices are kept for accounting.\n\n` +
+        `This cannot be undone.`,
+        '🗑 Delete Company'
+      );
+      if (!confirmed) return;
+
+      showLoading();
+      try {
+        const res = await apiCall(
+          `/api/admin/companies/${companyId}`,
+          { method: 'DELETE' }
+        );
+        const data = await res.json();
+        hideLoading();
+
+        if (!res.ok) {
+          showToast(data.error || 'Failed to delete company', 'error');
+          return;
+        }
+
+        showToast(
+          `"${companyName}" deleted (${data.deletedUsers} account${data.deletedUsers !== 1 ? 's' : ''}, ${data.deletedEmployees} employee${data.deletedEmployees !== 1 ? 's' : ''})`,
+          'success'
+        );
+
+        // If we were in detail view, go back to list
+        if (typeof currentClient !== 'undefined' && currentClient?.id === companyId) {
+          if (typeof showListView === 'function') showListView();
+        }
+
+        await loadClients();
+      } catch (err) {
+        hideLoading();
+        console.error('Delete company error:', err);
+        showToast('Failed to delete company', 'error');
+      }
     }
 
 

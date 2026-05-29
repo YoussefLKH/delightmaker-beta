@@ -1863,6 +1863,91 @@ router.post('/import-employees',
    employee and triggers a fresh scheduling scan.
    ═══════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════
+   DELETE /api/orders/employees/:id
+   Company user (own employee) or admin
+   Hard-deletes the employee doc and cancels all
+   future unpaid orders (scheduled or pending_confirmation).
+   Paid/in-progress orders are preserved for accounting.
+   ═══════════════════════════════════════════════════ */
+
+router.delete('/employees/:id',
+  authenticate,
+  async (req, res) => {
+    try {
+      const { id: employeeId } = req.params;
+      const role = req.user.role;
+
+      const empRef = db.collection(COLLECTIONS.EMPLOYEES).doc(employeeId);
+      const empDoc = await empRef.get();
+
+      if (!empDoc.exists) {
+        return res.status(404).json({ error: 'Employee not found' });
+      }
+
+      const employee = empDoc.data();
+
+      // Company users can only delete their own employees
+      if (role === 'company_user' &&
+          req.user.companyId !== employee.companyId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      if (role !== 'company_user' && role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // 1) Cancel future unpaid orders for this employee
+      const cancellableStatuses = ['scheduled', 'pending_confirmation'];
+      const ordersSnap = await db
+        .collection(COLLECTIONS.ORDERS)
+        .where('employeeId', '==', employeeId)
+        .where('status', 'in', cancellableStatuses)
+        .get();
+
+      let cancelledCount = 0;
+      if (!ordersSnap.empty) {
+        const batch = db.batch();
+        ordersSnap.docs.forEach(d => {
+          batch.update(d.ref, {
+            status:       'cancelled',
+            cancelledAt:  admin.firestore.FieldValue.serverTimestamp(),
+            cancelReason: 'employee_removed',
+          });
+          cancelledCount++;
+        });
+        await batch.commit();
+      }
+
+      // 2) Hard delete the employee
+      await empRef.delete();
+
+      // 3) Update company employee count (best effort)
+      try {
+        await db.collection(COLLECTIONS.COMPANIES)
+          .doc(employee.companyId)
+          .update({
+            'stats.employeeCount': admin.firestore.FieldValue.increment(-1),
+          });
+      } catch (_) { /* non-fatal */ }
+
+      console.log(
+        `🗑️  Employee deleted: ${employeeId} (${employee.name}) — ` +
+        `${cancelledCount} future order(s) cancelled`
+      );
+
+      return res.status(200).json({
+        success: true,
+        cancelledOrders: cancelledCount,
+      });
+
+    } catch (err) {
+      console.error('Delete employee error:', err);
+      return res.status(500).json({ error: err.message || 'Delete failed' });
+    }
+  }
+);
+
+
 router.post('/reschedule-employee',
   authenticate,
   async (req, res) => {
