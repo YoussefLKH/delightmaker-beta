@@ -643,21 +643,34 @@
       showLoading();
 
       try {
-        // Trigger via backend
+        // Trigger the actual scan (force=true scans all companies)
         const res = await apiCall(
-          '/api/orders/stats/summary'
+          '/api/admin/trigger-scan',
+          { method: 'POST' }
         );
 
+        const data = await res.json();
         hideLoading();
-        showToast(
-          'Scan complete! Dashboard refreshed.',
-          'success'
-        );
+
+        if (!res.ok) {
+          showToast(data.error || 'Scan failed', 'error');
+          return;
+        }
+
+        const r = data.results || {};
+        const summary =
+          `✅ ${r.ordersCreated || 0} order(s) created, ` +
+          `${r.emailsSent || 0} email(s) sent, ` +
+          `${r.autoConfirmed || 0} auto-confirmed`;
+
+        showToast(summary, 'success');
+        console.log('Scan results:', r);
         await initDashboard();
 
       } catch (err) {
         hideLoading();
-        showToast('Scan failed', 'error');
+        console.error('Manual scan error:', err);
+        showToast('Scan failed: ' + (err.message || 'network error'), 'error');
       }
     }
 
