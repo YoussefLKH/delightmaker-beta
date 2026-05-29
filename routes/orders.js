@@ -373,6 +373,190 @@ router.post('/',
 
 
 /* ═══════════════════════════════════════════════════
+   POST /api/orders/oneoff
+   Company user or admin
+   Creates a one-off order for a company-wide event
+   (not tied to a specific employee). Bundle is from
+   a single bakery. Status starts as pending_confirmation
+   and must be paid via Stripe Checkout before routing.
+   ═══════════════════════════════════════════════════ */
+
+router.post('/oneoff',
+  authenticate,
+  async (req, res) => {
+    try {
+
+      const {
+        companyId,
+        eventName,
+        bakerId,
+        bundle,            // [{ treatType, qty }]
+        deliveryDate,
+        deliveryAddress,
+        notes,
+      } = req.body;
+
+      const role = req.user.role;
+
+      // Company users can only create for their own company
+      if (role === 'company_user' &&
+          req.user.companyId !== companyId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      if (role !== 'company_user' && role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // ── Validate ──────────────────────────────────
+      const errors = [];
+      if (!companyId)       errors.push('Company ID required');
+      if (!eventName)       errors.push('Event name required');
+      if (!bakerId)         errors.push('Bakery selection required');
+      if (!Array.isArray(bundle) || bundle.length === 0) {
+        errors.push('At least one treat required');
+      }
+      if (!deliveryDate)    errors.push('Delivery date required');
+      if (!deliveryAddress) errors.push('Delivery address required');
+
+      if (errors.length > 0) {
+        return res.status(400).json({
+          error: errors[0],
+          details: errors,
+        });
+      }
+
+      // Delivery date must be in the future
+      const deliveryDateObj = new Date(deliveryDate + 'T09:00:00.000Z');
+      if (isNaN(deliveryDateObj) || deliveryDateObj <= new Date()) {
+        return res.status(400).json({
+          error: 'Delivery date must be in the future',
+        });
+      }
+
+      // ── Verify company + bakery exist ─────────────
+      const [companyDoc, bakeryDoc] = await Promise.all([
+        db.collection(COLLECTIONS.COMPANIES).doc(companyId).get(),
+        db.collection(COLLECTIONS.BAKERIES).doc(bakerId).get(),
+      ]);
+
+      if (!companyDoc.exists) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      if (!bakeryDoc.exists) {
+        return res.status(404).json({ error: 'Bakery not found' });
+      }
+
+      const company = companyDoc.data();
+      const bakery  = bakeryDoc.data();
+
+      // ── Build line items + total from bakery products ─
+      const lineItems = [];
+      let chargeAmount  = 0;
+      let wholesaleCost = 0;
+
+      for (const item of bundle) {
+        if (!item.treatType) continue;
+        const qty = Math.max(1, parseInt(item.qty) || 1);
+
+        const productDoc = await db
+          .collection(COLLECTIONS.BAKERIES)
+          .doc(bakerId)
+          .collection('products')
+          .doc(item.treatType)
+          .get();
+
+        if (!productDoc.exists) {
+          return res.status(400).json({
+            error: `Treat "${item.treatType}" not found at this bakery`,
+          });
+        }
+
+        const p             = productDoc.data();
+        const unitPrice     = p.price         || p.retailPrice || 0;
+        const wholesaleUnit = p.wholesaleCost || 0;
+
+        lineItems.push({
+          bakeryId:      bakerId,
+          treatType:     item.treatType,
+          productName:   p.name || item.treatType,
+          qty,
+          unitPrice,
+          lineTotal:     unitPrice * qty,
+          wholesaleCost: wholesaleUnit * qty,
+        });
+
+        chargeAmount  += unitPrice     * qty;
+        wholesaleCost += wholesaleUnit * qty;
+      }
+
+      if (lineItems.length === 0) {
+        return res.status(400).json({
+          error: 'No valid treats in bundle',
+        });
+      }
+
+      const productSummary = lineItems.length === 1
+        ? lineItems[0].productName
+        : `One-off Bundle (${lineItems.length} items)`;
+
+      // ── Create order (status: pending_confirmation) ─
+      const newOrder = {
+        companyId,
+        companyName:        company.name || '',
+        employeeId:         null,
+        employeeName:       eventName,         // shown as recipient
+        celebrationName:    eventName,
+        bakerId,
+        bakeryName:         bakery.name || '',
+        lineItems,
+        productName:        productSummary,
+        eventType:          EVENT_TYPES.CELEBRATION,
+        oneOff:             true,
+        status:             ORDER_STATUS.PENDING_CONFIRMATION,
+        dietaryFlags:       [],
+        deliveryAddress,
+        bakerNotes:         notes || '',
+        chargeAmount,
+        wholesaleCost,
+        deliveryDate:       admin.firestore.Timestamp.fromDate(deliveryDateObj),
+        confirmationSentAt: null,
+        confirmedAt:        null,
+        routedAt:           null,
+        deliveredAt:        null,
+        stripeChargeId:     null,
+        chargeStatus:       'pending',
+        createdAt:          serverTimestamp(),
+        createdBy:          req.user.uid,
+        createdVia:         'company_oneoff',
+      };
+
+      const orderRef = await db
+        .collection(COLLECTIONS.ORDERS)
+        .add(newOrder);
+
+      console.log(
+        `🛒 One-off order created: ${orderRef.id} ` +
+        `("${eventName}" — ${deliveryDateObj.toDateString()}) ` +
+        `$${chargeAmount.toFixed(2)} CAD`
+      );
+
+      return res.status(200).json({
+        success:      true,
+        orderId:      orderRef.id,
+        chargeAmount,
+      });
+
+    } catch (err) {
+      console.error('One-off order error:', err);
+      return res.status(500).json({
+        error: 'Failed to create one-off order',
+      });
+    }
+  }
+);
+
+
+/* ═══════════════════════════════════════════════════
    POST /api/orders/:id/checkout-session
    Company user or admin
    Creates a Stripe Checkout session for approving
@@ -499,17 +683,23 @@ router.post('/:id/checkout-session',
 
 
       // ── Create Stripe Checkout session ─────────────
+      // Caller (eg one-off order flow) can pass custom return URLs.
       const base    = process.env.APP_URL;
+      const { successPath, cancelPath } = req.body || {};
+      const successUrl = successPath
+        ? `${base}${successPath}${successPath.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`
+        : `${base}/approve/success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl  = cancelPath
+        ? `${base}${cancelPath}`
+        : `${base}/company/approvals`;
+
       const session =
         await stripe.checkout.sessions.create({
           mode:     'payment',
           customer: stripeCustomerId,
           line_items: lineItems,
-          success_url:
-            `${base}/approve/success` +
-            `?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url:
-            `${base}/company/approvals`,
+          success_url: successUrl,
+          cancel_url:  cancelUrl,
           metadata: {
             orderId:   id,
             companyId: order.companyId,

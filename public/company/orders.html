@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Celebrations — Delightmaker</title>
+  <title>Orders — Delightmaker</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -38,9 +38,9 @@
         <span class="nav-icon">👥</span>
         <span class="nav-label">Team</span>
       </a>
-      <a href="celebrations.html" class="nav-item active">
+      <a href="orders.html" class="nav-item active">
         <span class="nav-icon">🎉</span>
-        <span class="nav-label">Celebrations</span>
+        <span class="nav-label">Orders</span>
       </a>
       <a href="approvals.html" class="nav-item">
         <span class="nav-icon">✅</span>
@@ -91,42 +91,116 @@
       <div class="dash-header-left">
         <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
         <div>
-          <h1 class="dash-title">Celebrations</h1>
+          <h1 class="dash-title">Orders</h1>
           <p class="dash-subtitle">
-            Company-wide events that get a treat delivery every year
+            Recurring annual events &amp; one-off treat orders
           </p>
         </div>
       </div>
       <div class="dash-header-right">
         <button class="btn btn-primary"
+                id="primaryBtnRecurring"
                 onclick="openCelebModal()">
-          + Add Celebration
+          + Add Recurring Event
+        </button>
+        <button class="btn btn-primary"
+                id="primaryBtnOneOff"
+                style="display:none"
+                onclick="openOneOffModal()">
+          + New One-off Order
         </button>
       </div>
     </header>
 
+    <!-- ── TABS ──────────────────────────────── -->
+    <style>
+      .orders-tabs {
+        display: flex;
+        gap: 4px;
+        background: rgba(255,255,255,0.6);
+        padding: 6px;
+        border-radius: 12px;
+        margin: 8px 0 28px;
+        width: fit-content;
+      }
+      .orders-tab {
+        background: transparent;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-family: inherit;
+        font-size: 0.92rem;
+        color: #888;
+        cursor: pointer;
+        transition: all 0.18s;
+      }
+      .orders-tab:hover { color: #2D2D2D; }
+      .orders-tab.active {
+        background: #FF6B6B;
+        color: white;
+        box-shadow: 0 2px 8px rgba(255,107,107,0.3);
+      }
+    </style>
 
-    <!-- ── CELEBRATIONS GRID ─────────────────── -->
-    <section id="celebGrid" class="celeb-grid">
-      <!-- skeleton -->
-      <div class="celeb-card celeb-skeleton"></div>
-      <div class="celeb-card celeb-skeleton"></div>
-      <div class="celeb-card celeb-skeleton"></div>
-    </section>
+    <div class="orders-tabs">
+      <button class="orders-tab active" data-tab="recurring"
+              onclick="switchOrdersTab('recurring')">
+        🔁 Recurring
+      </button>
+      <button class="orders-tab" data-tab="oneoff"
+              onclick="switchOrdersTab('oneoff')">
+        🛒 One-off Orders
+      </button>
+    </div>
 
-    <!-- Empty state (hidden until loaded) -->
-    <div id="celebEmpty" style="display:none">
-      <div class="empty-state" style="padding:60px 24px">
-        <span>🎊</span>
-        <p>No celebrations yet</p>
-        <p style="font-size:0.85rem;color:#aaa;margin-top:4px">
-          Add a company occasion — Mother's Day, a product launch, whatever you're celebrating.
-        </p>
-        <button class="btn btn-primary"
-                style="margin-top:20px"
-                onclick="openCelebModal()">
-          + Add First Celebration
-        </button>
+
+    <!-- ── RECURRING TAB ────────────────────── -->
+    <div id="tabRecurring">
+      <!-- ── CELEBRATIONS GRID ─────────────────── -->
+      <section id="celebGrid" class="celeb-grid">
+        <div class="celeb-card celeb-skeleton"></div>
+        <div class="celeb-card celeb-skeleton"></div>
+        <div class="celeb-card celeb-skeleton"></div>
+      </section>
+
+      <div id="celebEmpty" style="display:none">
+        <div class="empty-state" style="padding:60px 24px">
+          <span>🎊</span>
+          <p>No recurring events yet</p>
+          <p style="font-size:0.85rem;color:#aaa;margin-top:4px">
+            Add a yearly occasion — Mother's Day, a product launch, whatever you're celebrating.
+          </p>
+          <button class="btn btn-primary"
+                  style="margin-top:20px"
+                  onclick="openCelebModal()">
+            + Add First Recurring Event
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ── ONE-OFF TAB ──────────────────────── -->
+    <div id="tabOneOff" style="display:none">
+      <section id="oneOffGrid" class="celeb-grid">
+        <div class="celeb-card celeb-skeleton"></div>
+        <div class="celeb-card celeb-skeleton"></div>
+      </section>
+
+      <div id="oneOffEmpty" style="display:none">
+        <div class="empty-state" style="padding:60px 24px">
+          <span>🛒</span>
+          <p>No one-off orders yet</p>
+          <p style="font-size:0.85rem;color:#aaa;margin-top:4px">
+            Need treats for a board meeting, client visit, or surprise? Place a one-off order — pay once, we deliver.
+          </p>
+          <button class="btn btn-primary"
+                  style="margin-top:20px"
+                  onclick="openOneOffModal()">
+            + Create Your First One-off Order
+          </button>
+        </div>
       </div>
     </div>
 
@@ -309,6 +383,112 @@
 
 
   <!-- ═══════════════════════════════════════
+       ONE-OFF ORDER MODAL
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay" id="oneOffModal" style="display:none">
+    <div class="modal celeb-modal-wide">
+
+      <div class="modal-header">
+        <div>
+          <h2>New One-off Order</h2>
+          <p style="font-size:0.82rem;color:var(--gray);margin-top:2px">
+            Pick treats, pay once via Stripe, and we'll deliver on the date you choose.
+          </p>
+        </div>
+        <button class="modal-close" onclick="closeOneOffModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Event name -->
+        <div class="form-group">
+          <label>Event name <span style="color:#C62828">*</span></label>
+          <input type="text"
+                 id="ooName"
+                 class="dash-input"
+                 placeholder="e.g. Board Meeting, Client Visit, Office Thank You"
+                 maxlength="80"/>
+        </div>
+
+        <!-- Date + Bakery -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Delivery date <span style="color:#C62828">*</span></label>
+            <input type="date" id="ooDate" class="dash-input"/>
+            <p class="form-hint" style="font-size:0.78rem;color:#888;margin-top:4px">
+              Allow at least 3 days notice for the bakery.
+            </p>
+          </div>
+          <div class="form-group">
+            <label>Choose a bakery <span style="color:#C62828">*</span></label>
+            <select id="ooBakery" class="dash-input"
+                    onchange="onOneOffBakeryChange()">
+              <option value="">Select bakery…</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Treat picker -->
+        <div class="form-group">
+          <label>Treats <span style="color:#C62828">*</span></label>
+          <div id="ooTreatList" style="margin-top:8px">
+            <p style="font-size:0.85rem;color:#888;padding:16px;
+                      background:#FFFAF5;border-radius:10px;
+                      text-align:center">
+              Choose a bakery above to see their menu.
+            </p>
+          </div>
+        </div>
+
+        <!-- Delivery address -->
+        <div class="form-group">
+          <label>Delivery address <span style="color:#C62828">*</span></label>
+          <input type="text"
+                 id="ooAddress"
+                 class="dash-input"
+                 placeholder="123 Barrington St, Halifax, NS"/>
+          <p class="form-hint" style="font-size:0.78rem;color:#888;margin-top:4px">
+            Defaults to your office address — edit if delivering elsewhere.
+          </p>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label>Notes for the bakery <span style="font-weight:400;color:#999">(optional)</span></label>
+          <textarea id="ooNotes" class="dash-input" rows="2"
+                    placeholder="Any special requests — card message, dietary notes, delivery window…"></textarea>
+        </div>
+
+        <!-- Total -->
+        <div style="margin-top:18px;padding:14px 18px;
+                    background:#FFF3CD;border-radius:12px;
+                    display:flex;justify-content:space-between;
+                    align-items:center">
+          <span style="font-weight:700;color:#5C4300">Total</span>
+          <span id="ooTotal" style="font-weight:700;font-size:1.3rem;color:#5C4300">
+            $0.00 CAD
+          </span>
+        </div>
+
+        <p id="ooError" style="display:none;color:#C62828;font-weight:600;
+                               font-size:0.85rem;margin-top:10px"></p>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeOneOffModal()">Cancel</button>
+        <button class="btn btn-primary"
+                id="ooSubmitBtn"
+                onclick="submitOneOff()">
+          Pay &amp; Order →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
        JAVASCRIPT
   ════════════════════════════════════════ -->
   <script src="../js/firebase-config.js"></script>
@@ -378,8 +558,312 @@
       await Promise.all([
         loadBakeries(),
         loadCelebrations(),
+        loadOneOffOrders(),
       ]);
+
+      // Check for Stripe checkout success/cancel return
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('oneoff') === 'success') {
+        switchOrdersTab('oneoff');
+        showToast('✅ Order placed! Your bakery will be notified shortly.', 'success');
+        window.history.replaceState({}, '', '/company/orders');
+      } else if (params.get('oneoff') === 'cancelled') {
+        switchOrdersTab('oneoff');
+        showToast('Payment cancelled. Order was not placed.', 'info');
+        window.history.replaceState({}, '', '/company/orders');
+      }
     });
+
+    /* ════════════════════════════════════════════
+       TAB SWITCHING
+    ════════════════════════════════════════════ */
+
+    function switchOrdersTab(tab) {
+      document.querySelectorAll('.orders-tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+      });
+      document.getElementById('tabRecurring').style.display = tab === 'recurring' ? '' : 'none';
+      document.getElementById('tabOneOff').style.display    = tab === 'oneoff'    ? '' : 'none';
+      document.getElementById('primaryBtnRecurring').style.display = tab === 'recurring' ? '' : 'none';
+      document.getElementById('primaryBtnOneOff').style.display    = tab === 'oneoff'    ? '' : 'none';
+    }
+
+
+    /* ════════════════════════════════════════════
+       ONE-OFF ORDERS
+    ════════════════════════════════════════════ */
+
+    let oneOffOrders   = [];
+    let ooSelectedTreats = []; // [{ treatType, name, price, qty }]
+    let ooBakeryProducts = []; // products for currently-selected bakery
+
+    async function loadOneOffOrders() {
+      try {
+        const res  = await apiCall(
+          `/api/orders?companyId=${companyId}&limit=50`
+        );
+        if (!res) return;
+        const data = await res.json();
+        oneOffOrders = (data.orders || []).filter(o => o.oneOff === true);
+        renderOneOffOrders();
+      } catch (err) {
+        console.error('Failed to load one-off orders:', err);
+        oneOffOrders = [];
+        renderOneOffOrders();
+      }
+    }
+
+    function renderOneOffOrders() {
+      const grid  = document.getElementById('oneOffGrid');
+      const empty = document.getElementById('oneOffEmpty');
+      if (oneOffOrders.length === 0) {
+        grid.style.display  = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+      grid.style.display  = 'grid';
+      empty.style.display = 'none';
+
+      grid.innerHTML = oneOffOrders.map(o => {
+        const dateObj = o.deliveryDate
+          ? new Date(o.deliveryDate.seconds ? o.deliveryDate.seconds * 1000 : o.deliveryDate)
+          : null;
+        const dateStr = dateObj
+          ? dateObj.toLocaleDateString('en-CA', { weekday:'short', month:'short', day:'numeric', year:'numeric' })
+          : '—';
+        const statusLabel = ({
+          pending_confirmation: '⏳ Awaiting Payment',
+          scheduled:            '📅 Scheduled',
+          confirmed:            '✅ Confirmed',
+          routed:               '🍞 With Bakery',
+          delivered:            '📦 Delivered',
+          cancelled:            '❌ Cancelled',
+        })[o.status] || o.status;
+        const amount = typeof o.chargeAmount === 'number'
+          ? `$${o.chargeAmount.toFixed(2)}`
+          : '';
+        return `
+          <div class="celeb-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+              <div style="flex:1;min-width:0">
+                <h3 style="font-size:1.05rem;margin:0 0 4px;color:#2D2D2D">
+                  ${o.celebrationName || o.employeeName || 'One-off'}
+                </h3>
+                <p style="font-size:0.82rem;color:#888;margin:0">${o.bakeryName || 'Bakery'}</p>
+              </div>
+              <span style="font-size:0.75rem;font-weight:700;padding:4px 10px;
+                            background:rgba(255,107,107,0.12);color:#C0392B;
+                            border-radius:99px;white-space:nowrap">${statusLabel}</span>
+            </div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid #F0EAE2;
+                        display:flex;justify-content:space-between;font-size:0.85rem">
+              <span style="color:#666">📅 ${dateStr}</span>
+              <span style="font-weight:700;color:#2D2D2D">${amount}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openOneOffModal() {
+      ooSelectedTreats = [];
+      document.getElementById('ooName').value = '';
+      document.getElementById('ooDate').value = '';
+      document.getElementById('ooNotes').value = '';
+      document.getElementById('ooBakery').value = '';
+      document.getElementById('ooTreatList').innerHTML = `
+        <p style="font-size:0.85rem;color:#888;padding:16px;
+                  background:#FFFAF5;border-radius:10px;text-align:center">
+          Choose a bakery above to see their menu.
+        </p>`;
+      document.getElementById('ooError').style.display = 'none';
+      document.getElementById('ooTotal').textContent = '$0.00 CAD';
+
+      // Min date = 3 days from now
+      const min = new Date();
+      min.setDate(min.getDate() + 3);
+      document.getElementById('ooDate').min = min.toISOString().split('T')[0];
+
+      // Default address to company default
+      try {
+        const companyEl = document.getElementById('companyName');
+        // Will be filled after fetching company below
+      } catch (_) {}
+      fillOneOffDefaults();
+
+      // Populate bakery dropdown
+      const sel = document.getElementById('ooBakery');
+      sel.innerHTML = '<option value="">Select bakery…</option>' +
+        BAKERIES.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+
+      document.getElementById('oneOffModal').style.display = 'flex';
+    }
+
+    async function fillOneOffDefaults() {
+      try {
+        const companyDoc = await db.collection('companies').doc(companyId).get();
+        if (companyDoc.exists) {
+          const c = companyDoc.data();
+          document.getElementById('ooAddress').value = c.defaultDeliveryAddress || '';
+        }
+      } catch (_) {}
+    }
+
+    function closeOneOffModal() {
+      document.getElementById('oneOffModal').style.display = 'none';
+    }
+
+    async function onOneOffBakeryChange() {
+      const bakerId = document.getElementById('ooBakery').value;
+      const list = document.getElementById('ooTreatList');
+      ooSelectedTreats = [];
+      updateOneOffTotal();
+
+      if (!bakerId) {
+        list.innerHTML = `
+          <p style="font-size:0.85rem;color:#888;padding:16px;
+                    background:#FFFAF5;border-radius:10px;text-align:center">
+            Choose a bakery above to see their menu.
+          </p>`;
+        return;
+      }
+
+      list.innerHTML = `<p style="font-size:0.85rem;color:#888;padding:16px;text-align:center">Loading menu…</p>`;
+
+      try {
+        const res  = await apiCall(`/api/products/${bakerId}`);
+        const data = await res.json();
+        ooBakeryProducts = (data.products || []).filter(p => p.active !== false);
+      } catch (err) {
+        ooBakeryProducts = [];
+      }
+
+      if (ooBakeryProducts.length === 0) {
+        list.innerHTML = `
+          <p style="font-size:0.85rem;color:#C62828;padding:16px;
+                    background:rgba(198,40,40,0.06);border-radius:10px;text-align:center">
+            This bakery hasn't added any treats yet.
+          </p>`;
+        return;
+      }
+
+      list.innerHTML = ooBakeryProducts.map(p => {
+        const price = p.price || p.retailPrice || 0;
+        return `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;
+                      background:#FFFAF5;border-radius:10px;margin-bottom:8px">
+            <div style="flex:1;min-width:0">
+              <p style="font-weight:600;margin:0;color:#2D2D2D">${p.name || p.id}</p>
+              <p style="font-size:0.78rem;color:#888;margin:2px 0 0">$${price.toFixed(2)} each</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <button class="qty-btn" type="button"
+                      onclick="adjustOneOffQty('${p.id}', -1)"
+                      style="width:28px;height:28px;border-radius:6px;border:1px solid #E8E0D8;background:white;font-weight:700;cursor:pointer">−</button>
+              <span id="ooQty_${p.id}" style="min-width:24px;text-align:center;font-weight:700">0</span>
+              <button class="qty-btn" type="button"
+                      onclick="adjustOneOffQty('${p.id}', 1)"
+                      style="width:28px;height:28px;border-radius:6px;border:1px solid #E8E0D8;background:white;font-weight:700;cursor:pointer">+</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function adjustOneOffQty(productId, delta) {
+      const product = ooBakeryProducts.find(p => p.id === productId);
+      if (!product) return;
+      const price = product.price || product.retailPrice || 0;
+
+      let existing = ooSelectedTreats.find(t => t.treatType === productId);
+      if (!existing) {
+        existing = { treatType: productId, name: product.name || productId, price, qty: 0 };
+        ooSelectedTreats.push(existing);
+      }
+      existing.qty = Math.max(0, existing.qty + delta);
+      if (existing.qty === 0) {
+        ooSelectedTreats = ooSelectedTreats.filter(t => t.qty > 0);
+      }
+      document.getElementById(`ooQty_${productId}`).textContent =
+        ooSelectedTreats.find(t => t.treatType === productId)?.qty || 0;
+      updateOneOffTotal();
+    }
+
+    function updateOneOffTotal() {
+      const total = ooSelectedTreats.reduce((sum, t) => sum + t.price * t.qty, 0);
+      document.getElementById('ooTotal').textContent = `$${total.toFixed(2)} CAD`;
+    }
+
+    async function submitOneOff() {
+      const eventName = document.getElementById('ooName').value.trim();
+      const date      = document.getElementById('ooDate').value;
+      const bakerId   = document.getElementById('ooBakery').value;
+      const address   = document.getElementById('ooAddress').value.trim();
+      const notes     = document.getElementById('ooNotes').value.trim();
+      const errEl     = document.getElementById('ooError');
+      const btn       = document.getElementById('ooSubmitBtn');
+      errEl.style.display = 'none';
+
+      // Validation
+      if (!eventName) return showOneOffErr('Please name this event.');
+      if (!date)      return showOneOffErr('Please pick a delivery date.');
+      if (!bakerId)   return showOneOffErr('Please choose a bakery.');
+      if (ooSelectedTreats.length === 0) return showOneOffErr('Please add at least one treat.');
+      if (!address)   return showOneOffErr('Please enter a delivery address.');
+
+      btn.disabled = true;
+      btn.textContent = 'Creating order…';
+
+      try {
+        // Step 1: create the pending order
+        const createRes = await apiCall('/api/orders/oneoff', {
+          method: 'POST',
+          body: JSON.stringify({
+            companyId,
+            eventName,
+            bakerId,
+            bundle: ooSelectedTreats.map(t => ({ treatType: t.treatType, qty: t.qty })),
+            deliveryDate: date,
+            deliveryAddress: address,
+            notes,
+          }),
+        });
+        const createData = await createRes.json();
+        if (!createRes.ok) {
+          throw new Error(createData.error || 'Could not create order');
+        }
+        const orderId = createData.orderId;
+
+        // Step 2: kick off Stripe checkout for that order
+        btn.textContent = 'Redirecting to payment…';
+        const sessRes = await apiCall(`/api/orders/${orderId}/checkout-session`, {
+          method: 'POST',
+          body: JSON.stringify({
+            successPath: '/company/orders?oneoff=success',
+            cancelPath:  '/company/orders?oneoff=cancelled',
+          }),
+        });
+        const sessData = await sessRes.json();
+        if (!sessRes.ok || !sessData.url) {
+          throw new Error(sessData.error || 'Could not start checkout');
+        }
+        window.location.href = sessData.url;
+
+      } catch (err) {
+        console.error('One-off submit error:', err);
+        showOneOffErr(err.message || 'Something went wrong');
+        btn.disabled = false;
+        btn.textContent = 'Pay & Order →';
+      }
+    }
+
+    function showOneOffErr(msg) {
+      const el = document.getElementById('ooError');
+      el.textContent = '⚠️ ' + msg;
+      el.style.display = 'block';
+      document.getElementById('ooSubmitBtn').disabled = false;
+      document.getElementById('ooSubmitBtn').textContent = 'Pay & Order →';
+    }
 
 
     /* ════════════════════════════════════════════

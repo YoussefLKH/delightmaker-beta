@@ -804,7 +804,7 @@
                    autocomplete="off" required/>
             <input type="hidden" id="applyLat"/>
             <input type="hidden" id="applyLng"/>
-            <span class="field-error" id="errAddress">Enter your full street address</span>
+            <span class="field-error" id="errAddress">Please select an address from the dropdown suggestions</span>
             <p id="addressVerified"
                style="display:none;
                       color:#2E7D32;
@@ -1146,7 +1146,8 @@
       valid = fieldErr('applyPhone',           'errPhone',     !isValidPhone(phone))         && valid;
       valid = fieldErr('applyPassword',        'errPassword',  !isValidPassword(pw))         && valid;
       valid = fieldErr('applyPasswordConfirm', 'errConfirm',   pw !== pwc)                  && valid;
-      valid = fieldErr('applyAddress',         'errAddress',   address.length < 5)           && valid;
+      const hasCoords = !!parseFloat(document.getElementById('applyLat').value);
+      valid = fieldErr('applyAddress', 'errAddress', address.length < 5 || !hasCoords) && valid;
 
       return valid;
     }

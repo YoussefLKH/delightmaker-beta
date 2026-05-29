@@ -496,6 +496,20 @@ app.get('/company/spending', (req, res) => {
   );
 });
 
+app.get('/company/orders', (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      'public', 'company', 'orders.html'
+    )
+  );
+});
+
+// Redirect old celebrations URLs to new orders page
+app.get(['/company/celebrations', '/company/celebrations.html'], (req, res) => {
+  res.redirect(301, '/company/orders');
+});
+
 // ── Baker portal pages ─────────────────────────────
 app.get('/baker', (req, res) => {
   res.sendFile(
