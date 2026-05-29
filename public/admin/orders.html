@@ -205,92 +205,6 @@
 
 
   <!-- ═══════════════════════════════════════
-       ROUTE ORDER MODAL
-  ════════════════════════════════════════ -->
-  <div class="modal-overlay"
-       id="routeModal"
-       style="display:none">
-    <div class="modal modal-lg">
-
-      <div class="modal-header">
-        <h2>Route Order</h2>
-        <button class="modal-close"
-                onclick="hideRouteModal()">✕</button>
-      </div>
-
-      <div class="modal-body">
-
-        <!-- Order summary -->
-        <div class="route-order-summary"
-             id="routeOrderSummary">
-          <!-- Populated by JS -->
-        </div>
-
-        <!-- AI Recommendation -->
-        <div class="ai-recommendation"
-             id="aiRecommendation"
-             style="display:none">
-          <div class="ai-header">
-            <span class="ai-icon">🤖</span>
-            <span class="ai-label">
-              Claude Recommends
-            </span>
-            <span class="ai-confidence"
-                  id="aiConfidence">
-            </span>
-          </div>
-          <p class="ai-reason"
-             id="aiReason">
-          </p>
-        </div>
-
-        <div class="ai-loading"
-             id="aiLoading"
-             style="display:none">
-          <span>🤖 Getting AI recommendation...</span>
-        </div>
-
-        <!-- Bakery selection -->
-        <div class="form-group"
-             style="margin-top:20px">
-          <label>Select Bakery *</label>
-          <div id="bakeryOptions"
-               class="bakery-options">
-            <!-- Populated by JS -->
-          </div>
-        </div>
-
-        <!-- Notes to baker -->
-        <div class="form-group"
-             style="margin-top:16px">
-          <label>Notes to Baker</label>
-          <textarea
-            id="routeNotes"
-            class="dash-textarea"
-            rows="2"
-            placeholder="Use side entrance on Granville St..."
-          ></textarea>
-        </div>
-
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-ghost"
-                onclick="hideRouteModal()">
-          Cancel
-        </button>
-        <button class="btn btn-primary"
-                id="confirmRouteBtn"
-                onclick="confirmRouting()">
-          Confirm Routing →
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-
-  <!-- ═══════════════════════════════════════
        ORDER DETAIL MODAL
   ════════════════════════════════════════ -->
   <div class="modal-overlay"
@@ -331,8 +245,6 @@
     let filteredOrders  = [];
     let currentStatus   = '';
     let currentOrderId  = null;
-    let selectedBakery  = null;
-    let allBakeries     = [];
     let lastDoc         = null;
     const PAGE_SIZE     = 25;
 
@@ -340,7 +252,6 @@
     // ── Auth guard ────────────────────────────────
     requireAuth('admin').then(() => {
       loadOrders();
-      loadBakeries();
       checkUrlParams();
     });
 
@@ -383,12 +294,11 @@
       ">🔴 ${label}</span>`;
     }
 
-    // ── Check URL for route param ─────────────────
+    // ── Check URL filter param ────────────────────
     function checkUrlParams() {
       const params = new URLSearchParams(
         window.location.search
       );
-      const routeId = params.get('route');
       const filter  = params.get('filter');
 
       if (filter === 'unrouted') {
@@ -396,13 +306,6 @@
           '[data-status="confirmed"]'
         );
         if (tab) setTab(tab, 'confirmed');
-      }
-
-      if (routeId) {
-        // Small delay for orders to load
-        setTimeout(() =>
-          openRouteModal(routeId), 800
-        );
       }
     }
 
@@ -701,10 +604,6 @@
       switch (order.status) {
         case 'confirmed':
           return `
-            <button class="btn-sm btn-primary"
-                    onclick="openRouteModal('${id}')">
-              Route →
-            </button>
             <button class="btn-sm btn-ghost"
                     onclick="viewOrder('${id}')">
               View
@@ -741,10 +640,6 @@
 
         case 'exception':
           return `
-            <button class="btn-sm btn-primary"
-                    onclick="openRouteModal('${id}')">
-              Fix →
-            </button>
             <button class="btn-sm btn-ghost"
                     onclick="viewOrder('${id}')">
               View
@@ -770,429 +665,6 @@
     }
 
 
-    /* ════════════════════════════════════════════
-       ROUTE ORDER MODAL
-    ════════════════════════════════════════════ */
-
-    async function openRouteModal(orderId) {
-      currentOrderId = orderId;
-      selectedBakery = null;
-      document.getElementById('routeNotes')
-        .value = '';
-      document.getElementById('aiRecommendation')
-        .style.display = 'none';
-      document.getElementById('aiLoading')
-        .style.display = 'none';
-
-      document.getElementById('routeModal')
-        .style.display = 'flex';
-
-      // Find order in loaded list
-      const order = allOrders.find(
-        o => o.id === orderId
-      );
-
-      if (!order) {
-        showToast('Order not found', 'error');
-        hideRouteModal();
-        return;
-      }
-
-      // Fetch company lat/lng for distance calculation
-      let companyLat = null, companyLng = null;
-      try {
-        if (order.companyId) {
-          const companyDoc = await db
-            .collection('companies')
-            .doc(order.companyId)
-            .get();
-          if (companyDoc.exists) {
-            companyLat = companyDoc.data().addressLat || null;
-            companyLng = companyDoc.data().addressLng || null;
-          }
-        }
-      } catch (e) { /* non-fatal */ }
-
-
-      // ── Render order summary ──────────────────
-      const days    = daysUntil(order.deliveryDate);
-      const urgency = days <= 2
-        ? `<span style="color:#C62828;
-                        font-weight:700">
-             🔴 ${days === 0
-               ? 'TODAY'
-               : days === 1
-               ? 'TOMORROW'
-               : `${days} days`}
-           </span>`
-        : `<span style="color:#888">
-             ${days} days away
-           </span>`;
-
-      const dietaryHtml =
-        order.dietaryFlags &&
-        order.dietaryFlags.length > 0
-        ? `<div class="route-dietary-alert">
-             🚨 DIETARY: ${order.dietaryFlags
-               .map(f => f.toUpperCase())
-               .join(', ')}
-           </div>`
-        : '';
-
-      document.getElementById('routeOrderSummary')
-        .innerHTML = `
-          <div class="route-summary-grid">
-            <div class="route-field">
-              <span class="route-label">Employee</span>
-              <span class="route-value">
-                ${order.employeeName}
-              </span>
-            </div>
-            <div class="route-field">
-              <span class="route-label">Product</span>
-              <span class="route-value">
-                ${order.productName}
-              </span>
-            </div>
-            <div class="route-field">
-              <span class="route-label">Delivery</span>
-              <span class="route-value">
-                ${formatDate(order.deliveryDate)}
-                ${urgency}
-              </span>
-            </div>
-            <div class="route-field">
-              <span class="route-label">Address</span>
-              <span class="route-value">
-                ${order.deliveryAddress || '—'}
-              </span>
-            </div>
-            <div class="route-field">
-              <span class="route-label">Charge</span>
-              <span class="route-value"
-                    style="color:#FF6B6B;
-                           font-weight:700">
-$$
-{order.chargeAmount} CAD
-              </span>
-            </div>
-          </div>
-          ${dietaryHtml}
-        `;
-
-
-      // ── Render bakery options ─────────────────
-      renderBakeryOptions(null, companyLat, companyLng);
-
-
-      // ── Get Claude recommendation ─────────────
-      document.getElementById('aiLoading')
-        .style.display = 'flex';
-
-      try {
-        const aiRes = await apiCall(
-          '/api/claude/route-order',
-          {
-            method: 'POST',
-            body:   JSON.stringify({
-              orderId:      order.id,
-              productName:  order.productName,
-              dietaryFlags: order.dietaryFlags || [],
-              quantity:     'standard',
-              deliveryArea: 'Halifax HRM',
-            }),
-          }
-        );
-
-        document.getElementById('aiLoading')
-          .style.display = 'none';
-
-        if (aiRes && aiRes.ok) {
-          const aiData = await aiRes.json();
-
-          if (aiData.recommendation &&
-              !aiData.recommendation.isException) {
-            showAiRecommendation(
-              aiData.recommendation
-            );
-
-            // Pre-select recommended bakery
-            selectedBakery =
-              aiData.recommendation
-                .recommendedBakeryId;
-            renderBakeryOptions(
-              aiData.recommendation
-                .recommendedBakeryId,
-              companyLat,
-              companyLng
-            );
-          } else if (
-            aiData.recommendation?.isException
-          ) {
-            showToast(
-              '⚠️ Claude flagged this as an ' +
-              'exception: ' +
-              aiData.recommendation.exceptionReason,
-              'error',
-              6000
-            );
-          }
-        }
-      } catch (err) {
-        document.getElementById('aiLoading')
-          .style.display = 'none';
-        console.error('AI routing error:', err);
-      }
-    }
-
-
-    /* ── Show AI recommendation ────────────────── */
-    function showAiRecommendation(rec) {
-      const el =
-        document.getElementById('aiRecommendation');
-      const confidenceColors = {
-        high:   '#2E7D32',
-        medium: '#E65100',
-        low:    '#888',
-      };
-
-      document.getElementById('aiConfidence')
-        .innerHTML = `
-          <span style="
-            color:      ${confidenceColors[
-                           rec.confidence
-                         ] || '#888'};
-            font-size:  0.8rem;
-            font-weight:600;
-          ">
-            ${rec.confidence?.toUpperCase()}
-            confidence
-          </span>
-        `;
-
-      document.getElementById('aiReason')
-        .textContent = rec.reason || '';
-
-      el.querySelector('.ai-header').innerHTML = `
-        <span class="ai-icon">🤖</span>
-        <span class="ai-label">
-          Claude recommends:
-          <strong>${rec.recommendedBakeryName}</strong>
-        </span>
-        <span id="aiConfidence">
-          <span style="
-            color:     ${confidenceColors[
-                          rec.confidence
-                        ] || '#888'};
-            font-size: 0.8rem;
-            font-weight:600
-          ">
-            ${(rec.confidence || '').toUpperCase()}
-          </span>
-        </span>
-      `;
-
-      el.style.display = 'block';
-    }
-
-
-    /* ── Render bakery radio options ───────────── */
-    function renderBakeryOptions(selectedId, companyLat, companyLng) {
-      const container =
-        document.getElementById('bakeryOptions');
-
-      if (allBakeries.length === 0) {
-        container.innerHTML = `
-          <p style="color:#888;font-size:0.9rem">
-            No active bakeries found.
-            <a href="/admin/bakeries">Add bakeries →</a>
-          </p>
-        `;
-        return;
-      }
-
-      const GEO_RADIUS_KM = 10; // warn beyond this
-
-      // Attach distance to each bakery (null if no coords)
-      const bakeresWithDist = allBakeries.map(b => {
-        let distKm = null;
-        if (companyLat && companyLng &&
-            b.addressLat  && b.addressLng) {
-          distKm = haversineKm(
-            companyLat, companyLng,
-            b.addressLat, b.addressLng
-          );
-        }
-        return { ...b, distKm };
-      });
-
-      // Sort: closest first, unknown distance last
-      bakeresWithDist.sort((a, b) => {
-        if (a.distKm === null && b.distKm === null) return 0;
-        if (a.distKm === null) return 1;
-        if (b.distKm === null) return -1;
-        return a.distKm - b.distKm;
-      });
-
-      container.innerHTML = bakeresWithDist.map(b => {
-        const isSelected  = b.id === selectedId;
-        const outOfRange  = b.distKm !== null &&
-                            b.distKm > GEO_RADIUS_KM;
-
-        // Distance badge HTML
-        let distBadge = '';
-        if (b.distKm !== null) {
-          const badgeColor = outOfRange
-            ? '#C62828'
-            : b.distKm <= 5
-            ? '#2E7D32'
-            : '#E65100';
-          distBadge = `
-            <span style="
-              display:       inline-block;
-              padding:       2px 7px;
-              background:    ${badgeColor}18;
-              color:         ${badgeColor};
-              border:        1px solid ${badgeColor}40;
-              border-radius: 10px;
-              font-size:     0.72rem;
-              font-weight:   700;
-              margin-left:   6px;
-              vertical-align:middle;
-            ">📍 ${fmtDist(b.distKm)}</span>
-          `;
-        }
-
-        const outOfRangeWarning = outOfRange
-          ? `<span style="
-               color:#C62828;
-               font-size:0.72rem;
-               font-weight:600;
-             ">⚠️ Out of range</span> `
-          : '';
-
-        return `
-          <label class="bakery-option ${
-            isSelected ? 'bakery-option-selected' : ''
-          } ${outOfRange ? 'bakery-option-far' : ''}"
-                 id="bakery-opt-${b.id}"
-                 onclick="selectBakery('${b.id}')">
-            <div class="bakery-opt-radio">
-              <div class="radio-dot ${
-                isSelected ? 'radio-dot-on' : ''
-              }" id="radio-${b.id}">
-              </div>
-            </div>
-            <div class="bakery-opt-body">
-              <p class="bakery-opt-name">
-                ${b.name}${distBadge}
-                ${isSelected
-                  ? '<span class="ai-pick">⭐ AI Pick</span>'
-                  : ''}
-              </p>
-              <p class="bakery-opt-meta">
-                ${outOfRangeWarning}
-                ${(b.specialty || []).join(' · ')}
-                ${b.allergenFree
-                  ? '· <strong>Allergen-Free</strong>'
-                  : ''}
-              </p>
-            </div>
-          </label>
-        `;
-      }).join('');
-    }
-
-
-    /* ── Select bakery ─────────────────────────── */
-    function selectBakery(bakeryId) {
-      selectedBakery = bakeryId;
-
-      // Update visual state
-      document.querySelectorAll('.bakery-option')
-        .forEach(el => {
-          el.classList.remove(
-            'bakery-option-selected'
-          );
-        });
-      document.querySelectorAll('.radio-dot')
-        .forEach(el => {
-          el.classList.remove('radio-dot-on');
-        });
-
-      const opt =
-        document.getElementById(
-          `bakery-opt-${bakeryId}`
-        );
-      const dot =
-        document.getElementById(
-          `radio-${bakeryId}`
-        );
-
-      if (opt) opt.classList.add(
-        'bakery-option-selected'
-      );
-      if (dot) dot.classList.add('radio-dot-on');
-    }
-
-
-    /* ── Confirm routing ───────────────────────── */
-    async function confirmRouting() {
-      if (!selectedBakery) {
-        showToast(
-          'Please select a bakery', 'error'
-        );
-        return;
-      }
-
-      const btn =
-        document.getElementById('confirmRouteBtn');
-      btn.disabled    = true;
-      btn.textContent = 'Routing...';
-
-      const notes =
-        document.getElementById('routeNotes').value;
-
-      try {
-        const res = await apiCall(
-          `/api/orders/${currentOrderId}/route`,
-          {
-            method: 'POST',
-            body:   JSON.stringify({
-              bakerId: selectedBakery,
-              notes,
-            }),
-          }
-        );
-
-        if (res && res.ok) {
-          hideRouteModal();
-          showToast(
-            'Order routed! Baker notified. ✅',
-            'success'
-          );
-          await loadOrders();
-        } else {
-          const err = await res.json();
-          showToast(
-            err.error || 'Routing failed',
-            'error'
-          );
-        }
-      } catch (err) {
-        showToast('Routing failed', 'error');
-      } finally {
-        btn.disabled    = false;
-        btn.textContent = 'Confirm Routing →';
-      }
-    }
-
-    function hideRouteModal() {
-      document.getElementById('routeModal')
-        .style.display = 'none';
-      currentOrderId = null;
-      selectedBakery = null;
-    }
 
 
     /* ════════════════════════════════════════════
@@ -1424,19 +896,6 @@ $$
           `;
         }
 
-        if (order.status === 'confirmed' ||
-            order.status === 'exception') {
-          footerBtns += `
-            <button class="btn btn-primary"
-                    onclick="
-                      hideOrderDetailModal();
-                      openRouteModal('${order.id}')
-                    ">
-              Route Order →
-            </button>
-          `;
-        }
-
         if (order.status === 'routed') {
           footerBtns += `
             <button class="btn btn-primary"
@@ -1570,46 +1029,6 @@ $$
       }
     }
 
-
-    /* ════════════════════════════════════════════
-       LOAD BAKERIES (for route modal)
-    ════════════════════════════════════════════ */
-
-    async function loadBakeries() {
-      try {
-        const snap = await db
-          .collection('bakeries')
-          .where('active', '==', true)
-          .get();
-
-        allBakeries = snap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-      } catch (err) {
-        console.error('Load bakeries error:', err);
-      }
-    }
-
-
-    /* ── Haversine distance (km) ───────────────────── */
-    function haversineKm(lat1, lng1, lat2, lng2) {
-      const R    = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a    =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) *
-        Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLng / 2) * Math.sin(dLng / 2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    function fmtDist(km) {
-      return km < 1
-        ? `${Math.round(km * 1000)} m`
-        : `${km.toFixed(1)} km`;
-    }
 
 
     /* ── Table UI helpers ──────────────────────── */
