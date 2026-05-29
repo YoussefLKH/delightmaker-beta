@@ -523,6 +523,40 @@
        LOAD ORDERS
     ════════════════════════════════════════════ */
 
+    // Cache for company + baker name lookups (avoid hammering Firestore)
+    const _nameCache = { companies: {}, bakeries: {} };
+
+    async function backfillNames(orders) {
+      const need = orders.filter(o =>
+        (!o.companyName && o.companyId) ||
+        (!o.bakeryName  && o.bakerId)
+      );
+      if (need.length === 0) return;
+
+      await Promise.all(need.map(async (o) => {
+        if (!o.companyName && o.companyId) {
+          try {
+            if (_nameCache.companies[o.companyId] === undefined) {
+              const doc = await db.collection('companies').doc(o.companyId).get();
+              _nameCache.companies[o.companyId] =
+                doc.exists ? (doc.data().name || '') : '';
+            }
+            o.companyName = _nameCache.companies[o.companyId];
+          } catch (_) {}
+        }
+        if (!o.bakeryName && o.bakerId) {
+          try {
+            if (_nameCache.bakeries[o.bakerId] === undefined) {
+              const doc = await db.collection('bakeries').doc(o.bakerId).get();
+              _nameCache.bakeries[o.bakerId] =
+                doc.exists ? (doc.data().name || '') : '';
+            }
+            o.bakeryName = _nameCache.bakeries[o.bakerId];
+          } catch (_) {}
+        }
+      }));
+    }
+
     async function loadOrders(append = false) {
       if (!append) {
         showTableLoading();
@@ -546,6 +580,10 @@
         } else {
           allOrders = data.orders;
         }
+
+        // Backfill missing companyName / bakeryName from Firestore.
+        // Some old orders were created before these fields were populated.
+        await backfillNames(allOrders);
 
         filteredOrders = [...allOrders];
         applyFilters();
@@ -752,16 +790,10 @@
             </td>
             <td>
               <span style="
-                color:${margin > 0
-                  ? '#2E7D32'
-                  : '#C62828'};
+                color:${margin > 0 ? '#2E7D32' : '#C62828'};
                 font-weight:600;
                 font-size:0.85rem
-              ">
-                
-$$
-{margin.toFixed(0)}
-              </span>
+              ">$${margin.toFixed(0)}</span>
             </td>
             <td>
               <div class="action-btns">
