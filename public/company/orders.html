@@ -1503,6 +1503,7 @@
     }
     .bundle-row {
       display:       flex;
+      flex-wrap:     wrap;
       align-items:   center;
       gap:           10px;
       background:    rgba(255,255,255,0.04);
@@ -1512,7 +1513,7 @@
     }
     .bundle-bakery,
     .bundle-treat {
-      flex:          1;
+      flex:          1 1 140px;
       background:    var(--bg);
       border:        1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
@@ -1520,6 +1521,18 @@
       font-size:     0.85rem;
       padding:       8px 10px;
       min-width:     0;
+      text-overflow: ellipsis;
+    }
+
+    /* Mobile: stack bakery/treat full-width, qty+remove sit below */
+    @media (max-width: 600px) {
+      .bundle-bakery,
+      .bundle-treat {
+        flex:      1 1 100%;
+        font-size: 0.95rem;
+        padding:   10px 12px;
+      }
+      .bundle-row .qty-stepper { flex: 1 1 auto; }
     }
     .treat-disabled { opacity:.45; pointer-events:none; }
     .qty-stepper {

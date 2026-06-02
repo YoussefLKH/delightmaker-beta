@@ -2397,6 +2397,29 @@
       color:         var(--dark);
       width:         100%;
       cursor:        pointer;
+      min-width:     0;            /* allow shrinking inside grid */
+      text-overflow: ellipsis;
+    }
+
+    /* Mobile: stack bakery+treat on top, qty+remove on bottom */
+    @media (max-width: 600px) {
+      .bundle-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "bakery bakery"
+          "treat  treat"
+          "qty    remove";
+        row-gap: 10px;
+      }
+      .bundle-bakery  { grid-area: bakery; }
+      .bundle-treat   { grid-area: treat;  }
+      .bundle-row .qty-stepper { grid-area: qty; justify-self: start; }
+      .bundle-row .bundle-remove { grid-area: remove; justify-self: end; }
+      .bundle-bakery,
+      .bundle-treat {
+        font-size: 0.95rem;
+        padding:   10px 12px;
+      }
     }
 
     .bundle-treat.treat-disabled {
