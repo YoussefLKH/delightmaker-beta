@@ -841,11 +841,14 @@
       document.getElementById('userDisplayName')
         .textContent = user.name || 'HR Manager';
 
+      // Bakeries must finish loading before loadRules() renders the
+      // bundle dropdown — otherwise BAKERIES is empty when the row
+      // is built and the dropdown shows no options.
       await Promise.all([
         loadCompanyData(),
         loadBakeries(),
-        loadRules(),
       ]);
+      await loadRules();
     });
 
 
