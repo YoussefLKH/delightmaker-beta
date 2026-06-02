@@ -668,6 +668,38 @@
       const days    = daysUntil(order.deliveryDate);
       const dateStr = formatDate(order.deliveryDate);
 
+      // Weekend-shift badge — explains why delivery date != actual birthday
+      let shiftBadge = '';
+      if (order.weekendShifted && order.originalDate) {
+        const origRaw = order.originalDate?.toDate
+          ? order.originalDate.toDate()
+          : new Date(order.originalDate);
+        // Use UTC components so the date doesn't shift in our timezone
+        const origLocal = new Date(
+          origRaw.getUTCFullYear(),
+          origRaw.getUTCMonth(),
+          origRaw.getUTCDate()
+        );
+        const origStr = origLocal.toLocaleDateString('en-CA',
+          { weekday: 'short', month: 'short', day: 'numeric' });
+        const direction = order.shiftPolicy === 'monday_after' ? 'after' : 'before';
+        shiftBadge = `
+          <div style="display:flex;align-items:center;gap:8px;
+                      margin-top:8px;padding:8px 12px;
+                      background:rgba(245,158,11,0.10);
+                      border:1px solid rgba(245,158,11,0.35);
+                      border-radius:8px;
+                      font-size:0.78rem;color:#7a5c00;
+                      line-height:1.4">
+            <span>📅</span>
+            <span>
+              <strong>Birthday is ${origStr}</strong>
+              — moved to the ${direction === 'after' ? 'Monday after' : 'Friday before'}
+              (your weekend policy).
+            </span>
+          </div>`;
+      }
+
       const urgencyClass = days <= 2
         ? 'approval-card-urgent'
         : days <= 7
@@ -724,6 +756,8 @@
               )}
             </div>
           </div>
+
+          ${shiftBadge}
 
           <!-- Order details -->
           <div class="approval-card-details">

@@ -533,6 +533,17 @@
               <div class="date-cell">
                 <span class="date-main">
                   ${dateStr}
+                  ${order.weekendShifted
+                    ? `<span title="Moved from ${order.originalDayName || 'weekend'} birthday"
+                            style="display:inline-block;margin-left:4px;
+                                   font-size:0.65rem;font-weight:700;
+                                   padding:1px 6px;border-radius:99px;
+                                   background:rgba(245,158,11,0.15);
+                                   color:#7a5c00;
+                                   vertical-align:middle">
+                         📅 Shifted
+                       </span>`
+                    : ''}
                 </span>
                 <span class="date-days"
                       style="color:${
@@ -771,6 +782,24 @@
                 </span>
                 <span class="detail-field-value">
                   ${formatDate(order.deliveryDate)}
+                  ${order.weekendShifted && order.originalDate
+                    ? (() => {
+                        const o = order.originalDate?.toDate
+                          ? order.originalDate.toDate()
+                          : new Date(order.originalDate);
+                        const local = new Date(o.getUTCFullYear(), o.getUTCMonth(), o.getUTCDate());
+                        const s = local.toLocaleDateString('en-CA',
+                          { weekday: 'short', month: 'short', day: 'numeric' });
+                        const dir = order.shiftPolicy === 'monday_after' ? 'Monday after' : 'Friday before';
+                        return `<div style="margin-top:4px;font-size:0.78rem;color:#7a5c00;
+                                       background:rgba(245,158,11,0.10);
+                                       border:1px solid rgba(245,158,11,0.3);
+                                       padding:6px 10px;border-radius:6px;
+                                       line-height:1.4">
+                                  📅 Birthday is actually <strong>${s}</strong> — shifted to ${dir} per weekend policy.
+                                </div>`;
+                      })()
+                    : ''}
                 </span>
               </div>
               <div class="detail-field-row">

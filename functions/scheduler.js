@@ -344,6 +344,9 @@ async function processEmployee(
   const dayOfWeek      = nextBirthday.getDay(); // 0=Sun, 6=Sat
   const isWeekend      = dayOfWeek === 0 || dayOfWeek === 6;
 
+  // Track if the date was shifted so we can show a badge in the UIs
+  let weekendShiftInfo = null;
+
   if (isWeekend) {
     const originalDate = new Date(nextBirthday);
     const dayName      = dayOfWeek === 6 ? 'Saturday' : 'Sunday';
@@ -359,6 +362,12 @@ async function processEmployee(
         nextBirthday.getDate() + (dayOfWeek === 6 ? 2 : 1)
       );
     }
+
+    weekendShiftInfo = {
+      originalDate,                  // real birthday (the weekend day)
+      originalDayName: dayName,      // "Saturday" or "Sunday"
+      shiftPolicy:     weekendPolicy,
+    };
 
     console.log(
       `  📅 Birthday on ${dayName} — shifted to ` +
@@ -390,10 +399,11 @@ async function processEmployee(
     companyId,
     company,
     {
-      eventType:   EVENT_TYPES.BIRTHDAY,
+      eventType:    EVENT_TYPES.BIRTHDAY,
       deliveryDate: nextBirthday,
       bundle,
-      autoApprove: rules.autoApprove || false,
+      autoApprove:  rules.autoApprove || false,
+      weekendShift: weekendShiftInfo,
     },
     results
   );
@@ -620,6 +630,7 @@ async function createOrderIfNotExists(
     deliveryDate,
     bundle,
     autoApprove,
+    weekendShift,
   } = event;
 
   // Set delivery time to 9am
@@ -751,6 +762,13 @@ async function createOrderIfNotExists(
     chargeAmount,
     wholesaleCost,
     deliveryDate:    deliveryTs,
+    // Weekend-shift metadata (null when delivery date == actual birthday)
+    weekendShifted:  !!weekendShift,
+    originalDate:    weekendShift
+                       ? admin.firestore.Timestamp.fromDate(weekendShift.originalDate)
+                       : null,
+    originalDayName: weekendShift ? weekendShift.originalDayName : null,
+    shiftPolicy:     weekendShift ? weekendShift.shiftPolicy     : null,
     confirmationSentAt: null,
     confirmedAt:        null,
     routedAt:           null,
