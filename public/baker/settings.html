@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings — Delightmaker Baker</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    .settings-card { background:#fff; border:1px solid #EADBCB; border-radius:16px; padding:24px; margin-bottom:20px; max-width:640px; }
+    .settings-card h2 { font-family:var(--font-head); font-size:1.15rem; color:#1A1008; margin:0 0 4px; }
+    .settings-card .sub { font-size:0.85rem; color:#8B7260; margin:0 0 18px; }
+    .settings-card.danger { border-color:#E7B7B0; background:#FFFBFA; }
+    .field { margin-bottom:16px; }
+    .field label { display:block; font-size:0.82rem; font-weight:700; color:#4A3020; margin-bottom:6px; }
+    .field input { width:100%; padding:10px 12px; font-size:0.92rem; border:1.5px solid #E8DDD0; border-radius:10px; color:#1A1008; font-family:inherit; background:#fff; }
+    .field input:focus { outline:none; border-color:#C4621D; }
+    .pw-reqs { margin-top:6px; }
+    .pw-req { font-size:0.78rem; font-weight:600; color:#aaa; line-height:1.6; }
+    .pw-req.met { color:#1E6B30; }
+    .notif-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #F0EBE3; gap:16px; }
+    .notif-row:last-of-type { border-bottom:none; }
+    .notif-row .t { font-weight:600; font-size:0.9rem; color:#1A1008; }
+    .notif-row .s { font-size:0.78rem; color:#8B7260; }
+    .field-error { display:none; color:#C62828; font-size:0.78rem; font-weight:600; margin-top:4px; }
+    .field-error.show { display:block; }
+  </style>
+</head>
+
+<body class="dash-body">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item"><span class="nav-icon">📦</span><span class="nav-label">Orders</span></a>
+      <a href="dashboard.html?view=week" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label">Week View</span></a>
+      <a href="menu.html" class="nav-item"><span class="nav-icon">🍰</span><span class="nav-label">My Menu</span></a>
+      <a href="dashboard.html?view=invoice" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Invoice</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="bakerAvatarLetter">B</div>
+        <div class="user-info">
+          <p class="user-name" id="bakeryName">Loading...</p>
+          <p class="user-role">Baker</p>
+        </div>
+      </div>
+      <button class="sidebar-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Settings</h1>
+          <p class="dash-subtitle">Manage your bakery profile, notifications, and account</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- BAKERY PROFILE -->
+    <div class="settings-card">
+      <h2>🍰 Bakery Profile</h2>
+      <p class="sub">This information appears on orders routed to you.</p>
+      <div class="field">
+        <label>Bakery Name</label>
+        <input type="text" id="bkName" placeholder="Youssef's Bakery"/>
+        <span class="field-error" id="errBkName">Bakery name is required</span>
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input type="tel" id="bkPhone" placeholder="(902) 555-0123"/>
+      </div>
+      <div class="field">
+        <label>Bakery Address</label>
+        <input type="text" id="bkAddress" placeholder="123 Spring Garden Rd, Halifax, NS"/>
+      </div>
+      <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">Save Profile</button>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="settings-card">
+      <h2>📧 Email Notifications</h2>
+      <p class="sub">Choose which emails you receive.</p>
+      <div class="notif-row">
+        <div><div class="t">New order assigned</div><div class="s">Emailed when a paid order is routed to you</div></div>
+        <label class="toggle toggle-sm"><input type="checkbox" id="nfOrder" checked/><span class="toggle-slider"></span></label>
+      </div>
+      <div class="notif-row">
+        <div><div class="t">Weekly order digest</div><div class="s">A summary of upcoming deliveries each week</div></div>
+        <label class="toggle toggle-sm"><input type="checkbox" id="nfWeekly" checked/><span class="toggle-slider"></span></label>
+      </div>
+      <div class="notif-row">
+        <div><div class="t">Payout / invoice emails</div><div class="s">Monthly invoice + payment notifications</div></div>
+        <label class="toggle toggle-sm"><input type="checkbox" id="nfPayout" checked/><span class="toggle-slider"></span></label>
+      </div>
+      <div class="field" style="margin-top:16px">
+        <label>CC another email on all notifications <span style="font-weight:400;color:#999">(optional)</span></label>
+        <input type="email" id="nfCcEmail" placeholder="partner@bakery.com"/>
+      </div>
+      <button class="btn btn-primary" id="saveNotifBtn" onclick="saveNotifications()">Save Notifications</button>
+    </div>
+
+    <!-- PASSWORD -->
+    <div class="settings-card">
+      <h2>🔒 Change Password</h2>
+      <p class="sub">Use a strong password you don't use elsewhere.</p>
+      <div class="field">
+        <label>Current Password</label>
+        <input type="password" id="pwCurrent" placeholder="Your current password"/>
+        <span class="field-error" id="errPwCurrent">Enter your current password</span>
+      </div>
+      <div class="field">
+        <label>New Password</label>
+        <input type="password" id="pwNew" placeholder="Min. 8 characters"/>
+        <div class="pw-reqs" id="pwReqs" style="display:none">
+          <div class="pw-req" id="rqLen">✗ At least 8 characters</div>
+          <div class="pw-req" id="rqLetter">✗ At least one letter</div>
+          <div class="pw-req" id="rqNum">✗ At least one number</div>
+          <div class="pw-req" id="rqSpec">✗ At least one special character</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Repeat New Password</label>
+        <input type="password" id="pwConfirm" placeholder="Repeat new password"/>
+        <span class="field-error" id="errPwConfirm">Passwords don't match</span>
+      </div>
+      <button class="btn btn-primary" id="savePwBtn" onclick="changePassword()">Update Password</button>
+    </div>
+
+    <!-- DANGER ZONE -->
+    <div class="settings-card danger">
+      <h2 style="color:#C62828">⚠️ Delete Account</h2>
+      <p class="sub">Permanently removes your login and menu. Your past orders are kept for accounting. You'd have to re-apply to return. <strong>This cannot be undone.</strong></p>
+      <div class="field">
+        <label>Type <strong>DELETE</strong> to confirm</label>
+        <input type="text" id="deleteConfirm" placeholder="DELETE" autocomplete="off"/>
+      </div>
+      <button class="btn" id="deleteAccountBtn" style="background:#C62828;color:#fff" onclick="deleteAccount()">Delete My Account</button>
+    </div>
+
+  </main>
+
+  <script src="../js/firebase-config.js"></script>
+  <script>
+    requireAuth('baker').then(async user => {
+      document.getElementById('bakerAvatarLetter').textContent =
+        (user.name || user.email || 'B').charAt(0).toUpperCase();
+      await loadSettings();
+    });
+
+    async function loadSettings() {
+      try {
+        const res = await apiCall('/api/settings/me');
+        const { settings } = await res.json();
+        document.getElementById('bakeryName').textContent = settings.bakery?.name || '—';
+        document.getElementById('bkName').value    = settings.bakery?.name || '';
+        document.getElementById('bkPhone').value   = settings.bakery?.phone || '';
+        document.getElementById('bkAddress').value = settings.bakery?.address || '';
+        const n = settings.notifications || {};
+        document.getElementById('nfOrder').checked  = n.orderAssigned !== false;
+        document.getElementById('nfWeekly').checked = n.weeklyDigest !== false;
+        document.getElementById('nfPayout').checked = n.payout !== false;
+        document.getElementById('nfCcEmail').value  = n.ccEmail || '';
+      } catch (err) {
+        console.error('Load settings error:', err);
+        showToast('Failed to load settings', 'error');
+      }
+    }
+
+    async function saveProfile() {
+      const name = document.getElementById('bkName').value.trim();
+      const err  = document.getElementById('errBkName');
+      if (name.length < 2) { err.classList.add('show'); return; }
+      err.classList.remove('show');
+      const btn = document.getElementById('saveProfileBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      try {
+        const res = await apiCall('/api/settings/profile', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name,
+            phone: document.getElementById('bkPhone').value.trim(),
+            address: document.getElementById('bkAddress').value.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        document.getElementById('bakeryName').textContent = name;
+        showToast('Profile saved!', 'success');
+      } catch (e) {
+        showToast(e.message || 'Failed to save', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Profile';
+      }
+    }
+
+    async function saveNotifications() {
+      const btn = document.getElementById('saveNotifBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      try {
+        const res = await apiCall('/api/settings/notifications', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            orderAssigned: document.getElementById('nfOrder').checked,
+            weeklyDigest:  document.getElementById('nfWeekly').checked,
+            payout:        document.getElementById('nfPayout').checked,
+            ccEmail:       document.getElementById('nfCcEmail').value.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        showToast('Notifications saved!', 'success');
+      } catch (e) {
+        showToast(e.message || 'Failed to save', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Notifications';
+      }
+    }
+
+    const pwNew = document.getElementById('pwNew');
+    pwNew.addEventListener('focus', () => document.getElementById('pwReqs').style.display = 'block');
+    pwNew.addEventListener('input', () => {
+      const v = pwNew.value;
+      setReq('rqLen', v.length >= 8, 'At least 8 characters');
+      setReq('rqLetter', /[a-zA-Z]/.test(v), 'At least one letter');
+      setReq('rqNum', /[0-9]/.test(v), 'At least one number');
+      setReq('rqSpec', /[^a-zA-Z0-9]/.test(v), 'At least one special character');
+    });
+    function setReq(id, ok, label) {
+      const el = document.getElementById(id);
+      el.textContent = (ok ? '✓ ' : '✗ ') + label;
+      el.className = 'pw-req' + (ok ? ' met' : '');
+    }
+    function isStrongPw(v) {
+      return v.length >= 8 && /[a-zA-Z]/.test(v) && /[0-9]/.test(v) && /[^a-zA-Z0-9]/.test(v);
+    }
+
+    async function changePassword() {
+      const current = document.getElementById('pwCurrent').value;
+      const next    = document.getElementById('pwNew').value;
+      const confirm = document.getElementById('pwConfirm').value;
+      const errCur  = document.getElementById('errPwCurrent');
+      const errConf = document.getElementById('errPwConfirm');
+      errCur.classList.remove('show'); errConf.classList.remove('show');
+      if (!current) { errCur.classList.add('show'); return; }
+      if (!isStrongPw(next)) { showToast('New password does not meet requirements', 'error'); return; }
+      if (next !== confirm) { errConf.classList.add('show'); return; }
+      const btn = document.getElementById('savePwBtn');
+      btn.disabled = true; btn.textContent = 'Updating...';
+      try {
+        const user = firebase.auth().currentUser;
+        const cred = firebase.auth.EmailAuthProvider.credential(user.email, current);
+        await user.reauthenticateWithCredential(cred);
+        await user.updatePassword(next);
+        document.getElementById('pwCurrent').value = '';
+        document.getElementById('pwNew').value = '';
+        document.getElementById('pwConfirm').value = '';
+        document.getElementById('pwReqs').style.display = 'none';
+        showToast('Password updated!', 'success');
+      } catch (e) {
+        console.error('Password change error:', e);
+        if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+          errCur.textContent = 'Current password is incorrect';
+          errCur.classList.add('show');
+        } else {
+          showToast(e.message || 'Failed to update password', 'error');
+        }
+      } finally {
+        btn.disabled = false; btn.textContent = 'Update Password';
+      }
+    }
+
+    async function deleteAccount() {
+      if (document.getElementById('deleteConfirm').value.trim() !== 'DELETE') {
+        showToast('Type DELETE to confirm', 'error');
+        return;
+      }
+      const ok = await confirmDialog(
+        'This permanently deletes your bakery account and menu. Past orders are kept. This cannot be undone. Continue?',
+        '⚠️ Delete Account'
+      );
+      if (!ok) return;
+      const btn = document.getElementById('deleteAccountBtn');
+      btn.disabled = true; btn.textContent = 'Deleting...';
+      try {
+        const res = await apiCall('/api/settings/account', { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        await firebase.auth().signOut();
+        alert('Your account has been deleted.');
+        window.location.href = '/';
+      } catch (e) {
+        showToast(e.message || 'Failed to delete account', 'error');
+        btn.disabled = false; btn.textContent = 'Delete My Account';
+      }
+    }
+  </script>
+</body>
+</html>

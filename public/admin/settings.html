@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings — Delightmaker Admin</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    .settings-card { background:#fff; border:1px solid #EADBCB; border-radius:16px; padding:24px; margin-bottom:20px; max-width:640px; }
+    .settings-card h2 { font-family:var(--font-head); font-size:1.15rem; color:#1A1008; margin:0 0 4px; }
+    .settings-card .sub { font-size:0.85rem; color:#8B7260; margin:0 0 18px; }
+    .field { margin-bottom:16px; }
+    .field label { display:block; font-size:0.82rem; font-weight:700; color:#4A3020; margin-bottom:6px; }
+    .field input { width:100%; padding:10px 12px; font-size:0.92rem; border:1.5px solid #E8DDD0; border-radius:10px; color:#1A1008; font-family:inherit; background:#fff; }
+    .field input:focus { outline:none; border-color:#C4621D; }
+    .pw-reqs { margin-top:6px; }
+    .pw-req { font-size:0.78rem; font-weight:600; color:#aaa; line-height:1.6; }
+    .pw-req.met { color:#1E6B30; }
+    .field-error { display:none; color:#C62828; font-size:0.78rem; font-weight:600; margin-top:4px; }
+    .field-error.show { display:block; }
+  </style>
+</head>
+
+<body class="dash-body">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="/admin/clients" class="nav-item"><span class="nav-icon">🏢</span><span class="nav-label">Clients</span></a>
+      <a href="/admin/orders" class="nav-item"><span class="nav-icon">📦</span><span class="nav-label">Orders</span></a>
+      <a href="/admin/bakeries" class="nav-item"><span class="nav-icon">🧁</span><span class="nav-label">Bakeries</span></a>
+      <a href="/admin/revenue" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Revenue</span></a>
+      <a href="/admin/applications" class="nav-item"><span class="nav-icon">📋</span><span class="nav-label">Applications</span></a>
+      <a href="/admin/invoices" class="nav-item"><span class="nav-icon">🧾</span><span class="nav-label">Invoices</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="adminAvatar">C</div>
+        <div class="user-info">
+          <p class="user-name" id="adminName">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Settings</h1>
+          <p class="dash-subtitle">Manage your admin account</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- PROFILE -->
+    <div class="settings-card">
+      <h2>👤 Profile</h2>
+      <p class="sub">Your display name across the admin portal.</p>
+      <div class="field">
+        <label>Display Name</label>
+        <input type="text" id="adName" placeholder="Colton"/>
+        <span class="field-error" id="errName">Name must be at least 2 characters</span>
+      </div>
+      <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">Save Profile</button>
+    </div>
+
+    <!-- PASSWORD -->
+    <div class="settings-card">
+      <h2>🔒 Change Password</h2>
+      <p class="sub">Use a strong password you don't use elsewhere.</p>
+      <div class="field">
+        <label>Current Password</label>
+        <input type="password" id="pwCurrent" placeholder="Your current password"/>
+        <span class="field-error" id="errPwCurrent">Enter your current password</span>
+      </div>
+      <div class="field">
+        <label>New Password</label>
+        <input type="password" id="pwNew" placeholder="Min. 8 characters"/>
+        <div class="pw-reqs" id="pwReqs" style="display:none">
+          <div class="pw-req" id="rqLen">✗ At least 8 characters</div>
+          <div class="pw-req" id="rqLetter">✗ At least one letter</div>
+          <div class="pw-req" id="rqNum">✗ At least one number</div>
+          <div class="pw-req" id="rqSpec">✗ At least one special character</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Repeat New Password</label>
+        <input type="password" id="pwConfirm" placeholder="Repeat new password"/>
+        <span class="field-error" id="errPwConfirm">Passwords don't match</span>
+      </div>
+      <button class="btn btn-primary" id="savePwBtn" onclick="changePassword()">Update Password</button>
+    </div>
+
+  </main>
+
+  <script src="../js/firebase-config.js"></script>
+  <script>
+    requireAuth('admin').then(async user => {
+      document.getElementById('adminAvatar').textContent =
+        (user.name || user.email || 'C').charAt(0).toUpperCase();
+      await loadSettings();
+    });
+
+    async function loadSettings() {
+      try {
+        const res = await apiCall('/api/settings/me');
+        const { settings } = await res.json();
+        document.getElementById('adName').value = settings.displayName || '';
+        if (settings.displayName) {
+          document.getElementById('adminName').textContent = settings.displayName;
+        }
+      } catch (err) {
+        console.error('Load settings error:', err);
+        showToast('Failed to load settings', 'error');
+      }
+    }
+
+    async function saveProfile() {
+      const name = document.getElementById('adName').value.trim();
+      const err  = document.getElementById('errName');
+      if (name.length < 2) { err.classList.add('show'); return; }
+      err.classList.remove('show');
+      const btn = document.getElementById('saveProfileBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      try {
+        const res = await apiCall('/api/settings/profile', {
+          method: 'PATCH',
+          body: JSON.stringify({ displayName: name }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        document.getElementById('adminName').textContent = name;
+        showToast('Profile saved!', 'success');
+      } catch (e) {
+        showToast(e.message || 'Failed to save', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Profile';
+      }
+    }
+
+    const pwNew = document.getElementById('pwNew');
+    pwNew.addEventListener('focus', () => document.getElementById('pwReqs').style.display = 'block');
+    pwNew.addEventListener('input', () => {
+      const v = pwNew.value;
+      setReq('rqLen', v.length >= 8, 'At least 8 characters');
+      setReq('rqLetter', /[a-zA-Z]/.test(v), 'At least one letter');
+      setReq('rqNum', /[0-9]/.test(v), 'At least one number');
+      setReq('rqSpec', /[^a-zA-Z0-9]/.test(v), 'At least one special character');
+    });
+    function setReq(id, ok, label) {
+      const el = document.getElementById(id);
+      el.textContent = (ok ? '✓ ' : '✗ ') + label;
+      el.className = 'pw-req' + (ok ? ' met' : '');
+    }
+    function isStrongPw(v) {
+      return v.length >= 8 && /[a-zA-Z]/.test(v) && /[0-9]/.test(v) && /[^a-zA-Z0-9]/.test(v);
+    }
+
+    async function changePassword() {
+      const current = document.getElementById('pwCurrent').value;
+      const next    = document.getElementById('pwNew').value;
+      const confirm = document.getElementById('pwConfirm').value;
+      const errCur  = document.getElementById('errPwCurrent');
+      const errConf = document.getElementById('errPwConfirm');
+      errCur.classList.remove('show'); errConf.classList.remove('show');
+      if (!current) { errCur.classList.add('show'); return; }
+      if (!isStrongPw(next)) { showToast('New password does not meet requirements', 'error'); return; }
+      if (next !== confirm) { errConf.classList.add('show'); return; }
+      const btn = document.getElementById('savePwBtn');
+      btn.disabled = true; btn.textContent = 'Updating...';
+      try {
+        const user = firebase.auth().currentUser;
+        const cred = firebase.auth.EmailAuthProvider.credential(user.email, current);
+        await user.reauthenticateWithCredential(cred);
+        await user.updatePassword(next);
+        document.getElementById('pwCurrent').value = '';
+        document.getElementById('pwNew').value = '';
+        document.getElementById('pwConfirm').value = '';
+        document.getElementById('pwReqs').style.display = 'none';
+        showToast('Password updated!', 'success');
+      } catch (e) {
+        console.error('Password change error:', e);
+        if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+          errCur.textContent = 'Current password is incorrect';
+          errCur.classList.add('show');
+        } else {
+          showToast(e.message || 'Failed to update password', 'error');
+        }
+      } finally {
+        btn.disabled = false; btn.textContent = 'Update Password';
+      }
+    }
+  </script>
+</body>
+</html>

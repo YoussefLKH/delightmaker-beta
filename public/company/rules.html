@@ -552,93 +552,7 @@
       </section><!-- /delivery -->
 
 
-      <!-- ── NOTIFICATION SETTINGS ──────── -->
-      <section class="dash-card rule-section">
-
-        <div class="rule-section-header">
-          <div class="rule-section-icon">📧</div>
-          <div class="rule-section-info">
-            <h2>Notifications</h2>
-            <p>Choose who gets emailed and when</p>
-          </div>
-        </div>
-
-        <div class="rule-section-body">
-
-          <div class="notification-rows">
-
-            <div class="notification-row">
-              <div class="notif-info">
-                <p class="notif-title">
-                  Order confirmation emails
-                </p>
-                <p class="notif-sub">
-                  Sent 7 days before delivery
-                  asking you to approve
-                </p>
-              </div>
-              <label class="toggle toggle-sm">
-                <input type="checkbox"
-                       id="notifConfirmation"
-                       checked/>
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-
-            <div class="notification-row">
-              <div class="notif-info">
-                <p class="notif-title">
-                  Delivery confirmation emails
-                </p>
-                <p class="notif-sub">
-                  Sent when baker marks treat
-                  as delivered
-                </p>
-              </div>
-              <label class="toggle toggle-sm">
-                <input type="checkbox"
-                       id="notifDelivery"
-                       checked/>
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-
-            <div class="notification-row">
-              <div class="notif-info">
-                <p class="notif-title">
-                  Monthly spend summary
-                </p>
-                <p class="notif-sub">
-                  End-of-month email with your
-                  spending breakdown
-                </p>
-              </div>
-              <label class="toggle toggle-sm">
-                <input type="checkbox"
-                       id="notifMonthly"
-                       checked/>
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-
-          </div>
-
-          <div class="form-group"
-               style="margin-top:20px">
-            <label>Additional notification email
-              <span class="label-hint">
-                CC another person on all emails
-                (e.g. your manager)
-              </span>
-            </label>
-            <input type="email"
-                   id="ccEmail"
-                   placeholder="manager@company.com"/>
-          </div>
-
-        </div>
-
-      </section><!-- /notifications -->
+      <!-- Notifications moved to Settings → Email Notifications -->
 
 
       <!-- ── BOTTOM SAVE BAR ────────────── -->
@@ -920,12 +834,6 @@
           instructions:      '',
           blackoutDates:     [],
         },
-        notifications: {
-          confirmation: true,
-          delivery:     true,
-          monthly:      true,
-          ccEmail:      '',
-        },
       };
     }
 
@@ -968,17 +876,7 @@
 
       blackoutDates = del.blackoutDates || [];
       renderBlackoutDates();
-
-      // Notifications
-      const notif = rules.notifications || {};
-      document.getElementById('notifConfirmation')
-        .checked = notif.confirmation !== false;
-      document.getElementById('notifDelivery')
-        .checked = notif.delivery !== false;
-      document.getElementById('notifMonthly')
-        .checked = notif.monthly !== false;
-      document.getElementById('ccEmail')
-        .value = notif.ccEmail || '';
+      // Notifications now live on the Settings page.
     }
 
 
@@ -987,7 +885,7 @@
       const ids = [
         'birthdayLeadTime', 'birthdayWeekendPolicy',
         'defaultAddress', 'deliveryWindow',
-        'deliveryInstructions', 'ccEmail',
+        'deliveryInstructions',
       ];
       ids.forEach(id => {
         const el = document.getElementById(id);
@@ -1460,23 +1358,8 @@
             blackoutDates,
           },
 
-          notifications: {
-            confirmation:
-              document.getElementById(
-                'notifConfirmation'
-              ).checked,
-            delivery:
-              document.getElementById(
-                'notifDelivery'
-              ).checked,
-            monthly:
-              document.getElementById(
-                'notifMonthly'
-              ).checked,
-            ccEmail:
-              document.getElementById('ccEmail')
-                .value.trim().toLowerCase(),
-          },
+          // notifications are managed on the Settings page — do not
+          // write them here (merge:true preserves the existing value)
 
           updatedAt:
             firebase.firestore

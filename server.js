@@ -222,6 +222,9 @@ app.use('/api/invoices',
 app.use('/api/admin',
   require('./routes/admin'));
 
+app.use('/api/settings',
+  require('./routes/settings'));
+
 // ── Bakeries list (company + admin + baker) ────────
 app.get('/api/bakeries', async (req, res) => {
   try {
@@ -435,6 +438,15 @@ app.get('/admin/invoice-view', (req, res) => {
   );
 });
 
+app.get('/admin/settings', (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      'public', 'admin', 'settings.html'
+    )
+  );
+});
+
 // ── Company portal pages ───────────────────────────
 app.get('/company', (req, res) => {
   res.sendFile(
@@ -508,6 +520,15 @@ app.get('/company/orders', (req, res) => {
   );
 });
 
+app.get('/company/settings', (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      'public', 'company', 'settings.html'
+    )
+  );
+});
+
 // Redirect old celebrations URLs to new orders page
 app.get(['/company/celebrations', '/company/celebrations.html'], (req, res) => {
   res.redirect(301, '/company/orders');
@@ -546,6 +567,15 @@ app.get('/baker/menu', (req, res) => {
     path.join(
       __dirname,
       'public', 'baker', 'menu.html'
+    )
+  );
+});
+
+app.get('/baker/settings', (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      'public', 'baker', 'settings.html'
     )
   );
 });
