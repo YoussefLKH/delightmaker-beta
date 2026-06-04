@@ -839,7 +839,11 @@
         const sessRes = await apiCall(`/api/orders/${orderId}/checkout-session`, {
           method: 'POST',
           body: JSON.stringify({
-            successPath: '/company/orders?oneoff=success',
+            // Route through /approve/success so the order is confirmed,
+            // routed to the bakery, and confirmation emails fire — then
+            // it redirects back here with the success flag.
+            successPath: '/approve/success?redirect=' +
+                         encodeURIComponent('/company/orders?oneoff=success'),
             cancelPath:  '/company/orders?oneoff=cancelled',
           }),
         });

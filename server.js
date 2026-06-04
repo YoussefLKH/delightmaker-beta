@@ -657,7 +657,7 @@ app.get('/terms', (req, res) => {
 
 app.get('/approve/success', async (req, res) => {
   try {
-    const { session_id } = req.query;
+    const { session_id, redirect } = req.query;
 
     if (!session_id) {
       throw new Error('No session ID provided');
@@ -683,154 +683,19 @@ app.get('/approve/success', async (req, res) => {
     } = session.metadata || {};
 
     if (orderId) {
-      const {
-        db,
-        COLLECTIONS,
-        ORDER_STATUS,
-        serverTimestamp,
-        writeAuditLog,
-      } = require('./firebase/config');
+      const { confirmPaidOrder } = require('./functions/confirmOrder');
+      await confirmPaidOrder(orderId, {
+        sessionId:        session_id,
+        paymentIntent:    session.payment_intent,
+        amountTotalCents: session.amount_total,
+        tokenDocId,
+        method:           'stripe_checkout',
+      });
+    }
 
-      const orderRef = db
-        .collection(COLLECTIONS.ORDERS)
-        .doc(orderId);
-      const orderDoc = await orderRef.get();
-
-      // Confirm order if still pending or scheduled
-      // (webhook may have already done this — idempotent)
-      if (
-        orderDoc.exists &&
-        (orderDoc.data().status ===
-          ORDER_STATUS.PENDING_CONFIRMATION ||
-         orderDoc.data().status ===
-          ORDER_STATUS.SCHEDULED)
-      ) {
-        // Mark token as used
-        if (tokenDocId) {
-          await db
-            .collection('usedTokens')
-            .doc(tokenDocId)
-            .set({
-              usedAt:  serverTimestamp(),
-              orderId,
-              method:  'stripe_checkout',
-            });
-        }
-
-        // Confirm order + record payment
-        await orderRef.update({
-          status:          ORDER_STATUS.CONFIRMED,
-          confirmedAt:     serverTimestamp(),
-          confirmedBy:     'stripe_checkout',
-          stripeSessionId: session_id,
-          stripeChargeId:  session.payment_intent,
-          chargeStatus:    'paid',
-          chargedAt:       serverTimestamp(),
-        });
-
-        await writeAuditLog(
-          'stripe_checkout',
-          'confirm_order',
-          'order',
-          orderId,
-          {
-            sessionId: session_id,
-            method:    'stripe_checkout',
-          }
-        );
-
-        console.log(
-          `✅ Order confirmed via Stripe checkout: ${orderId}`
-        );
-
-        // ── Notify Colton that payment came in ────────
-        const resendKey = process.env.RESEND_API_KEY;
-        if (resendKey && resendKey !== 'your_resend_key_here') {
-          const { Resend } = require('resend');
-          const resend = new Resend(resendKey);
-          const o = orderDoc.data();
-
-          const delivDateStr = o.deliveryDate
-            ? new Date(o.deliveryDate._seconds * 1000)
-                .toLocaleDateString('en-CA', {
-                  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-                })
-            : 'TBD';
-
-          const amountStr = session.amount_total
-            ? `$${(session.amount_total / 100).toFixed(2)} CAD`
-            : o.chargeAmount
-            ? `$${o.chargeAmount.toFixed(2)} CAD`
-            : 'TBD';
-
-          resend.emails.send({
-            from:    `${process.env.RESEND_FROM_NAME} <${process.env.RESEND_FROM_EMAIL}>`,
-            to:      process.env.ADMIN_EMAIL,
-            subject: `💳 Payment received — ${o.employeeName}'s order (${amountStr})`,
-            html: `
-              <!DOCTYPE html>
-              <html>
-              <head><meta charset="UTF-8"/></head>
-              <body style="font-family:Arial,sans-serif;background:#FFFAF5;margin:0;padding:24px">
-                <div style="max-width:520px;margin:0 auto">
-
-                  <div style="background:#2D2D2D;border-radius:12px 12px 0 0;padding:20px 24px;text-align:center;color:white;font-size:1.1rem;font-weight:700">
-                    🧁 Delightmaker
-                  </div>
-
-                  <div style="background:white;border:1px solid #eee;padding:28px">
-                    <h2 style="margin:0 0 6px;color:#2D2D2D">💳 Payment Received</h2>
-                    <p style="color:#888;margin:0 0 20px;font-size:0.9rem">A company just approved and paid for an order.</p>
-
-                    <div style="background:#FFFAF5;border:2px solid #FFD93D;border-radius:10px;padding:16px 20px;margin-bottom:20px">
-                      <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
-                        <tr style="border-bottom:1px solid #eee">
-                          <td style="padding:7px 0;color:#888">Company</td>
-                          <td style="padding:7px 0;font-weight:700;text-align:right">${o.companyName || o.companyId}</td>
-                        </tr>
-                        <tr style="border-bottom:1px solid #eee">
-                          <td style="padding:7px 0;color:#888">Employee</td>
-                          <td style="padding:7px 0;font-weight:700;text-align:right">${o.employeeName}</td>
-                        </tr>
-                        <tr style="border-bottom:1px solid #eee">
-                          <td style="padding:7px 0;color:#888">Treat</td>
-                          <td style="padding:7px 0;font-weight:700;text-align:right">${o.productName || 'Birthday Bundle'}</td>
-                        </tr>
-                        <tr style="border-bottom:1px solid #eee">
-                          <td style="padding:7px 0;color:#888">Delivery</td>
-                          <td style="padding:7px 0;font-weight:700;text-align:right;color:#FF6B6B">${delivDateStr}</td>
-                        </tr>
-                        <tr>
-                          <td style="padding:7px 0;color:#888"><strong>Amount paid</strong></td>
-                          <td style="padding:7px 0;font-weight:700;text-align:right;font-size:1.05rem;color:#2E7D32">${amountStr}</td>
-                        </tr>
-                      </table>
-                    </div>
-
-                    <p style="color:#888;font-size:0.82rem;margin:0">Order has been auto-routed to the baker. Check your admin dashboard for details.</p>
-                  </div>
-
-                  <div style="background:#F5F5F5;border:1px solid #eee;border-radius:0 0 12px 12px;padding:14px;text-align:center;font-size:0.75rem;color:#AAA">
-                    Delightmaker · Halifax, NS 🇨🇦 ·
-                    <a href="${process.env.APP_URL}/admin/orders" style="color:#FF6B6B">View order →</a>
-                  </div>
-                </div>
-              </body>
-              </html>
-            `,
-          }).catch(err =>
-            console.error('Admin payment notification failed:', err.message)
-          );
-        }
-
-        // ── Auto-route to baker ────────────────────────
-        const { autoRouteToBaker } =
-          require('./functions/autoRoute');
-        autoRouteToBaker(orderId, orderDoc.data())
-          .catch(err => console.error(
-            'autoRouteToBaker error:', err.message
-          ));
-      }
+    // One-off flow passes ?redirect=... to return to its own page
+    if (redirect) {
+      return res.redirect(redirect);
     }
 
     res.send(approvePageHtml(

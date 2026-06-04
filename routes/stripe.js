@@ -129,63 +129,16 @@ router.post('/webhook',
             orderId &&
             session.payment_status === 'paid'
           ) {
-            const orderRef = db
-              .collection(COLLECTIONS.ORDERS)
-              .doc(orderId);
-            const orderDoc = await orderRef.get();
-
-            if (
-              orderDoc.exists &&
-              (orderDoc.data().status ===
-                ORDER_STATUS.PENDING_CONFIRMATION ||
-               orderDoc.data().status ===
-                ORDER_STATUS.SCHEDULED)
-            ) {
-              if (tokenDocId) {
-                await db
-                  .collection('usedTokens')
-                  .doc(tokenDocId)
-                  .set({
-                    usedAt:  serverTimestamp(),
-                    orderId,
-                    method:  'stripe_checkout_webhook',
-                  });
-              }
-
-              await orderRef.update({
-                status:          ORDER_STATUS.CONFIRMED,
-                confirmedAt:     serverTimestamp(),
-                confirmedBy:     'stripe_checkout',
-                stripeSessionId: session.id,
-                stripeChargeId:  session.payment_intent,
-                chargeStatus:    'paid',
-                chargedAt:       serverTimestamp(),
-              });
-
-              await writeAuditLog(
-                'stripe_webhook',
-                'confirm_order',
-                'order',
-                orderId,
-                {
-                  sessionId: session.id,
-                  method:    'stripe_checkout',
-                }
-              );
-
-              console.log(
-                `✅ Order confirmed via webhook: ${orderId}`
-              );
-
-              const { autoRouteToBaker } =
-                require('../functions/autoRoute');
-              autoRouteToBaker(
-                orderId, orderDoc.data()
-              ).catch(err => console.error(
-                'autoRouteToBaker error:', err.message
-              ));
-
-            } else {
+            const { confirmPaidOrder } =
+              require('../functions/confirmOrder');
+            const did = await confirmPaidOrder(orderId, {
+              sessionId:        session.id,
+              paymentIntent:    session.payment_intent,
+              amountTotalCents: session.amount_total,
+              tokenDocId,
+              method:           'stripe_checkout_webhook',
+            });
+            if (!did) {
               console.log(
                 `ℹ️  Order ${orderId} already confirmed ` +
                 `(webhook arrived after success page)`
