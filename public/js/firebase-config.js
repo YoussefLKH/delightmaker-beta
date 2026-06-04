@@ -719,12 +719,12 @@ function confirmDialog(message, title = 'Confirm') {
      • auto-close when a nav link is tapped
    ═══════════════════════════════════════════════════ */
 (function initSidebarDrawer() {
-  // Inject a "Settings" link into the sidebar footer, pointing to the
-  // correct portal settings page based on the current URL.
+  // Inject a "Settings" nav item at the end of the sidebar nav,
+  // alongside the other tabs, pointing to the correct portal page.
   function injectSettingsLink(sidebar) {
-    const footer = sidebar.querySelector('.sidebar-footer');
-    if (!footer) return;
-    if (footer.querySelector('.dm-settings-link')) return;
+    const nav = sidebar.querySelector('.sidebar-nav');
+    if (!nav) return;
+    if (nav.querySelector('.dm-settings-link')) return;
 
     const path = window.location.pathname;
     let href = null;
@@ -733,40 +733,19 @@ function confirmDialog(message, title = 'Confirm') {
     else if (path.includes('/baker/'))   href = '/baker/settings';
     if (!href) return;
 
-    // Don't show the link on the settings page itself
+    // Mark active when we're on the settings page itself
     const onSettings = path.endsWith('/settings') ||
                        path.endsWith('settings.html');
 
     const link = document.createElement('a');
     link.href = href;
-    link.className = 'dm-settings-link';
-    link.innerHTML = '<span style="font-size:1rem">⚙️</span><span>Settings</span>';
-    link.style.cssText = `
-      display:flex;align-items:center;gap:10px;
-      padding:10px 14px;margin-bottom:10px;
-      border-radius:10px;
-      color:${onSettings ? '#F0C98A' : 'rgba(255,255,255,0.75)'};
-      background:${onSettings ? 'rgba(212,152,42,0.15)' : 'transparent'};
-      font-size:0.9rem;font-weight:600;text-decoration:none;
-      font-family:inherit;transition:background 0.15s,color 0.15s;
-    `;
-    link.addEventListener('mouseenter', () => {
-      if (!onSettings) {
-        link.style.background = 'rgba(255,255,255,0.08)';
-        link.style.color = '#fff';
-      }
-    });
-    link.addEventListener('mouseleave', () => {
-      if (!onSettings) {
-        link.style.background = 'transparent';
-        link.style.color = 'rgba(255,255,255,0.75)';
-      }
-    });
+    link.className = 'nav-item dm-settings-link' + (onSettings ? ' active' : '');
+    link.innerHTML =
+      '<span class="nav-icon">⚙️</span>' +
+      '<span class="nav-label">Settings</span>';
 
-    // Insert just above the Sign Out button
-    const logoutBtn = footer.querySelector('.sidebar-logout');
-    if (logoutBtn) footer.insertBefore(link, logoutBtn);
-    else footer.appendChild(link);
+    // Append as the last tab in the nav list
+    nav.appendChild(link);
   }
 
   function setup() {
