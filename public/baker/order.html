@@ -588,9 +588,11 @@
         `).join('');
 
       // ── Card message ──────────────────────────
-      const msg =
-        o.customMessage ||
-        'Happy Birthday from the whole team! 🎂';
+      // Event-aware default when the company didn't write one.
+      const defaultMsg = o.eventType === 'birthday'
+        ? 'Happy Birthday from the whole team! 🎂'
+        : 'Enjoy the treats! 🎉';
+      const msg = o.customMessage || defaultMsg;
 
       document.getElementById('cardMessagePreview')
         .innerHTML = `

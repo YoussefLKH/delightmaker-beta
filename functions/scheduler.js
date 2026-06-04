@@ -576,6 +576,10 @@ async function processCompanyCelebrations(
       dietaryFlags:    [],
       deliveryAddress: celeb.deliveryAddress ||
                        company.defaultDeliveryAddress || '',
+      // Default card message for celebrations so the bakery always
+      // has something to print (company can override via instructions).
+      customMessage:   celeb.cardMessage ||
+                       `Happy ${celeb.name}! 🎉`,
       bakerNotes:      celeb.specialInstructions || '',
       chargeAmount,
       wholesaleCost,

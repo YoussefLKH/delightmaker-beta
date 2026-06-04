@@ -684,7 +684,9 @@ router.post('/notify-baker',
                   <span class="detail-value"
                         style="font-style:italic">
                     "${order.customMessage ||
-                      'No card message'}"
+                      (order.eventType === 'birthday'
+                        ? 'Happy Birthday from the whole team! 🎂'
+                        : 'Enjoy the treats! 🎉')}"
                   </span>
                 </div>
                 ${order.bakerNotes ? `

@@ -515,6 +515,9 @@ router.post('/oneoff',
         status:             ORDER_STATUS.PENDING_CONFIRMATION,
         dietaryFlags:       [],
         deliveryAddress,
+        // Default card message for one-off orders (company can't set one
+        // in the form yet) so the bakery always has something to print.
+        customMessage:      `Enjoy the treats! 🎉${company.name ? ` — from ${company.name}` : ''}`,
         bakerNotes:         notes || '',
         chargeAmount,
         wholesaleCost,

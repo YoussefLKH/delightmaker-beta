@@ -743,7 +743,9 @@
                   <p class="baker-detail-value"
                      style="font-style:italic">
                     "${order.customMessage ||
-                      'Happy Birthday from the team!'}"
+                      (order.eventType === 'birthday'
+                        ? 'Happy Birthday from the team!'
+                        : 'Enjoy the treats! 🎉')}"
                   </p>
                 </div>
               </div>
