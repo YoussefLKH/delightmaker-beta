@@ -512,11 +512,17 @@
     requireAuth('baker').then(async user => {
       bakeryId = user.bakerId;
 
-      // Sidebar name
-      document.getElementById('bakeryName').textContent =
-        auth.currentUser?.displayName || 'My Bakery';
-      document.getElementById('bakerAvatarLetter').textContent =
-        (auth.currentUser?.displayName || 'B')[0].toUpperCase();
+      // Sidebar name — use the BAKERY name (matches other tabs),
+      // not the user's personal display name.
+      try {
+        const doc = await db.collection('bakeries').doc(bakeryId).get();
+        const name = (doc.exists && doc.data().name) || 'My Bakery';
+        document.getElementById('bakeryName').textContent = name;
+        document.getElementById('bakerAvatarLetter').textContent =
+          name.charAt(0).toUpperCase();
+      } catch (e) {
+        document.getElementById('bakeryName').textContent = 'My Bakery';
+      }
 
       await loadProducts();
     });
