@@ -708,4 +708,118 @@ function confirmDialog(message, title = 'Confirm') {
   });
 }
 
+/* ═══════════════════════════════════════════════════
+   MOBILE SIDEBAR DRAWER — global close behavior
+   Works on every dashboard that has a .sidebar +
+   .mobile-menu-btn, regardless of how each page wires
+   its hamburger toggle. Adds:
+     • a tap-anywhere backdrop that closes the drawer
+     • an ✕ close button inside the drawer (mobile only)
+     • Escape key to close
+     • auto-close when a nav link is tapped
+   ═══════════════════════════════════════════════════ */
+(function initSidebarDrawer() {
+  function setup() {
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return; // page has no sidebar
+
+    // Inject styles (self-contained — no dependency on dashboard.css)
+    if (!document.getElementById('dm-drawer-styles')) {
+      const style = document.createElement('style');
+      style.id = 'dm-drawer-styles';
+      style.textContent = `
+        .dm-sidebar-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(20,12,6,0.5);
+          backdrop-filter: blur(1px);
+          z-index: 199;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.25s ease;
+        }
+        .dm-sidebar-backdrop.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .dm-sidebar-close {
+          display: none;
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(255,255,255,0.12);
+          color: #fff;
+          font-size: 1.1rem;
+          line-height: 1;
+          cursor: pointer;
+          z-index: 5;
+          align-items: center;
+          justify-content: center;
+        }
+        .dm-sidebar-close:hover {
+          background: rgba(255,255,255,0.22);
+        }
+        @media (max-width: 768px) {
+          .sidebar .dm-sidebar-close { display: inline-flex; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Backdrop element
+    let backdrop = document.querySelector('.dm-sidebar-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.className = 'dm-sidebar-backdrop';
+      document.body.appendChild(backdrop);
+    }
+
+    const closeDrawer = () => sidebar.classList.remove('sidebar-open');
+
+    // Tap backdrop to close
+    backdrop.addEventListener('click', closeDrawer);
+
+    // Escape to close
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeDrawer();
+    });
+
+    // ✕ close button inside the drawer
+    if (!sidebar.querySelector('.dm-sidebar-close')) {
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'dm-sidebar-close';
+      closeBtn.setAttribute('aria-label', 'Close menu');
+      closeBtn.innerHTML = '✕';
+      closeBtn.addEventListener('click', closeDrawer);
+      sidebar.appendChild(closeBtn);
+    }
+
+    // Sync backdrop visibility with the sidebar's open state,
+    // however the page chooses to toggle it.
+    const observer = new MutationObserver(() => {
+      const open = sidebar.classList.contains('sidebar-open');
+      backdrop.classList.toggle('show', open);
+    });
+    observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+
+    // Close the drawer automatically when a nav link is tapped
+    sidebar.querySelectorAll('.sidebar-nav a, .nav-item').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 768) closeDrawer();
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+})();
+
+
 console.log('🧁 Delightmaker Firebase initialized');
