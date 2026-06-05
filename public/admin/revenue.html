@@ -140,7 +140,7 @@
       <div class="kpi-card">
         <div class="kpi-icon">📦</div>
         <div class="kpi-body">
-          <p class="kpi-label">Deliveries</p>
+          <p class="kpi-label">Paid Orders</p>
           <p class="kpi-value" id="kpiDeliveries">—</p>
         </div>
       </div>
@@ -364,8 +364,9 @@
  
         const [ordersSnap, refundSnap, companiesSnap] =
           await Promise.all([
+            // All orders with a delivery date in this month.
+            // We filter to PAID, non-cancelled ones in JS below.
             db.collection('orders')
-              .where('status', '==', 'delivered')
               .where('deliveryDate', '>=',
                 firebase.firestore.Timestamp.fromDate(start))
               .where('deliveryDate', '<',
@@ -385,10 +386,17 @@
             db.collection('companies').get(),
           ]);
 
-        allOrders = ordersSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        // Revenue = orders that have actually been paid (Stripe upfront
+        // or charged on delivery), excluding cancelled ones. Orders store
+        // the price in `chargeAmount`; normalize it to `billedAmount` so
+        // the rest of the report works off a single field.
+        allOrders = ordersSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(o =>
+            (o.chargeStatus === 'paid' || o.stripeChargeId) &&
+            o.status !== 'cancelled'
+          )
+          .map(o => ({ ...o, billedAmount: o.chargeAmount || 0 }));
 
         // Only keep cancellations that actually have a refund
         allRefundOrders = refundSnap.docs
