@@ -374,8 +374,9 @@
               .orderBy('deliveryDate', 'asc')
               .get(),
 
+            // Range on refundedAt only (single-field index, no composite
+            // index needed). We filter to cancelled+refunded in JS.
             db.collection('orders')
-              .where('status', '==', 'cancelled')
               .where('refundedAt', '>=',
                 firebase.firestore.Timestamp.fromDate(start))
               .where('refundedAt', '<',
@@ -399,10 +400,10 @@
           .filter(o => o.chargeStatus === 'paid' || o.stripeChargeId)
           .map(o => ({ ...o, billedAmount: o.chargeAmount || 0 }));
 
-        // Only keep cancellations that actually have a refund
+        // Only keep cancelled orders that actually have a refund
         allRefundOrders = refundSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(o => o.refundId);
+          .filter(o => o.refundId && o.status === 'cancelled');
 
         const companies = {};
         companiesSnap.docs.forEach(doc => {
