@@ -390,12 +390,13 @@
         // or charged on delivery), excluding cancelled ones. Orders store
         // the price in `chargeAmount`; normalize it to `billedAmount` so
         // the rest of the report works off a single field.
+        // Keep every order that was actually PAID (incl. ones later
+        // refunded — the money was collected, so it counts in gross).
+        // Orders cancelled before payment have neither field and drop out.
+        // Refunds are then netted out via the separate refund query below.
         allOrders = ordersSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(o =>
-            (o.chargeStatus === 'paid' || o.stripeChargeId) &&
-            o.status !== 'cancelled'
-          )
+          .filter(o => o.chargeStatus === 'paid' || o.stripeChargeId)
           .map(o => ({ ...o, billedAmount: o.chargeAmount || 0 }));
 
         // Only keep cancellations that actually have a refund
