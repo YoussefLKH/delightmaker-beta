@@ -109,10 +109,11 @@ router.post('/tickets', authenticate, async (req, res) => {
 
     const docRef = await db.collection(TICKETS).add(ticket);
 
-    // ── Email Colton ──────────────────────────────
+    // ── Emails (awaited so Vercel doesn't kill them on response) ──
+    const emailJobs = [];
     if (isResendConfigured() && process.env.ADMIN_EMAIL) {
       const resend = getResend();
-      resend.emails.send({
+      emailJobs.push(resend.emails.send({
         from:    `${process.env.RESEND_FROM_NAME} <${process.env.EMAIL_SUPPORT || process.env.RESEND_FROM_EMAIL}>`,
         to:      process.env.ADMIN_EMAIL,
         replyTo: reporterEmail || undefined,
@@ -135,11 +136,11 @@ router.post('/tickets', authenticate, async (req, res) => {
             </div>
           </div>
         `,
-      }).catch(err => console.error('Support admin email failed:', err.message));
+      }).catch(err => console.error('Support admin email failed:', err.message)));
 
       // ── Confirmation to reporter ────────────────
       if (reporterEmail) {
-        resend.emails.send({
+        emailJobs.push(resend.emails.send({
           from:    `${process.env.RESEND_FROM_NAME} <${process.env.EMAIL_SUPPORT || process.env.RESEND_FROM_EMAIL}>`,
           to:      reporterEmail,
           subject: `We got your report (${ref})`,
@@ -158,9 +159,15 @@ router.post('/tickets', authenticate, async (req, res) => {
               <div style="background:#F5F5F5;border:1px solid #eee;border-radius:0 0 12px 12px;padding:14px;text-align:center;font-size:0.75rem;color:#AAA">Delightmaker · Halifax, NS 🇨🇦</div>
             </div>
           `,
-        }).catch(err => console.error('Support confirmation email failed:', err.message));
+        }).catch(err => console.error('Support confirmation email failed:', err.message)));
       }
+    } else {
+      console.warn('🆘 Support emails skipped — Resend or ADMIN_EMAIL not configured');
     }
+
+    // Wait for the emails to actually send before returning (Vercel
+    // terminates the function as soon as the response is sent).
+    if (emailJobs.length) await Promise.allSettled(emailJobs);
 
     console.log(`🆘 Support ticket ${ref} from ${role} (${reporterEmail || uid})`);
     return res.status(200).json({ success: true, ref, id: docRef.id });
