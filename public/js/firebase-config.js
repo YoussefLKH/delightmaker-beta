@@ -895,15 +895,18 @@ function confirmDialog(message, title = 'Confirm') {
     const style = document.createElement('style');
     style.textContent = `
       #dm-report-btn {
-        position: fixed; bottom: 24px; left: 24px; z-index: 9998;
-        display: inline-flex; align-items: center; gap: 8px;
-        background: #C4621D; color: #fff; border: none;
-        padding: 12px 18px; border-radius: 100px;
-        font-family: inherit; font-size: 0.88rem; font-weight: 700;
-        cursor: pointer; box-shadow: 0 6px 22px rgba(196,98,29,0.35);
-        transition: transform 0.15s, box-shadow 0.15s;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; margin: 0 0 12px;
+        background: rgba(212,152,42,0.14);
+        color: #F0C98A; border: 1px solid rgba(212,152,42,0.25);
+        padding: 11px 14px; border-radius: 10px;
+        font-family: inherit; font-size: 0.86rem; font-weight: 700;
+        cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
       }
-      #dm-report-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(196,98,29,0.45); }
+      #dm-report-btn:hover {
+        background: rgba(212,152,42,0.22); color: #FFE0B0;
+        border-color: rgba(212,152,42,0.45);
+      }
       #dm-report-overlay {
         position: fixed; inset: 0; background: rgba(20,12,6,0.5);
         backdrop-filter: blur(2px); z-index: 10000;
@@ -941,18 +944,25 @@ function confirmDialog(message, title = 'Confirm') {
       .dm-report-err { display: none; color: #C62828; font-size: 0.82rem; font-weight: 600; margin-top: -6px; margin-bottom: 12px; }
       .dm-report-err.show { display: block; }
       @keyframes dmSlideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-      @media (max-width: 600px) {
-        #dm-report-btn span:last-child { display: none; }
-        #dm-report-btn { padding: 14px; }
-      }
     `;
     document.head.appendChild(style);
 
-    // Button
+    // Button — placed in the sidebar footer, just above the user block.
     const btn = document.createElement('button');
     btn.id = 'dm-report-btn';
     btn.innerHTML = '<span>💬</span><span>Report an Issue</span>';
-    document.body.appendChild(btn);
+
+    const footer = document.querySelector('.sidebar-footer');
+    const userBlock = footer && footer.querySelector('.sidebar-user');
+    if (footer && userBlock) {
+      footer.insertBefore(btn, userBlock);   // above the name/avatar
+    } else if (footer) {
+      footer.insertBefore(btn, footer.firstChild);
+    } else {
+      // No sidebar on this page — fall back to a subtle fixed button
+      btn.style.cssText += 'position:fixed;bottom:24px;left:24px;width:auto;z-index:9998;';
+      document.body.appendChild(btn);
+    }
 
     // Modal
     const overlay = document.createElement('div');
