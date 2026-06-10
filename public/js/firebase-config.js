@@ -750,17 +750,26 @@ function confirmDialog(message, title = 'Confirm') {
         '<span class="nav-badge" id="dmSupportBadge" style="display:none">0</span>';
       nav.appendChild(support);
 
-      // Fetch open-ticket count for the badge
-      (async () => {
+      // Fetch open-ticket count for the badge.
+      // IMPORTANT: wait for Firebase auth to be ready and use a plain
+      // fetch (NOT apiCall) — apiCall force-signs-out on a 401, and at
+      // page load the auth token often isn't restored yet, which would
+      // bounce the admin straight back to the login page.
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) return;
         try {
-          const res  = await apiCall('/api/support/open-count');
+          const token = await user.getIdToken();
+          const res = await fetch('/api/support/open-count', {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (!res.ok) return;            // never sign out from a badge fetch
           const data = await res.json();
           if (data.openCount > 0) {
             const b = document.getElementById('dmSupportBadge');
             if (b) { b.textContent = data.openCount; b.style.display = ''; }
           }
-        } catch (_) {}
-      })();
+        } catch (_) { /* badge is non-critical */ }
+      });
     }
 
     const link = document.createElement('a');
