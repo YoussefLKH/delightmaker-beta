@@ -151,6 +151,23 @@
       <button class="btn btn-primary" id="saveNotifBtn" onclick="saveNotifications()">Save Notifications</button>
     </div>
 
+    <!-- EMAIL -->
+    <div class="settings-card">
+      <h2>✉️ Change Email</h2>
+      <p class="sub">This is your login email and where we send notifications. Current: <strong id="currentEmailLabel">—</strong></p>
+      <div class="field">
+        <label>Current Password</label>
+        <input type="password" id="emPwCurrent" placeholder="Confirm your password"/>
+        <span class="field-error" id="errEmPw">Enter your current password</span>
+      </div>
+      <div class="field">
+        <label>New Email</label>
+        <input type="email" id="emNew" placeholder="you@company.com"/>
+        <span class="field-error" id="errEmNew">Enter a valid email address</span>
+      </div>
+      <button class="btn btn-primary" id="saveEmailBtn" onclick="changeEmail()">Update Email</button>
+    </div>
+
     <!-- PASSWORD -->
     <div class="settings-card">
       <h2>🔒 Change Password</h2>
@@ -217,9 +234,55 @@
         document.getElementById('nfDelivery').checked     = n.delivery !== false;
         document.getElementById('nfMonthly').checked      = n.monthly !== false;
         document.getElementById('nfCcEmail').value        = n.ccEmail || '';
+        document.getElementById('currentEmailLabel').textContent =
+          settings.email || firebase.auth().currentUser?.email || '—';
       } catch (err) {
         console.error('Load settings error:', err);
         showToast('Failed to load settings', 'error');
+      }
+    }
+
+    async function changeEmail() {
+      const current = document.getElementById('emPwCurrent').value;
+      const newEmail = document.getElementById('emNew').value.trim().toLowerCase();
+      const errPw  = document.getElementById('errEmPw');
+      const errNew = document.getElementById('errEmNew');
+      errPw.classList.remove('show'); errNew.classList.remove('show');
+
+      if (!current) { errPw.classList.add('show'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(newEmail)) { errNew.classList.add('show'); return; }
+
+      const btn = document.getElementById('saveEmailBtn');
+      btn.disabled = true; btn.textContent = 'Updating...';
+      try {
+        // Re-authenticate to prove identity before a sensitive change
+        const user = firebase.auth().currentUser;
+        const cred = firebase.auth.EmailAuthProvider.credential(user.email, current);
+        await user.reauthenticateWithCredential(cred);
+
+        const res = await apiCall('/api/settings/email', {
+          method: 'PATCH',
+          body: JSON.stringify({ email: newEmail }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+
+        // Refresh the session so the new email is reflected
+        await user.getIdToken(true);
+        document.getElementById('currentEmailLabel').textContent = newEmail;
+        document.getElementById('emPwCurrent').value = '';
+        document.getElementById('emNew').value = '';
+        showToast('Email updated!', 'success');
+      } catch (e) {
+        console.error('Change email error:', e);
+        if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+          errPw.textContent = 'Current password is incorrect';
+          errPw.classList.add('show');
+        } else {
+          showToast(e.message || 'Failed to change email', 'error');
+        }
+      } finally {
+        btn.disabled = false; btn.textContent = 'Update Email';
       }
     }
 

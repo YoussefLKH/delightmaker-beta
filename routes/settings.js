@@ -179,6 +179,60 @@ router.patch('/profile', authenticate, async (req, res) => {
 
 
 /* ═══════════════════════════════════════════════════
+   PATCH /api/settings/email
+   Change the account's login email. The client must
+   reauthenticate (current password) before calling this.
+   Updates Firebase Auth + the users doc + the org's
+   contactEmail so notifications keep working.
+   ═══════════════════════════════════════════════════ */
+router.patch('/email', authenticate, async (req, res) => {
+  try {
+    const { role, uid, companyId, bakerId } = req.user;
+    const newEmail = (req.body?.email || '').trim().toLowerCase();
+
+    // Basic format check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(newEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    // Already in use by a different account?
+    try {
+      const existing = await auth.getUserByEmail(newEmail);
+      if (existing && existing.uid !== uid) {
+        return res.status(400).json({ error: 'That email is already in use by another account' });
+      }
+    } catch (_) { /* not found = available */ }
+
+    // Update Firebase Auth (admin-approved accounts are trusted → verified)
+    await auth.updateUser(uid, { email: newEmail, emailVerified: true });
+
+    // Update the users doc
+    await db.collection(COLLECTIONS.USERS).doc(uid)
+      .update({ email: newEmail }).catch(() => {});
+
+    // Update the org's contact email so notifications go to the new address
+    if (role === 'company_user' && companyId) {
+      await db.collection(COLLECTIONS.COMPANIES).doc(companyId)
+        .update({ contactEmail: newEmail }).catch(() => {});
+    } else if (role === 'baker' && bakerId) {
+      await db.collection(COLLECTIONS.BAKERIES).doc(bakerId)
+        .update({ contactEmail: newEmail, contact: newEmail }).catch(() => {});
+    }
+
+    console.log(`✉️  Email changed for ${role} ${uid} → ${newEmail}`);
+    return res.json({ success: true, email: newEmail });
+
+  } catch (err) {
+    console.error('PATCH /api/settings/email error:', err);
+    if (err.code === 'auth/email-already-exists') {
+      return res.status(400).json({ error: 'That email is already in use' });
+    }
+    return res.status(500).json({ error: 'Failed to change email' });
+  }
+});
+
+
+/* ═══════════════════════════════════════════════════
    PATCH /api/settings/notifications
    Company → giftingRules.notifications
    Baker   → bakeries.notifications
