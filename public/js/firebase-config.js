@@ -737,6 +737,32 @@ function confirmDialog(message, title = 'Confirm') {
     const onSettings = path.endsWith('/settings') ||
                        path.endsWith('settings.html');
 
+    // ── Admin gets a Support tab (with open-ticket badge) ──
+    if (path.includes('/admin/') && !nav.querySelector('.dm-support-link')) {
+      const onSupport = path.endsWith('/support') ||
+                        path.endsWith('support.html');
+      const support = document.createElement('a');
+      support.href = '/admin/support';
+      support.className = 'nav-item dm-support-link' + (onSupport ? ' active' : '');
+      support.innerHTML =
+        '<span class="nav-icon">🆘</span>' +
+        '<span class="nav-label">Support</span>' +
+        '<span class="nav-badge" id="dmSupportBadge" style="display:none">0</span>';
+      nav.appendChild(support);
+
+      // Fetch open-ticket count for the badge
+      (async () => {
+        try {
+          const res  = await apiCall('/api/support/open-count');
+          const data = await res.json();
+          if (data.openCount > 0) {
+            const b = document.getElementById('dmSupportBadge');
+            if (b) { b.textContent = data.openCount; b.style.display = ''; }
+          }
+        } catch (_) {}
+      })();
+    }
+
     const link = document.createElement('a');
     link.href = href;
     link.className = 'nav-item dm-settings-link' + (onSettings ? ' active' : '');
@@ -744,7 +770,7 @@ function confirmDialog(message, title = 'Confirm') {
       '<span class="nav-icon">⚙️</span>' +
       '<span class="nav-label">Settings</span>';
 
-    // Append as the last tab in the nav list
+    // Append as the last tab in the nav list (after Support for admin)
     nav.appendChild(link);
   }
 
@@ -842,6 +868,175 @@ function confirmDialog(message, title = 'Confirm') {
       link.addEventListener('click', () => {
         if (window.innerWidth <= 768) closeDrawer();
       });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+})();
+
+
+/* ═══════════════════════════════════════════════════
+   REPORT AN ISSUE — floating widget (company + baker)
+   Bottom-LEFT so it never overlaps toasts (bottom-right).
+   Injected globally; no per-page HTML needed.
+   ═══════════════════════════════════════════════════ */
+(function initReportIssue() {
+  function setup() {
+    const path = window.location.pathname;
+    // Only on company + baker portals (not admin, login, or landing)
+    if (!path.includes('/company/') && !path.includes('/baker/')) return;
+    if (document.getElementById('dm-report-btn')) return;
+
+    // Styles
+    const style = document.createElement('style');
+    style.textContent = `
+      #dm-report-btn {
+        position: fixed; bottom: 24px; left: 24px; z-index: 9998;
+        display: inline-flex; align-items: center; gap: 8px;
+        background: #C4621D; color: #fff; border: none;
+        padding: 12px 18px; border-radius: 100px;
+        font-family: inherit; font-size: 0.88rem; font-weight: 700;
+        cursor: pointer; box-shadow: 0 6px 22px rgba(196,98,29,0.35);
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      #dm-report-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(196,98,29,0.45); }
+      #dm-report-overlay {
+        position: fixed; inset: 0; background: rgba(20,12,6,0.5);
+        backdrop-filter: blur(2px); z-index: 10000;
+        display: none; align-items: center; justify-content: center; padding: 20px;
+      }
+      #dm-report-overlay.show { display: flex; }
+      .dm-report-card {
+        background: #fff; border-radius: 18px; width: 100%; max-width: 480px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25); overflow: hidden;
+        font-family: inherit; animation: dmSlideUp 0.25s ease;
+      }
+      .dm-report-head {
+        background: #C4621D; color: #fff; padding: 18px 22px;
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .dm-report-head h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+      .dm-report-x { background: rgba(255,255,255,0.18); border: none; color: #fff;
+        width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
+      .dm-report-body { padding: 22px; }
+      .dm-report-body label { display: block; font-size: 0.8rem; font-weight: 700; color: #4A3020; margin: 0 0 6px; }
+      .dm-report-body .fg { margin-bottom: 16px; }
+      .dm-report-body select, .dm-report-body input, .dm-report-body textarea {
+        width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 0.92rem;
+        border: 1.5px solid #E8DDD0; border-radius: 10px; font-family: inherit;
+        color: #1A1008; background: #fff;
+      }
+      .dm-report-body select:focus, .dm-report-body input:focus, .dm-report-body textarea:focus {
+        outline: none; border-color: #C4621D;
+      }
+      .dm-report-body textarea { resize: vertical; min-height: 90px; }
+      .dm-report-foot { padding: 0 22px 22px; display: flex; gap: 10px; justify-content: flex-end; }
+      .dm-report-foot button { padding: 10px 20px; border-radius: 100px; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; border: none; }
+      .dm-report-cancel { background: #F3ECE3; color: #6B5444; }
+      .dm-report-submit { background: #C4621D; color: #fff; }
+      .dm-report-err { display: none; color: #C62828; font-size: 0.82rem; font-weight: 600; margin-top: -6px; margin-bottom: 12px; }
+      .dm-report-err.show { display: block; }
+      @keyframes dmSlideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      @media (max-width: 600px) {
+        #dm-report-btn span:last-child { display: none; }
+        #dm-report-btn { padding: 14px; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Button
+    const btn = document.createElement('button');
+    btn.id = 'dm-report-btn';
+    btn.innerHTML = '<span>💬</span><span>Report an Issue</span>';
+    document.body.appendChild(btn);
+
+    // Modal
+    const overlay = document.createElement('div');
+    overlay.id = 'dm-report-overlay';
+    overlay.innerHTML = `
+      <div class="dm-report-card" role="dialog" aria-modal="true">
+        <div class="dm-report-head">
+          <h3>💬 Report an Issue</h3>
+          <button class="dm-report-x" aria-label="Close">✕</button>
+        </div>
+        <div class="dm-report-body">
+          <div class="fg">
+            <label>Category</label>
+            <select id="dm-report-cat">
+              <option>Bug</option>
+              <option>Billing</option>
+              <option>Delivery problem</option>
+              <option>Feature request</option>
+              <option selected>Other</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Subject</label>
+            <input id="dm-report-subj" type="text" maxlength="120" placeholder="Short summary of the issue"/>
+          </div>
+          <div class="fg">
+            <label>Description</label>
+            <textarea id="dm-report-desc" maxlength="2000" placeholder="What happened? Steps to reproduce, what you expected, anything that helps us fix it."></textarea>
+          </div>
+          <p class="dm-report-err" id="dm-report-err"></p>
+        </div>
+        <div class="dm-report-foot">
+          <button class="dm-report-cancel" type="button">Cancel</button>
+          <button class="dm-report-submit" type="button">Send Report →</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const open  = () => { overlay.classList.add('show'); };
+    const close = () => {
+      overlay.classList.remove('show');
+      document.getElementById('dm-report-subj').value = '';
+      document.getElementById('dm-report-desc').value = '';
+      document.getElementById('dm-report-err').classList.remove('show');
+    };
+
+    btn.addEventListener('click', open);
+    overlay.querySelector('.dm-report-x').addEventListener('click', close);
+    overlay.querySelector('.dm-report-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    const submitBtn = overlay.querySelector('.dm-report-submit');
+    submitBtn.addEventListener('click', async () => {
+      const category    = document.getElementById('dm-report-cat').value;
+      const subject     = document.getElementById('dm-report-subj').value.trim();
+      const description = document.getElementById('dm-report-desc').value.trim();
+      const err         = document.getElementById('dm-report-err');
+      err.classList.remove('show');
+
+      if (subject.length < 3) { err.textContent = 'Please add a short subject.'; err.classList.add('show'); return; }
+      if (description.length < 10) { err.textContent = 'Please describe the issue (a little more detail).'; err.classList.add('show'); return; }
+
+      submitBtn.disabled = true; submitBtn.textContent = 'Sending…';
+      try {
+        const res = await apiCall('/api/support/tickets', {
+          method: 'POST',
+          body: JSON.stringify({
+            category, subject, description,
+            page: window.location.pathname,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send');
+        close();
+        if (typeof showToast === 'function') {
+          showToast(`✅ Report sent! Ref ${data.ref}`, 'success', 5000);
+        }
+      } catch (e) {
+        err.textContent = e.message || 'Something went wrong.';
+        err.classList.add('show');
+      } finally {
+        submitBtn.disabled = false; submitBtn.textContent = 'Send Report →';
+      }
     });
   }
 

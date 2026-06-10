@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Support — Delightmaker Admin</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;500;600;700&family=Alex+Brush&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/dashboard.css"/>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    .ticket-card {
+      background:#fff; border:1px solid #EADBCB; border-radius:14px;
+      padding:18px 20px; margin-bottom:14px; transition:box-shadow 0.15s;
+    }
+    .ticket-card:hover { box-shadow:0 4px 16px rgba(196,98,29,0.1); }
+    .ticket-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .ticket-subject { font-weight:700; color:#1A1008; font-size:1rem; margin:0 0 4px; }
+    .ticket-meta { font-size:0.8rem; color:#8B7260; }
+    .ticket-cat {
+      display:inline-block; font-size:0.7rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.04em; padding:3px 9px; border-radius:99px;
+      background:#FDF0E6; color:#B45309; margin-right:8px;
+    }
+    .ticket-status {
+      font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:99px; white-space:nowrap;
+    }
+    .st-open { background:rgba(245,158,11,0.15); color:#B45309; }
+    .st-resolved { background:#DCF0DD; color:#1E6B30; }
+    .ticket-desc {
+      margin:12px 0 0; padding:12px 14px; background:#FFFAF5; border:1px solid #F0EBE3;
+      border-radius:10px; font-size:0.9rem; color:#444; white-space:pre-wrap; line-height:1.6;
+    }
+    .ticket-actions { margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; }
+    .ticket-actions button {
+      padding:8px 16px; border-radius:99px; font-family:inherit; font-weight:700;
+      font-size:0.82rem; cursor:pointer; border:none;
+    }
+    .btn-resolve { background:#2E7D32; color:#fff; }
+    .btn-reopen  { background:#F3ECE3; color:#6B5444; }
+    .btn-reply   { background:#C4621D; color:#fff; text-decoration:none; display:inline-flex; align-items:center; }
+    .filter-tabs { display:flex; gap:8px; margin-bottom:22px; }
+    .ft { padding:9px 18px; border-radius:99px; border:1.5px solid #E8DDD0; background:#fff;
+      font-family:inherit; font-weight:700; font-size:0.86rem; color:#8B7260; cursor:pointer; }
+    .ft.active { background:#C4621D; color:#fff; border-color:#C4621D; }
+    .empty { text-align:center; padding:60px 20px; color:#bbb; }
+  </style>
+</head>
+
+<body class="dash-body">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🧁</span>
+      <span class="logo-text">Delightmaker</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/admin/dashboard" class="nav-item"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="/admin/clients" class="nav-item"><span class="nav-icon">🏢</span><span class="nav-label">Clients</span></a>
+      <a href="/admin/orders" class="nav-item"><span class="nav-icon">📦</span><span class="nav-label">Orders</span></a>
+      <a href="/admin/bakeries" class="nav-item"><span class="nav-icon">🧁</span><span class="nav-label">Bakeries</span></a>
+      <a href="/admin/revenue" class="nav-item"><span class="nav-icon">💰</span><span class="nav-label">Revenue</span></a>
+      <a href="/admin/applications" class="nav-item"><span class="nav-icon">📋</span><span class="nav-label">Applications</span></a>
+      <a href="/admin/invoices" class="nav-item"><span class="nav-icon">🧾</span><span class="nav-label">Invoices</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="adminAvatar">C</div>
+        <div class="user-info">
+          <p class="user-name" id="adminName">Colton</p>
+          <p class="user-role">Admin</p>
+        </div>
+      </div>
+      <button class="sidebar-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        <div>
+          <h1 class="dash-title">Support</h1>
+          <p class="dash-subtitle" id="supportSubtitle">Issues reported by companies and bakeries</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="filter-tabs">
+      <button class="ft active" data-filter="open"     onclick="setFilter('open')">Open</button>
+      <button class="ft"        data-filter="resolved" onclick="setFilter('resolved')">Resolved</button>
+      <button class="ft"        data-filter="all"      onclick="setFilter('all')">All</button>
+    </div>
+
+    <div id="ticketList">
+      <div class="loading-rows">
+        <div class="loading-row"></div>
+        <div class="loading-row"></div>
+        <div class="loading-row"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/firebase-config.js"></script>
+  <script>
+    let allTickets = [];
+    let filter     = 'open';
+
+    requireAuth('admin').then(async user => {
+      document.getElementById('adminAvatar').textContent =
+        (user.name || user.email || 'C').charAt(0).toUpperCase();
+      await loadTickets();
+    });
+
+    async function loadTickets() {
+      try {
+        const res  = await apiCall('/api/support/tickets');
+        const data = await res.json();
+        allTickets = data.tickets || [];
+        render();
+      } catch (e) {
+        console.error('Load tickets error:', e);
+        document.getElementById('ticketList').innerHTML =
+          '<div class="empty"><p>Failed to load tickets.</p></div>';
+      }
+    }
+
+    function setFilter(f) {
+      filter = f;
+      document.querySelectorAll('.ft').forEach(b =>
+        b.classList.toggle('active', b.dataset.filter === f));
+      render();
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function render() {
+      const list = document.getElementById('ticketList');
+      const tickets = filter === 'all'
+        ? allTickets
+        : allTickets.filter(t => t.status === filter);
+
+      const openCount = allTickets.filter(t => t.status === 'open').length;
+      document.getElementById('supportSubtitle').textContent =
+        `${openCount} open · ${allTickets.length} total`;
+
+      if (tickets.length === 0) {
+        list.innerHTML = `<div class="empty"><div style="font-size:2.5rem;margin-bottom:10px">🎉</div><p>No ${filter === 'all' ? '' : filter} tickets.</p></div>`;
+        return;
+      }
+
+      list.innerHTML = tickets.map(t => {
+        const when = t.createdAt
+          ? new Date(t.createdAt).toLocaleDateString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+          : '';
+        const who = `${esc(t.reporterName) || 'Unknown'}${t.orgName ? ` · ${esc(t.orgName)}` : ''}`;
+        const roleLabel = t.role === 'company_user' ? 'Company' : t.role === 'baker' ? 'Bakery' : 'Admin';
+        const mailto = t.reporterEmail
+          ? `mailto:${t.reporterEmail}?subject=${encodeURIComponent('Re: ' + (t.subject || '') + ' (' + (t.ref||'') + ')')}`
+          : null;
+        return `
+          <div class="ticket-card">
+            <div class="ticket-top">
+              <div style="flex:1;min-width:0">
+                <p class="ticket-subject">
+                  <span class="ticket-cat">${esc(t.category)}</span>${esc(t.subject)}
+                </p>
+                <p class="ticket-meta">
+                  ${t.ref ? `<strong>${esc(t.ref)}</strong> · ` : ''}${who} · ${roleLabel} · ${when}
+                  ${t.reporterEmail ? ` · ${esc(t.reporterEmail)}` : ''}
+                </p>
+              </div>
+              <span class="ticket-status ${t.status === 'resolved' ? 'st-resolved' : 'st-open'}">
+                ${t.status === 'resolved' ? '✓ Resolved' : '● Open'}
+              </span>
+            </div>
+            <div class="ticket-desc">${esc(t.description)}</div>
+            ${t.page ? `<p class="ticket-meta" style="margin-top:8px">📍 Reported from: ${esc(t.page)}</p>` : ''}
+            <div class="ticket-actions">
+              ${mailto ? `<a class="btn-reply" href="${mailto}">✉ Reply by email</a>` : ''}
+              ${t.status === 'open'
+                ? `<button class="btn-resolve" onclick="setStatus('${t.id}','resolved')">✓ Mark Resolved</button>`
+                : `<button class="btn-reopen" onclick="setStatus('${t.id}','open')">↩ Reopen</button>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function setStatus(id, status) {
+      try {
+        const res = await apiCall(`/api/support/tickets/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        });
+        if (!res.ok) throw new Error('Failed');
+        const t = allTickets.find(x => x.id === id);
+        if (t) { t.status = status; t.resolvedAt = status === 'resolved' ? new Date().toISOString() : null; }
+        render();
+        showToast(status === 'resolved' ? 'Marked resolved' : 'Reopened', 'success');
+      } catch (e) {
+        showToast('Failed to update ticket', 'error');
+      }
+    }
+  </script>
+</body>
+</html>

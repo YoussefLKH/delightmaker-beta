@@ -225,6 +225,9 @@ app.use('/api/admin',
 app.use('/api/settings',
   require('./routes/settings'));
 
+app.use('/api/support',
+  require('./routes/support'));
+
 // ── Bakeries list (company + admin + baker) ────────
 app.get('/api/bakeries', async (req, res) => {
   try {
@@ -443,6 +446,15 @@ app.get('/admin/settings', (req, res) => {
     path.join(
       __dirname,
       'public', 'admin', 'settings.html'
+    )
+  );
+});
+
+app.get('/admin/support', (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      'public', 'admin', 'support.html'
     )
   );
 });
