@@ -40,6 +40,55 @@ async function geocodeAddress(address) {
 }
 
 
+/* ── Security alert email ──────────────────────────────
+   Sends a "your <thing> was changed" notice. Returns a
+   promise you can await so Vercel doesn't kill it early.   */
+function sendSecurityAlert({ to, kind, newEmailMasked }) {
+  const key = process.env.RESEND_API_KEY;
+  if (!to || !key || key === 'your_resend_key_here') return Promise.resolve();
+
+  const { Resend } = require('resend');
+  const resend = new Resend(key);
+
+  const isEmail = kind === 'email';
+  const title   = isEmail ? 'Your login email was changed' : 'Your password was changed';
+  const detail  = isEmail
+    ? `The email on your Delightmaker account was just changed${newEmailMasked ? ` to <strong>${newEmailMasked}</strong>` : ''}. You'll use the new address to sign in from now on.`
+    : `The password on your Delightmaker account was just changed. You'll use your new password to sign in from now on.`;
+  const support = process.env.EMAIL_SUPPORT || process.env.RESEND_FROM_EMAIL || 'support@delightmaker.ca';
+
+  return resend.emails.send({
+    from:    `${process.env.RESEND_FROM_NAME} <${support}>`,
+    to,
+    subject: `🔐 ${title}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#FFFAF5">
+        <div style="background:#1A1008;border-radius:12px 12px 0 0;padding:18px 24px;color:white;font-weight:700">🔐 Security Notice</div>
+        <div style="background:white;border:1px solid #eee;padding:28px">
+          <h2 style="margin:0 0 10px;color:#1A1008">${title}</h2>
+          <p style="color:#6B5444;margin:0 0 16px;line-height:1.6">${detail}</p>
+          <div style="background:#FFF3CD;border:1px solid #FFD966;border-radius:10px;padding:14px 16px;margin:0 0 16px">
+            <p style="margin:0;color:#7A5C00;font-size:0.9rem;line-height:1.6">
+              <strong>Didn't do this?</strong> Your account may be compromised. Contact us right away at
+              <a href="mailto:${support}" style="color:#C4621D;font-weight:700">${support}</a> and we'll help you secure it.
+            </p>
+          </div>
+          <p style="color:#8B7260;font-size:0.82rem;margin:0">${new Date().toLocaleString('en-CA', { dateStyle: 'long', timeStyle: 'short' })}</p>
+        </div>
+        <div style="background:#F5F5F5;border:1px solid #eee;border-radius:0 0 12px 12px;padding:14px;text-align:center;font-size:0.75rem;color:#AAA">Delightmaker · Halifax, NS 🇨🇦</div>
+      </div>
+    `,
+  }).catch(err => console.error('Security alert email failed:', err.message));
+}
+
+function maskEmail(email) {
+  if (!email || !email.includes('@')) return email || '';
+  const [user, domain] = email.split('@');
+  const shown = user.slice(0, 1);
+  return `${shown}${'*'.repeat(Math.max(2, user.length - 1))}@${domain}`;
+}
+
+
 /* ═══════════════════════════════════════════════════
    GET /api/settings/me
    Returns the profile + notification prefs for the
@@ -203,6 +252,18 @@ router.patch('/email', authenticate, async (req, res) => {
       }
     } catch (_) { /* not found = available */ }
 
+    // Capture the OLD email first so we can alert it after the change
+    let oldEmail = null;
+    try {
+      const cur = await auth.getUser(uid);
+      oldEmail = cur.email || null;
+    } catch (_) {}
+
+    // No-op guard
+    if (oldEmail && oldEmail.toLowerCase() === newEmail) {
+      return res.status(400).json({ error: 'That is already your email' });
+    }
+
     // Update Firebase Auth (admin-approved accounts are trusted → verified)
     await auth.updateUser(uid, { email: newEmail, emailVerified: true });
 
@@ -219,6 +280,15 @@ router.patch('/email', authenticate, async (req, res) => {
         .update({ contactEmail: newEmail, contact: newEmail }).catch(() => {});
     }
 
+    // Security alert to the OLD address (await so Vercel doesn't kill it)
+    if (oldEmail) {
+      await sendSecurityAlert({
+        to: oldEmail,
+        kind: 'email',
+        newEmailMasked: maskEmail(newEmail),
+      });
+    }
+
     console.log(`✉️  Email changed for ${role} ${uid} → ${newEmail}`);
     return res.json({ success: true, email: newEmail });
 
@@ -228,6 +298,33 @@ router.patch('/email', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'That email is already in use' });
     }
     return res.status(500).json({ error: 'Failed to change email' });
+  }
+});
+
+
+/* ═══════════════════════════════════════════════════
+   POST /api/settings/notify-password-change
+   Called by the client right after a successful password
+   update (which happens client-side via Firebase). Sends
+   a security alert to the account's current email.
+   ═══════════════════════════════════════════════════ */
+router.post('/notify-password-change', authenticate, async (req, res) => {
+  try {
+    const { uid } = req.user;
+    let email = null;
+    try {
+      const cur = await auth.getUser(uid);
+      email = cur.email || null;
+    } catch (_) {}
+
+    if (email) {
+      await sendSecurityAlert({ to: email, kind: 'password' });
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('notify-password-change error:', err);
+    // Non-critical — never block the client on this
+    return res.json({ success: true });
   }
 });
 

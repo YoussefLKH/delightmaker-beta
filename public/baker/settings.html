@@ -226,11 +226,12 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed');
 
-        await user.getIdToken(true);
-        document.getElementById('currentEmailLabel').textContent = newEmail;
-        document.getElementById('emPwCurrent').value = '';
-        document.getElementById('emNew').value = '';
-        showToast('Email updated!', 'success');
+        dmCountdownToLogin(
+          'Email Updated',
+          `Your login email is now ${newEmail}. For your security, please sign in again with your new email.`,
+          5
+        );
+        return;
       } catch (e) {
         console.error('Change email error:', e);
         if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
@@ -329,11 +330,13 @@
         const cred = firebase.auth.EmailAuthProvider.credential(user.email, current);
         await user.reauthenticateWithCredential(cred);
         await user.updatePassword(next);
-        document.getElementById('pwCurrent').value = '';
-        document.getElementById('pwNew').value = '';
-        document.getElementById('pwConfirm').value = '';
-        document.getElementById('pwReqs').style.display = 'none';
-        showToast('Password updated!', 'success');
+        apiCall('/api/settings/notify-password-change', { method: 'POST' }).catch(() => {});
+        dmCountdownToLogin(
+          'Password Updated',
+          'For your security, please sign in again with your new password.',
+          5
+        );
+        return;
       } catch (e) {
         console.error('Password change error:', e);
         if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {

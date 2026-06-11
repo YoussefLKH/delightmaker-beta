@@ -563,6 +563,64 @@ function showToast(message, type = 'success',
 }
 
 
+/**
+ * Full-screen success overlay with a countdown, then signs the user
+ * out and sends them to /login. Used after sensitive account changes
+ * (email / password) that require re-authentication.
+ */
+function dmCountdownToLogin(title, subtitle, seconds = 5) {
+  // Remove any existing overlay
+  const prev = document.getElementById('dm-countdown');
+  if (prev) prev.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'dm-countdown';
+  overlay.style.cssText = `
+    position: fixed; inset: 0; z-index: 100000;
+    background: linear-gradient(160deg, #2C1A0E 0%, #1A1008 100%);
+    color: #fff; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 24px; font-family: 'Inter', sans-serif;
+    animation: dmFadeIn 0.3s ease;
+  `;
+  overlay.innerHTML = `
+    <div style="font-size:3rem;margin-bottom:16px">✅</div>
+    <h1 style="font-size:1.8rem;margin:0 0 10px;font-weight:800">${title}</h1>
+    <p style="font-size:1rem;color:rgba(255,255,255,0.7);margin:0 0 28px;max-width:420px;line-height:1.6">${subtitle}</p>
+    <div style="font-size:0.85rem;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:8px">Redirecting to login</div>
+    <div id="dm-countdown-num" style="
+      width:84px;height:84px;border-radius:50%;
+      border:3px solid rgba(212,152,42,0.4);
+      display:flex;align-items:center;justify-content:center;
+      font-size:2.4rem;font-weight:800;color:#F0C98A;
+    ">${seconds}</div>
+  `;
+
+  const styleId = 'dm-countdown-style';
+  if (!document.getElementById(styleId)) {
+    const st = document.createElement('style');
+    st.id = styleId;
+    st.textContent = `@keyframes dmFadeIn { from { opacity: 0; } to { opacity: 1; } }`;
+    document.head.appendChild(st);
+  }
+
+  document.body.appendChild(overlay);
+
+  let remaining = seconds;
+  const numEl = overlay.querySelector('#dm-countdown-num');
+  const tick = setInterval(() => {
+    remaining -= 1;
+    if (numEl) numEl.textContent = Math.max(0, remaining);
+    if (remaining <= 0) {
+      clearInterval(tick);
+      auth.signOut().finally(() => {
+        window.location.href = '/login';
+      });
+    }
+  }, 1000);
+}
+
+
 // ── Loading Spinner ────────────────────────────────
 /**
  * Show full page loading spinner
