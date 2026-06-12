@@ -975,18 +975,14 @@ router.patch('/:id/deliver',
 
 
       // ── Mark as delivered ─────────────────────────
+      // Payment was already collected upfront when the company approved
+      // (or at auto-confirmation for auto-approve). Delivery is purely a
+      // status update — it drives invoices, company spend, and revenue.
       await orderRef.update({
         status:      ORDER_STATUS.DELIVERED,
         deliveredAt: serverTimestamp(),
         deliveredBy: role,
       });
-
-
-      // ── Trigger Stripe charge ─────────────────────
-      chargeCompanyForDelivery(id, order)
-        .catch(err => console.error(
-          'Stripe charge failed:', err
-        ));
 
 
       // ── Notify company HR ─────────────────────────
@@ -2081,16 +2077,21 @@ function formatOrder(doc) {
 
 
 /**
- * Charge company via Stripe when order delivered
+ * Charge the company's saved card off-session.
+ * Used for AUTO-APPROVE orders, which have no upfront Stripe Checkout —
+ * we charge the saved card at confirmation time (before routing) so the
+ * money is collected upfront, same as the manual approve-and-pay flow.
+ * Manually-approved orders are already paid, so the guard makes this a
+ * no-op for them. Returns true if the order is paid (already or now).
  */
-async function chargeCompanyForDelivery(orderId, order) {
+async function chargeCompanyOffSession(orderId, order) {
   try {
     // ── Skip if already paid (e.g. via Stripe Checkout) ──
     if (order.chargeStatus === 'paid' || order.stripeChargeId) {
       console.log(
         `ℹ️  Order ${orderId} already charged (${order.chargeStatus}) — skipping off-session charge`
       );
-      return;
+      return true;
     }
 
     const stripe = require('stripe')(
@@ -2103,14 +2104,14 @@ async function chargeCompanyForDelivery(orderId, order) {
       .doc(order.companyId)
       .get();
 
-    if (!companyDoc.exists) return;
+    if (!companyDoc.exists) return false;
 
     const company = companyDoc.data();
     if (!company.stripeCustomerId) {
       console.warn(
         `No Stripe customer for company ${order.companyId}`
       );
-      return;
+      return false;
     }
 
     // Get customer's default payment method
@@ -2156,6 +2157,7 @@ async function chargeCompanyForDelivery(orderId, order) {
       .doc(orderId)
       .update({
         stripeChargeId: paymentIntent.id,
+        chargeStatus:   'paid',
         chargedAt:      serverTimestamp(),
       });
 
@@ -2163,6 +2165,7 @@ async function chargeCompanyForDelivery(orderId, order) {
       `✅ Stripe charge: ${paymentIntent.id} ` +
       `— $${order.chargeAmount} CAD`
     );
+    return true;
 
   } catch (err) {
     console.error('Stripe charge error:', err);
@@ -2177,6 +2180,7 @@ async function chargeCompanyForDelivery(orderId, order) {
         exceptionSince: serverTimestamp(),
         flaggedAt:      serverTimestamp(),
       });
+    return false;
   }
 }
 
@@ -2887,3 +2891,4 @@ router.post('/sync-employee-bundle',
 
 module.exports = router;
 module.exports.notifyBakerNewOrder = notifyBakerNewOrder;
+module.exports.chargeCompanyOffSession = chargeCompanyOffSession;

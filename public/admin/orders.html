@@ -964,7 +964,7 @@ $$
     async function markDelivered(orderId) {
       const confirmed = await confirmDialog(
         'Mark this order as delivered? ' +
-        'This will charge the company via Stripe.',
+        'This records the delivery and updates records.',
         'Mark as Delivered'
       );
       if (!confirmed) return;

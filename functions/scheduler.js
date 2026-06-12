@@ -901,26 +901,41 @@ async function processAutoConfirmations(results) {
     `orders to auto-confirm`
   );
 
+  const { chargeCompanyOffSession } = require('../routes/orders');
+  const { autoRouteToBaker }        = require('./autoRoute');
 
-  // Auto-confirm each one
-  const batch = db.batch();
-  let count   = 0;
+  let count = 0;
 
-  pendingSnap.docs.forEach(doc => {
-    batch.update(doc.ref, {
+  // Process each: confirm → charge the saved card UPFRONT → route to baker.
+  // If the charge fails (e.g. no card on file), chargeCompanyOffSession
+  // flags the order as an exception and we skip routing — money is always
+  // collected before the bakery is told to make anything.
+  for (const doc of pendingSnap.docs) {
+    const order = { id: doc.id, ...doc.data() };
+
+    await doc.ref.update({
       status:      ORDER_STATUS.CONFIRMED,
       confirmedAt: serverTimestamp(),
       confirmedBy: 'auto_confirm_48hr',
     });
+
+    const paid = await chargeCompanyOffSession(doc.id, order);
+    if (!paid) {
+      console.log(`  ⚠️  Auto-confirm charge failed for ${doc.id} — flagged, not routed`);
+      continue; // chargeCompanyOffSession already flagged it as exception
+    }
+
+    // Paid upfront → now safe to route to the bakery
+    await autoRouteToBaker(doc.id, { ...order, status: ORDER_STATUS.CONFIRMED })
+      .catch(err => console.error(`  ❌ Auto-route failed for ${doc.id}:`, err.message));
+
     count++;
-  });
+    console.log(`  ✅ Auto-confirmed + charged + routed: ${doc.id}`);
+  }
 
   if (count > 0) {
-    await batch.commit();
     results.autoConfirmed += count;
-    console.log(
-      `  ✅ Auto-confirmed ${count} orders`
-    );
+    console.log(`  ✅ Auto-confirmed ${count} orders`);
   }
 }
 
