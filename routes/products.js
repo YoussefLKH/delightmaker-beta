@@ -299,7 +299,7 @@ router.patch('/:bakeryId/:productId',
 
 /* ═══════════════════════════════════════════════════
    DELETE /api/products/:bakeryId/:productId
-   Soft-delete (active: false) + archive Stripe product
+   Hard-delete from Firestore + archive Stripe product
    Baker only (their own bakery)
    ═══════════════════════════════════════════════════ */
 
@@ -340,12 +340,9 @@ router.delete('/:bakeryId/:productId',
         }
       }
 
-      // Soft-delete in Firestore
-      await productRef.update({
-        active:    false,
-        deletedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      // Hard-delete from Firestore (the Stripe product is archived above
+      // so historical orders that reference it still resolve in Stripe).
+      await productRef.delete();
 
       return res.json({ success: true, message: 'Product removed' });
 
