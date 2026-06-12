@@ -149,8 +149,8 @@
         </div>
         <div class="dash-header-right">
           <button class="btn btn-outline"
-                  onclick="editCurrentBakery()">
-            Edit Details
+                  onclick="openInternalNotes()">
+            📝 Internal Notes
           </button>
           <button class="btn"
                   id="toggleActiveBtn"
@@ -190,6 +190,23 @@
           <div class="stats-grid-2"
                id="bakeryStats">
             <!-- Populated by JS -->
+          </div>
+        </section>
+
+        <!-- Menu / Products (read-only) -->
+        <section class="dash-card">
+          <div class="card-header">
+            <h2 class="card-title">
+              📖 Menu
+            </h2>
+            <span class="card-action"
+                  style="color:#888;cursor:default"
+                  id="menuCount"></span>
+          </div>
+          <div id="bakeryMenu">
+            <div class="empty-state">
+              <p>Loading menu...</p>
+            </div>
           </div>
         </section>
 
@@ -430,6 +447,42 @@
         </div>
 
       </form>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════
+       INTERNAL NOTES MODAL (admin-only)
+  ════════════════════════════════════════ -->
+  <div class="modal-overlay"
+       id="notesModal"
+       style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📝 Internal Notes</h2>
+        <button class="modal-close" onclick="hideNotesModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.82rem;color:#888;margin:0 0 16px">
+          These are private to Delightmaker — the bakery never sees them.
+        </p>
+        <div class="form-group">
+          <label>Wholesale Rate Notes</label>
+          <textarea id="niRateNotes" rows="3"
+                    placeholder="e.g. $4.50/cupcake, $30 minimum order"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Internal Notes</label>
+          <textarea id="niNotes" rows="4"
+                    placeholder="Private remarks about this bakery"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="hideNotesModal()">Cancel</button>
+        <button class="btn btn-primary" id="saveNotesBtn" onclick="saveInternalNotes()">
+          Save Notes
+        </button>
+      </div>
     </div>
   </div>
 
@@ -834,10 +887,6 @@
                         onclick="showDetailView('${b.id}')">
                   View Details
                 </button>
-                <button class="bk-btn bk-btn-outline"
-                        onclick="editBakery('${b.id}')">
-                  Edit
-                </button>
                 <button class="bk-btn ${isActive ? 'bk-btn-danger' : 'bk-btn-success'}"
                         onclick="toggleActive('${b.id}', ${isActive})">
                   ${isActive ? 'Deactivate' : 'Activate'}
@@ -892,6 +941,7 @@
         renderBakeryDetail(currentBakery);
 
         await Promise.all([
+          loadBakeryMenu(bakeryId),
           loadBakeryOrders(bakeryId),
           loadInvoiceTracking(bakeryId),
         ]);
@@ -1034,10 +1084,7 @@
           <div class="stat-box">
             <p class="stat-box-val"
                style="color:#FF6B6B">
-$$
-{(
-                b.stats?.unpaidAmount || 0
-              ).toFixed(0)}
+              $${(b.stats?.unpaidAmount || 0).toFixed(0)}
             </p>
             <p class="stat-box-label">
               Amount Owed
@@ -1047,23 +1094,86 @@ $$
     }
 
 
+    /* ── Load bakery menu (read-only) ──────────── */
+    async function loadBakeryMenu(bakeryId) {
+      const container = document.getElementById('bakeryMenu');
+      const countEl   = document.getElementById('menuCount');
+      try {
+        const snap = await db
+          .collection('bakeries')
+          .doc(bakeryId)
+          .collection('products')
+          .get();
+
+        const products = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(p => p.active !== false)
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        if (products.length === 0) {
+          countEl.textContent = '';
+          container.innerHTML = `
+            <div class="empty-state">
+              <span>🍰</span>
+              <p>No menu items yet</p>
+            </div>`;
+          return;
+        }
+
+        countEl.textContent =
+          `${products.length} item${products.length !== 1 ? 's' : ''}`;
+
+        container.innerHTML = products.map(p => {
+          const price     = p.price || p.retailPrice || 0;
+          const wholesale = p.wholesaleCost || 0;
+          return `
+            <div class="mini-order-row">
+              <div>
+                <p class="mini-order-name">${p.name || p.id}</p>
+                <p class="mini-order-meta">
+                  Wholesale cost: $${wholesale.toFixed(2)}
+                </p>
+              </div>
+              <span style="font-weight:700;color:#2D2D2D;font-size:0.95rem">
+                $${price.toFixed(2)}
+              </span>
+            </div>`;
+        }).join('');
+
+      } catch (err) {
+        console.error('Load bakery menu:', err);
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>Could not load menu</p>
+          </div>`;
+      }
+    }
+
+
     /* ── Load bakery orders ────────────────────── */
     async function loadBakeryOrders(bakeryId) {
       const container =
         document.getElementById('bakeryOrders');
 
       try {
+        // Single-field query (no composite index needed); filter + sort in JS
         const snap = await db
           .collection('orders')
           .where('bakerId', '==', bakeryId)
-          .where('status', 'not-in', [
-            'delivered', 'cancelled'
-          ])
-          .orderBy('deliveryDate', 'asc')
-          .limit(8)
+          .limit(100)
           .get();
 
-        if (snap.empty) {
+        const activeDocs = snap.docs
+          .map(d => ({ id: d.id, data: d.data() }))
+          .filter(x => !['delivered', 'cancelled'].includes(x.data.status))
+          .sort((a, b) => {
+            const da = a.data.deliveryDate?.toMillis?.() || 0;
+            const db_ = b.data.deliveryDate?.toMillis?.() || 0;
+            return da - db_;
+          })
+          .slice(0, 8);
+
+        if (activeDocs.length === 0) {
           container.innerHTML = `
             <div class="empty-state">
               <span>📦</span>
@@ -1073,8 +1183,8 @@ $$
           return;
         }
 
-        container.innerHTML = snap.docs.map(doc => {
-          const o     = doc.data();
+        container.innerHTML = activeDocs.map(doc => {
+          const o     = doc.data;
           const badge = getStatusBadge(o.status);
           const days  = o.deliveryDate?.toDate
             ? daysUntil(o.deliveryDate.toDate())
@@ -1152,41 +1262,49 @@ $$
           firebase.firestore.Timestamp
             .fromDate(monthStart);
 
+        // Single-field query (no composite index); filter in JS
         const snap = await db
           .collection('orders')
-          .where('bakerId',    '==', bakeryId)
-          .where('status',     '==', 'delivered')
-          .where('deliveredAt','>=', monthStartTs)
+          .where('bakerId', '==', bakeryId)
+          .limit(200)
           .get();
 
         let totalOwed = 0;
+        let deliveredThisMonth = 0;
         snap.docs.forEach(doc => {
-          totalOwed +=
-            doc.data().wholesaleCost || 0;
+          const o = doc.data();
+          const delAt = o.deliveredAt?.toMillis?.() || 0;
+          if (o.status === 'delivered' && delAt >= monthStartTs.toMillis()) {
+            totalOwed += o.wholesaleCost || 0;
+            deliveredThisMonth++;
+          }
         });
 
-        // Get unpaid invoices
+        // Get pending invoices (single-field query; sort in JS)
         const invoiceSnap = await db
           .collection('invoices')
           .where('bakeryId', '==', bakeryId)
-          .where('status',   '==', 'pending')
-          .orderBy('createdAt', 'desc')
-          .limit(5)
+          .limit(50)
           .get();
 
-        const invoicesHtml = invoiceSnap.empty
+        const pendingInvoices = invoiceSnap.docs
+          .map(d => ({ id: d.id, data: d.data() }))
+          .filter(x => x.data.status === 'pending')
+          .sort((a, b) =>
+            (b.data.createdAt?.toMillis?.() || 0) -
+            (a.data.createdAt?.toMillis?.() || 0))
+          .slice(0, 5);
+
+        const invoicesHtml = pendingInvoices.length === 0
           ? '<p style="color:#888;font-size:0.9rem;' +
             'padding:12px 0">' +
             'No pending invoices</p>'
-          : invoiceSnap.docs.map(doc => {
-              const inv = doc.data();
+          : pendingInvoices.map(({ id, data: inv }) => {
               return `
                 <div class="invoice-row">
                   <div>
                     <p class="invoice-label">
-                      Invoice #${
-                        doc.id.slice(-6).toUpperCase()
-                      }
+                      Invoice #${id.slice(-6).toUpperCase()}
                     </p>
                     <p class="invoice-date">
                       ${inv.createdAt?.toDate
@@ -1198,15 +1316,13 @@ $$
                   </div>
                   <div class="invoice-right">
                     <p class="invoice-amount">
-                      
-$$
-{(inv.amount || 0).toFixed(2)}
+                      $${(inv.amount || 0).toFixed(2)}
                     </p>
                     <button class="btn-sm"
                             style="background:#E8F5E9;
                                    color:#2E7D32"
                             onclick="markInvoicePaid(
-                              '${doc.id}'
+                              '${id}'
                             )">
                       Mark Paid
                     </button>
@@ -1222,13 +1338,12 @@ $$
                 Owed This Month
               </p>
               <p class="invoice-total-val">
-$$
-{totalOwed.toFixed(2)} CAD
+                $${totalOwed.toFixed(2)} CAD
               </p>
               <p style="font-size:0.78rem;
                         color:#888;
                         margin-top:4px">
-                Based on ${snap.size} deliveries
+                Based on ${deliveredThisMonth} deliveries
               </p>
             </div>
           </div>
@@ -1499,12 +1614,43 @@ $$
         .style.display = 'flex';
     }
 
-    function editCurrentBakery() {
+    /* ── Internal notes (admin-only) ───────────── */
+    function openInternalNotes() {
       if (!currentBakery) return;
-      showListView();
-      setTimeout(() => {
-        editBakery(currentBakery.id);
-      }, 100);
+      document.getElementById('niRateNotes').value =
+        currentBakery.wholesaleRateNotes || '';
+      document.getElementById('niNotes').value =
+        currentBakery.notes || '';
+      document.getElementById('notesModal').style.display = 'flex';
+    }
+
+    function hideNotesModal() {
+      document.getElementById('notesModal').style.display = 'none';
+    }
+
+    async function saveInternalNotes() {
+      if (!currentBakery) return;
+      const btn = document.getElementById('saveNotesBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      try {
+        const rateNotes = document.getElementById('niRateNotes').value.trim();
+        const notes     = document.getElementById('niNotes').value.trim();
+        await db.collection('bakeries').doc(currentBakery.id).update({
+          wholesaleRateNotes: rateNotes,
+          notes,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        currentBakery.wholesaleRateNotes = rateNotes;
+        currentBakery.notes = notes;
+        renderBakeryDetail(currentBakery);
+        hideNotesModal();
+        showToast('Internal notes saved', 'success');
+      } catch (err) {
+        console.error('Save internal notes error:', err);
+        showToast('Failed to save notes', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Notes';
+      }
     }
 
     function hideBakeryModal() {

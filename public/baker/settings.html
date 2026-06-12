@@ -83,12 +83,39 @@
         <span class="field-error" id="errBkName">Bakery name is required</span>
       </div>
       <div class="field">
+        <label>Contact Name</label>
+        <input type="text" id="bkContact" placeholder="Jane Baker"/>
+      </div>
+      <div class="field">
         <label>Phone</label>
         <input type="tel" id="bkPhone" placeholder="(902) 555-0123"/>
       </div>
       <div class="field">
         <label>Bakery Address</label>
         <input type="text" id="bkAddress" placeholder="123 Spring Garden Rd, Halifax, NS"/>
+      </div>
+      <div class="field">
+        <label>Service Area</label>
+        <input type="text" id="bkServiceArea" placeholder="Halifax HRM"/>
+      </div>
+      <div class="field">
+        <label>What you bake (specialties)</label>
+        <input type="text" id="bkSpecialty" placeholder="Cupcakes, Cookies, Custom Cakes"/>
+        <span style="font-size:0.78rem;color:#8B7260">Separate with commas.</span>
+      </div>
+      <div class="field">
+        <label>Dietary capabilities</label>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1A1008;cursor:pointer">
+            <input type="checkbox" id="bkAllergenFree"/> Allergen-free options
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1A1008;cursor:pointer">
+            <input type="checkbox" id="bkGlutenFree"/> Gluten-free options
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1A1008;cursor:pointer">
+            <input type="checkbox" id="bkNutFree"/> Nut-free options
+          </label>
+        </div>
       </div>
       <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">Save Profile</button>
     </div>
@@ -185,10 +212,18 @@
       try {
         const res = await apiCall('/api/settings/me');
         const { settings } = await res.json();
-        document.getElementById('bakeryName').textContent = settings.bakery?.name || '—';
-        document.getElementById('bkName').value    = settings.bakery?.name || '';
-        document.getElementById('bkPhone').value   = settings.bakery?.phone || '';
-        document.getElementById('bkAddress').value = settings.bakery?.address || '';
+        const bk = settings.bakery || {};
+        document.getElementById('bakeryName').textContent = bk.name || '—';
+        document.getElementById('bkName').value        = bk.name || '';
+        document.getElementById('bkContact').value     = bk.contactName || '';
+        document.getElementById('bkPhone').value       = bk.phone || '';
+        document.getElementById('bkAddress').value     = bk.address || '';
+        document.getElementById('bkServiceArea').value = bk.serviceArea || '';
+        document.getElementById('bkSpecialty').value   =
+          Array.isArray(bk.specialty) ? bk.specialty.join(', ') : (bk.specialty || '');
+        document.getElementById('bkAllergenFree').checked = !!bk.allergenFree;
+        document.getElementById('bkGlutenFree').checked   = !!bk.glutenFree;
+        document.getElementById('bkNutFree').checked      = !!bk.nutFree;
         const n = settings.notifications || {};
         document.getElementById('nfOrder').checked  = n.orderAssigned !== false;
         document.getElementById('nfWeekly').checked = n.weeklyDigest !== false;
@@ -257,8 +292,15 @@
           method: 'PATCH',
           body: JSON.stringify({
             name,
+            contactName: document.getElementById('bkContact').value.trim(),
             phone: document.getElementById('bkPhone').value.trim(),
             address: document.getElementById('bkAddress').value.trim(),
+            serviceArea: document.getElementById('bkServiceArea').value.trim(),
+            specialty: document.getElementById('bkSpecialty').value
+                         .split(',').map(s => s.trim()).filter(Boolean),
+            allergenFree: document.getElementById('bkAllergenFree').checked,
+            glutenFree:   document.getElementById('bkGlutenFree').checked,
+            nutFree:      document.getElementById('bkNutFree').checked,
           }),
         });
         const data = await res.json();

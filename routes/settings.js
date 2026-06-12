@@ -126,9 +126,15 @@ router.get('/me', authenticate, async (req, res) => {
       const bDoc = await db.collection(COLLECTIONS.BAKERIES).doc(bakerId).get();
       const b = bDoc.exists ? bDoc.data() : {};
       payload.bakery = {
-        name:    b.name || '',
-        phone:   b.phone || '',
-        address: b.address || '',
+        name:        b.name || '',
+        contactName: b.contactName || '',
+        phone:       b.phone || '',
+        address:     b.address || '',
+        serviceArea: b.serviceArea || '',
+        specialty:   b.specialty || [],
+        allergenFree: !!b.allergenFree,
+        glutenFree:   !!b.glutenFree,
+        nutFree:      !!b.nutFree,
       };
       payload.notifications = b.notifications || {
         orderAssigned: true, weeklyDigest: true, payout: true, ccEmail: '',
@@ -204,8 +210,16 @@ router.patch('/profile', authenticate, async (req, res) => {
 
       const update = {
         name,
+        contactName: (body.contactName || '').trim(),
         phone,
         address,
+        serviceArea: (body.serviceArea || '').trim(),
+        specialty: Array.isArray(body.specialty)
+          ? body.specialty.map(s => String(s).trim()).filter(Boolean)
+          : [],
+        allergenFree: body.allergenFree === true,
+        glutenFree:   body.glutenFree === true,
+        nutFree:      body.nutFree === true,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
