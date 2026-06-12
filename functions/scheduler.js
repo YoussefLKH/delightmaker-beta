@@ -938,6 +938,14 @@ async function processOverdueOrders(results) {
   const now   = new Date();
   const nowTs = admin.firestore.Timestamp.fromDate(now);
 
+  // Grace period: a paid order stays the baker's responsibility (they can
+  // still deliver it late from their dashboard) until it's overdue by more
+  // than this many days. Only then do we escalate it to an admin exception.
+  const GRACE_DAYS = 1;
+  const graceCutoff = new Date(now);
+  graceCutoff.setDate(graceCutoff.getDate() - GRACE_DAYS);
+  const graceTs = admin.firestore.Timestamp.fromDate(graceCutoff);
+
   // Statuses that were never approved/paid — safe to auto-cancel
   const unapprovedStatuses = [
     ORDER_STATUS.SCHEDULED,
@@ -989,10 +997,25 @@ async function processOverdueOrders(results) {
         `${doc.id} for ${order.employeeName}`
       );
     } else if (paidStatuses.includes(order.status)) {
-      // Was approved and paid — flag for Colton to investigate
+      // Was approved and paid. Within the grace window, leave it alone so
+      // the baker can still deliver it late (it shows in their Overdue
+      // section). Only escalate to an exception once it's past the grace
+      // cutoff and the baker still hasn't delivered.
+      const dd = order.deliveryDate;
+      const isPastGrace = dd && dd.toMillis &&
+        dd.toMillis() < graceTs.toMillis();
+
+      if (!isPastGrace) {
+        console.log(
+          `  ⏳ Overdue but within ${GRACE_DAYS}-day grace — ` +
+          `leaving with baker: ${doc.id} (${order.employeeName})`
+        );
+        return; // skip — still the baker's to deliver
+      }
+
       batch.update(doc.ref, {
         status:          ORDER_STATUS.EXCEPTION,
-        exceptionReason: `Delivery date passed without delivery. Was: ${order.status}`,
+        exceptionReason: `Not delivered ${GRACE_DAYS}+ day(s) after the delivery date. Was: ${order.status}`,
         flaggedAt:       serverTimestamp(),
         exceptionSince:  serverTimestamp(),
       });

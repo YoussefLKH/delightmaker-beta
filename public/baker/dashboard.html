@@ -108,6 +108,27 @@
         </div>
       </header>
 
+      <!-- ── OVERDUE ORDERS ──────────────── -->
+      <div id="overdueSection"
+           style="margin-bottom:24px;display:none">
+
+        <div class="section-label-row">
+          <span class="section-label urgent-label"
+                style="color:#C62828">
+            ⏰ OVERDUE
+          </span>
+          <span class="section-count"
+                id="overdueCount"></span>
+        </div>
+
+        <div style="font-size:0.82rem;color:#C62828;margin:-4px 0 10px">
+          These are past their delivery date. Please deliver and mark them done as soon as possible.
+        </div>
+
+        <div id="overdueOrders"></div>
+
+      </div>
+
       <!-- ── TODAY'S ORDERS ──────────────── -->
       <div id="todaySection"
            style="margin-bottom:24px">
@@ -508,6 +529,11 @@
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
+      const overdueOrders = allOrders.filter(o => {
+        const d = getDeliveryDate(o);
+        return d < today;
+      });
+
       const todayOrders = allOrders.filter(o => {
         const d = getDeliveryDate(o);
         return d >= today && d < tomorrow;
@@ -517,6 +543,18 @@
         const d = getDeliveryDate(o);
         return d >= tomorrow;
       });
+
+      // ── Overdue section (past due, not delivered) ─
+      const overdueSection = document.getElementById('overdueSection');
+      if (overdueOrders.length > 0) {
+        overdueSection.style.display = 'block';
+        document.getElementById('overdueCount').textContent =
+          `${overdueOrders.length} order${overdueOrders.length !== 1 ? 's' : ''}`;
+        document.getElementById('overdueOrders').innerHTML =
+          overdueOrders.map(o => renderOrderCard(o, true)).join('');
+      } else {
+        overdueSection.style.display = 'none';
+      }
 
       // ── Today badge ───────────────────────────
       if (todayOrders.length > 0) {
@@ -619,13 +657,26 @@
            </div>`
         : '';
 
-      const urgencyClass = isToday
+      const isOverdue = days < 0;
+
+      const urgencyClass = isOverdue
+        ? 'baker-card-today'
+        : isToday
         ? 'baker-card-today'
         : days === 1
         ? 'baker-card-tomorrow'
         : 'baker-card-upcoming';
 
-      const urgencyStrip = isToday
+      const overdueLabel = days === -1
+        ? '1 DAY OVERDUE'
+        : `${Math.abs(days)} DAYS OVERDUE`;
+
+      const urgencyStrip = isOverdue
+        ? `<div class="baker-urgency-strip today-strip"
+                style="background:#C62828">
+             ⏰ ${overdueLabel} — ${dateStr}
+           </div>`
+        : isToday
         ? `<div class="baker-urgency-strip today-strip">
              🔴 DELIVER TODAY
            </div>`
