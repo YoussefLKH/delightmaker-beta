@@ -34,6 +34,31 @@
     .notif-row .s { font-size:0.78rem; color:#8B7260; }
     .field-error { display:none; color:#C62828; font-size:0.78rem; font-weight:600; margin-top:4px; }
     .field-error.show { display:block; }
+
+    /* Dietary capability chips */
+    .diet-grid { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
+    .diet-chip {
+      display:flex; align-items:center; gap:10px;
+      padding:12px 16px; border-radius:12px;
+      border:1.5px solid #E8DDD0; background:#fff;
+      cursor:pointer; user-select:none;
+      transition:border-color .15s, background .15s, box-shadow .15s;
+      flex:1 1 160px; min-width:0;
+    }
+    .diet-chip:hover { border-color:#C4621D; }
+    .diet-chip input { display:none; }
+    .diet-chip .diet-emoji { font-size:1.4rem; line-height:1; flex-shrink:0; }
+    .diet-chip .diet-text { display:flex; flex-direction:column; }
+    .diet-chip .diet-title { font-weight:700; font-size:0.9rem; color:#1A1008; }
+    .diet-chip .diet-sub { font-size:0.74rem; color:#8B7260; }
+    .diet-chip .diet-check {
+      margin-left:auto; width:22px; height:22px; border-radius:50%;
+      border:2px solid #E8DDD0; display:flex; align-items:center;
+      justify-content:center; font-size:0.8rem; color:#fff; flex-shrink:0;
+      transition:background .15s, border-color .15s;
+    }
+    .diet-chip.on { border-color:#C4621D; background:#FDF0E6; box-shadow:0 2px 10px rgba(196,98,29,.12); }
+    .diet-chip.on .diet-check { background:#C4621D; border-color:#C4621D; }
   </style>
 </head>
 
@@ -105,15 +130,36 @@
       </div>
       <div class="field">
         <label>Dietary capabilities</label>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
-          <label style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1A1008;cursor:pointer">
-            <input type="checkbox" id="bkAllergenFree"/> Allergen-free options
+        <p style="font-size:0.78rem;color:#8B7260;margin:0 0 2px">
+          Tap what your bakery can safely make.
+        </p>
+        <div class="diet-grid">
+          <label class="diet-chip" id="chipAllergen">
+            <input type="checkbox" id="bkAllergenFree"/>
+            <span class="diet-emoji">🌿</span>
+            <span class="diet-text">
+              <span class="diet-title">Allergen-free</span>
+              <span class="diet-sub">Dedicated safe options</span>
+            </span>
+            <span class="diet-check">✓</span>
           </label>
-          <label style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1A1008;cursor:pointer">
-            <input type="checkbox" id="bkGlutenFree"/> Gluten-free options
+          <label class="diet-chip" id="chipGluten">
+            <input type="checkbox" id="bkGlutenFree"/>
+            <span class="diet-emoji">🌾</span>
+            <span class="diet-text">
+              <span class="diet-title">Gluten-free</span>
+              <span class="diet-sub">No gluten options</span>
+            </span>
+            <span class="diet-check">✓</span>
           </label>
-          <label style="display:flex;align-items:center;gap:10px;font-weight:600;color:#1A1008;cursor:pointer">
-            <input type="checkbox" id="bkNutFree"/> Nut-free options
+          <label class="diet-chip" id="chipNut">
+            <input type="checkbox" id="bkNutFree"/>
+            <span class="diet-emoji">🥜</span>
+            <span class="diet-text">
+              <span class="diet-title">Nut-free</span>
+              <span class="diet-sub">No nuts options</span>
+            </span>
+            <span class="diet-check">✓</span>
           </label>
         </div>
       </div>
@@ -208,6 +254,22 @@
       await loadSettings();
     });
 
+    // Sync the chip highlight with its checkbox + wire clicks
+    const DIET_CHIPS = [
+      ['bkAllergenFree', 'chipAllergen'],
+      ['bkGlutenFree',   'chipGluten'],
+      ['bkNutFree',      'chipNut'],
+    ];
+    function syncDietChips() {
+      DIET_CHIPS.forEach(([cb, chip]) => {
+        const checked = document.getElementById(cb).checked;
+        document.getElementById(chip).classList.toggle('on', checked);
+      });
+    }
+    DIET_CHIPS.forEach(([cb]) => {
+      document.getElementById(cb).addEventListener('change', syncDietChips);
+    });
+
     async function loadSettings() {
       try {
         const res = await apiCall('/api/settings/me');
@@ -224,6 +286,7 @@
         document.getElementById('bkAllergenFree').checked = !!bk.allergenFree;
         document.getElementById('bkGlutenFree').checked   = !!bk.glutenFree;
         document.getElementById('bkNutFree').checked      = !!bk.nutFree;
+        syncDietChips();
         const n = settings.notifications || {};
         document.getElementById('nfOrder').checked  = n.orderAssigned !== false;
         document.getElementById('nfWeekly').checked = n.weeklyDigest !== false;
