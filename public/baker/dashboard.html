@@ -169,6 +169,23 @@
 
       </div>
 
+      <!-- ── COMPLETED ORDERS ────────────── -->
+      <div id="completedSection"
+           style="margin-top:24px;display:none">
+
+        <div class="section-label-row">
+          <span class="section-label"
+                style="color:#2E7D32">
+            ✅ COMPLETED
+          </span>
+          <span class="section-count"
+                id="completedCount"></span>
+        </div>
+
+        <div id="completedOrders"></div>
+
+      </div>
+
       <!-- ── WEEK SUMMARY ────────────────── -->
       <div class="week-summary-strip"
            id="weekSummary"
@@ -493,13 +510,13 @@
         const now = new Date();
         now.setHours(0, 0, 0, 0);
 
-        // Load orders routed to this bakery
-        // from today onwards
+        // Load orders routed to this bakery — active ones (routed/in
+        // preparation) plus delivered ones for the Completed section.
         const snap = await db
           .collection('orders')
           .where('bakerId', '==', bakerId)
           .where('status', 'in',
-            ['routed', 'in_preparation'])
+            ['routed', 'in_preparation', 'delivered'])
           .orderBy('deliveryDate', 'asc')
           .get();
 
@@ -529,17 +546,28 @@
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const overdueOrders = allOrders.filter(o => {
+      // Split delivered (Completed) from active orders. Date buckets
+      // only apply to active (not-yet-delivered) orders.
+      const activeOrders    = allOrders.filter(o => o.status !== 'delivered');
+      const completedOrders = allOrders
+        .filter(o => o.status === 'delivered')
+        .sort((a, b) => {
+          const da = (a.deliveredAt?.toMillis?.() || getDeliveryDate(a).getTime());
+          const db_ = (b.deliveredAt?.toMillis?.() || getDeliveryDate(b).getTime());
+          return db_ - da; // most recently delivered first
+        });
+
+      const overdueOrders = activeOrders.filter(o => {
         const d = getDeliveryDate(o);
         return d < today;
       });
 
-      const todayOrders = allOrders.filter(o => {
+      const todayOrders = activeOrders.filter(o => {
         const d = getDeliveryDate(o);
         return d >= today && d < tomorrow;
       });
 
-      const upcomingOrders = allOrders.filter(o => {
+      const upcomingOrders = activeOrders.filter(o => {
         const d = getDeliveryDate(o);
         return d >= tomorrow;
       });
@@ -616,10 +644,22 @@
           .join('');
       }
 
+      // ── Completed section (delivered) ─────────
+      const completedSection = document.getElementById('completedSection');
+      if (completedOrders.length > 0) {
+        completedSection.style.display = 'block';
+        document.getElementById('completedCount').textContent =
+          `${completedOrders.length} order${completedOrders.length !== 1 ? 's' : ''}`;
+        document.getElementById('completedOrders').innerHTML =
+          completedOrders.slice(0, 20).map(o => renderOrderCard(o, false)).join('');
+      } else {
+        completedSection.style.display = 'none';
+      }
+
       // ── Week summary strip ────────────────────
       const weekEnd = new Date(today);
       weekEnd.setDate(weekEnd.getDate() + 7);
-      const weekOrders = allOrders.filter(o => {
+      const weekOrders = activeOrders.filter(o => {
         const d = getDeliveryDate(o);
         return d >= today && d < weekEnd;
       });
@@ -657,9 +697,12 @@
            </div>`
         : '';
 
-      const isOverdue = days < 0;
+      const isDelivered = order.status === 'delivered';
+      const isOverdue = !isDelivered && days < 0;
 
-      const urgencyClass = isOverdue
+      const urgencyClass = isDelivered
+        ? 'baker-card-upcoming'
+        : isOverdue
         ? 'baker-card-today'
         : isToday
         ? 'baker-card-today'
@@ -671,7 +714,16 @@
         ? '1 DAY OVERDUE'
         : `${Math.abs(days)} DAYS OVERDUE`;
 
-      const urgencyStrip = isOverdue
+      const deliveredStr = order.deliveredAt?.toDate
+        ? formatDate(order.deliveredAt.toDate())
+        : dateStr;
+
+      const urgencyStrip = isDelivered
+        ? `<div class="baker-urgency-strip"
+                style="background:#2E7D32;color:#fff">
+             ✅ DELIVERED${order.deliveredAt ? ` — ${deliveredStr}` : ''}
+           </div>`
+        : isOverdue
         ? `<div class="baker-urgency-strip today-strip"
                 style="background:#C62828">
              ⏰ ${overdueLabel} — ${dateStr}
@@ -1026,8 +1078,16 @@
                     ).join('')
                   }</div>`
                 : '';
+              const done = o.status === 'delivered';
+              const doneHtml = done
+                ? `<span style="display:inline-block;margin-top:4px;
+                       font-size:0.62rem;font-weight:700;
+                       background:#2E7D32;color:#fff;
+                       padding:1px 6px;border-radius:99px">✅ Delivered</span>`
+                : '';
               return `
                 <div class="week-order-pill"
+                     style="${done ? 'border-left:3px solid #2E7D32;opacity:0.85' : ''}"
                      onclick="window.location.href=
                        'order.html?id=${o.id}'">
                   <span class="week-pill-product">
@@ -1036,6 +1096,7 @@
                   <span class="week-pill-company">
                     ${o.companyName || ''}
                   </span>
+                  ${doneHtml}
                   ${flagHtml}
                 </div>
               `;
