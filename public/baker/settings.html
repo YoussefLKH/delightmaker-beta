@@ -161,6 +161,15 @@
             </span>
             <span class="diet-check">✓</span>
           </label>
+          <label class="diet-chip" id="chipVegan">
+            <input type="checkbox" id="bkVegan"/>
+            <span class="diet-emoji">🌱</span>
+            <span class="diet-text">
+              <span class="diet-title">Vegan</span>
+              <span class="diet-sub">Plant-based options</span>
+            </span>
+            <span class="diet-check">✓</span>
+          </label>
         </div>
       </div>
       <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">Save Profile</button>
@@ -259,6 +268,7 @@
       ['bkAllergenFree', 'chipAllergen'],
       ['bkGlutenFree',   'chipGluten'],
       ['bkNutFree',      'chipNut'],
+      ['bkVegan',        'chipVegan'],
     ];
     function syncDietChips() {
       DIET_CHIPS.forEach(([cb, chip]) => {
@@ -286,6 +296,7 @@
         document.getElementById('bkAllergenFree').checked = !!bk.allergenFree;
         document.getElementById('bkGlutenFree').checked   = !!bk.glutenFree;
         document.getElementById('bkNutFree').checked      = !!bk.nutFree;
+        document.getElementById('bkVegan').checked         = !!bk.vegan;
         syncDietChips();
         const n = settings.notifications || {};
         document.getElementById('nfOrder').checked  = n.orderAssigned !== false;
@@ -364,6 +375,7 @@
             allergenFree: document.getElementById('bkAllergenFree').checked,
             glutenFree:   document.getElementById('bkGlutenFree').checked,
             nutFree:      document.getElementById('bkNutFree').checked,
+            vegan:        document.getElementById('bkVegan').checked,
           }),
         });
         const data = await res.json();

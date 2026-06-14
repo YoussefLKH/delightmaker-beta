@@ -464,12 +464,10 @@ function renderDietaryFlags(flags) {
   }
 
   const colors = {
-    'gluten-free': { bg: '#FFF3E0', color: '#E65100' },
-    'nut-free':    { bg: '#FFEBEE', color: '#C62828' },
-    'vegan':       { bg: '#E8F5E9', color: '#2E7D32' },
-    'kosher':      { bg: '#E3F2FD', color: '#1565C0' },
-    'dairy-free':  { bg: '#F3E5F5', color: '#6A1B9A' },
-    'halal':       { bg: '#E8F5E9', color: '#2E7D32' },
+    'allergen-free': { bg: '#E8F5E9', color: '#2E7D32' },
+    'gluten-free':   { bg: '#FFF3E0', color: '#E65100' },
+    'nut-free':      { bg: '#FFEBEE', color: '#C62828' },
+    'vegan':         { bg: '#E8F5E9', color: '#2E7D32' },
   };
 
   return flags.map(flag => {

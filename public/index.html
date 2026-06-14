@@ -57,6 +57,19 @@
     input.input-invalid, select.input-invalid {
       border-color: #ef4444 !important;
     }
+    /* Application dietary chips */
+    .apply-diet-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 14px; border-radius: 100px;
+      border: 1.5px solid #E8E0D8; background: #fff;
+      font-size: 0.9rem; font-weight: 600; color: #2D2D2D;
+      cursor: pointer; user-select: none; transition: all 0.15s;
+    }
+    .apply-diet-chip input { accent-color: #FF6B6B; cursor: pointer; }
+    .apply-diet-chip:hover { border-color: #FF6B6B; }
+    .apply-diet-chip:has(input:checked) {
+      border-color: #FF6B6B; background: #FFF0EE;
+    }
     /* Password requirements checklist */
     .pw-req {
       font-size:   0.78rem;
@@ -821,19 +834,32 @@
 
           <!-- BAKER ONLY fields -->
           <div id="applyBakerFields" style="display:none">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="applySpecialty">What do you bake?</label>
-                <input type="text" id="applySpecialty"
-                       placeholder="e.g. Cupcakes, Cookies, Custom Cakes"/>
-              </div>
-              <div class="form-group">
-                <label for="applyAllergen">Allergen-free options?</label>
-                <select id="applyAllergen">
-                  <option value="no">No</option>
-                  <option value="yes">Yes — gluten-free / nut-free</option>
-                  <option value="dedicated">Yes — dedicated allergen-free facility</option>
-                </select>
+            <div class="form-group">
+              <label for="applySpecialty">What do you bake?</label>
+              <input type="text" id="applySpecialty"
+                     placeholder="e.g. Cupcakes, Cookies, Custom Cakes"/>
+            </div>
+            <div class="form-group">
+              <label>Which dietary options can you offer?
+                <span style="font-weight:400;color:#999">(check all that apply)</span>
+              </label>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
+                <label class="apply-diet-chip">
+                  <input type="checkbox" id="applyAllergenFree"/>
+                  <span>🌿 Allergen-free</span>
+                </label>
+                <label class="apply-diet-chip">
+                  <input type="checkbox" id="applyGlutenFree"/>
+                  <span>🌾 Gluten-free</span>
+                </label>
+                <label class="apply-diet-chip">
+                  <input type="checkbox" id="applyNutFree"/>
+                  <span>🥜 Nut-free</span>
+                </label>
+                <label class="apply-diet-chip">
+                  <input type="checkbox" id="applyVegan"/>
+                  <span>🌱 Vegan</span>
+                </label>
               </div>
             </div>
             <div class="form-row">
@@ -1199,7 +1225,16 @@
                         ? document.getElementById('applySpecialty').value.trim()
                         : null,
         allergenFree: type === 'baker'
-                        ? document.getElementById('applyAllergen').value
+                        ? document.getElementById('applyAllergenFree').checked
+                        : null,
+        glutenFree:   type === 'baker'
+                        ? document.getElementById('applyGlutenFree').checked
+                        : null,
+        nutFree:      type === 'baker'
+                        ? document.getElementById('applyNutFree').checked
+                        : null,
+        vegan:        type === 'baker'
+                        ? document.getElementById('applyVegan').checked
                         : null,
         capacity:     type === 'baker'
                         ? document.getElementById('applyCapacity').value

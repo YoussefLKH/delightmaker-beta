@@ -136,12 +136,10 @@
       <select id="dietaryFilter"
               class="filter-select">
         <option value="">All Dietary</option>
-        <option value="nut-free">Nut-Free</option>
+        <option value="allergen-free">Allergen-Free</option>
         <option value="gluten-free">Gluten-Free</option>
+        <option value="nut-free">Nut-Free</option>
         <option value="vegan">Vegan</option>
-        <option value="dairy-free">Dairy-Free</option>
-        <option value="halal">Halal</option>
-        <option value="kosher">Kosher</option>
       </select>
       <select id="nextEventFilter"
               class="filter-select">
@@ -242,8 +240,8 @@
                id="dietaryPills">
             <button type="button"
                     class="diet-pill"
-                    data-value="nut-free">
-              🥜 Nut-Free
+                    data-value="allergen-free">
+              🌿 Allergen-Free
             </button>
             <button type="button"
                     class="diet-pill"
@@ -252,35 +250,15 @@
             </button>
             <button type="button"
                     class="diet-pill"
+                    data-value="nut-free">
+              🥜 Nut-Free
+            </button>
+            <button type="button"
+                    class="diet-pill"
                     data-value="vegan">
               🌱 Vegan
             </button>
-            <button type="button"
-                    class="diet-pill"
-                    data-value="dairy-free">
-              🥛 Dairy-Free
-            </button>
-            <button type="button"
-                    class="diet-pill"
-                    data-value="halal">
-              ☪️ Halal
-            </button>
-            <button type="button"
-                    class="diet-pill"
-                    data-value="kosher">
-              ✡️ Kosher
-            </button>
-            <button type="button"
-                    class="diet-pill"
-                    data-value="__other__"
-                    id="dietOtherToggle">
-              ✏️ Other
-            </button>
           </div>
-          <input type="text"
-                 id="empDietaryOther"
-                 placeholder="e.g. Shellfish allergy, low-sodium..."
-                 style="margin-top:10px;display:none"/>
         </div>
 
         <div class="form-group">
@@ -471,17 +449,7 @@
     document.querySelectorAll('.diet-pill')
       .forEach(pill => {
         pill.addEventListener('click', () => {
-          const isOther =
-            pill.dataset.value === '__other__';
           pill.classList.toggle('active');
-          if (isOther) {
-            const input =
-              document.getElementById('empDietaryOther');
-            const show =
-              pill.classList.contains('active');
-            input.style.display = show ? '' : 'none';
-            if (!show) input.value = '';
-          }
         });
       });
 
@@ -608,12 +576,10 @@
         const dietary   = emp.dietaryFlags || [];
 
         const dietaryEmoji = {
-          'nut-free':    '🥜',
-          'gluten-free': '🌾',
-          'vegan':       '🌱',
-          'dairy-free':  '🥛',
-          'halal':       '☪️',
-          'kosher':      '✡️',
+          'allergen-free': '🌿',
+          'gluten-free':   '🌾',
+          'nut-free':      '🥜',
+          'vegan':         '🌱',
         };
         const dietaryHtml = dietary.length > 0
           ? dietary.map(f => {
@@ -860,38 +826,14 @@
       }
 
       // Dietary pills — set active state
-      const knownValues = [
-        'nut-free','gluten-free','vegan',
-        'dairy-free','halal','kosher',
-      ];
       const flags = (emp.dietaryFlags || [])
         .map(f => f.toLowerCase());
-      const otherFlags = flags.filter(
-        f => !knownValues.includes(f)
-      );
 
       document.querySelectorAll('.diet-pill')
         .forEach(pill => {
-          pill.classList.remove('active');
-          const val = pill.dataset.value;
-          if (val === '__other__') {
-            if (otherFlags.length > 0) {
-              pill.classList.add('active');
-            }
-          } else if (flags.includes(val)) {
-            pill.classList.add('active');
-          }
+          pill.classList.toggle('active',
+            flags.includes(pill.dataset.value));
         });
-
-      const otherInput =
-        document.getElementById('empDietaryOther');
-      if (otherFlags.length > 0) {
-        otherInput.value   = otherFlags.join(', ');
-        otherInput.style.display = '';
-      } else {
-        otherInput.value   = '';
-        otherInput.style.display = 'none';
-      }
 
       document.getElementById('empEmail')
         .value = emp.email || '';
@@ -921,14 +863,11 @@
     function clearEmployeeForm() {
       ['empFirstName', 'empLastName',
        'empBirthday',
-       'empDietaryOther',
        'empEmail'].forEach(id => {
         document.getElementById(id).value = '';
       });
       document.querySelectorAll('.diet-pill')
         .forEach(pill => pill.classList.remove('active'));
-      document.getElementById('empDietaryOther')
-        .style.display = 'none';
     }
 
 
@@ -956,20 +895,8 @@
       const dietaryFlags = [];
       document.querySelectorAll('.diet-pill.active')
         .forEach(pill => {
-          if (pill.dataset.value !== '__other__') {
-            dietaryFlags.push(pill.dataset.value);
-          }
+          dietaryFlags.push(pill.dataset.value);
         });
-
-      const otherDietary =
-        document.getElementById('empDietaryOther')
-          .value.trim();
-      if (otherDietary) {
-        otherDietary.split(',').forEach(v => {
-          const t = v.trim();
-          if (t) dietaryFlags.push(t);
-        });
-      }
 
       const empData = {
         name:     `${firstName} ${lastName}`,

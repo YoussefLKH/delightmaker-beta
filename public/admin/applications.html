@@ -665,7 +665,12 @@
         : `<span><strong>Phone:</strong> ${escHtml(app.phone || '—')}</span>
            <span><strong>Address:</strong> ${escHtml(app.address || '—')}</span>
            <span><strong>Specialty:</strong> ${escHtml(app.specialty || '—')}</span>
-           <span><strong>Allergen-free:</strong> ${app.allergenFree || 'no'}</span>`;
+           <span><strong>Dietary options:</strong> ${
+             [app.allergenFree && 'Allergen-free',
+              app.glutenFree && 'Gluten-free',
+              app.nutFree && 'Nut-free',
+              app.vegan && 'Vegan'].filter(Boolean).join(', ') || 'None'
+           }</span>`;
 
       const messageHtml = app.message
         ? `<div class="app-message">"${escHtml(app.message)}"</div>`

@@ -49,7 +49,10 @@ router.post('/', async (req, res) => {
       addressLng,
       planInterest, // company only
       specialty,    // baker only
-      allergenFree, // baker only
+      allergenFree, // baker only — dietary capability booleans
+      glutenFree,   // baker only
+      nutFree,      // baker only
+      vegan,        // baker only
       capacity,     // baker only
       website,      // baker only
       message,
@@ -160,7 +163,10 @@ router.post('/', async (req, res) => {
       outOfRange,
       planInterest: planInterest || null,
       specialty:    specialty    || null,
-      allergenFree: allergenFree || null,
+      allergenFree: allergenFree === true,
+      glutenFree:   glutenFree   === true,
+      nutFree:      nutFree      === true,
+      vegan:        vegan        === true,
       capacity:     capacity     || null,
       website:      website      || null,
       message:      message      ? message.trim() : '',
@@ -197,7 +203,10 @@ router.post('/', async (req, res) => {
         address:     address.trim(),
         planInterest: planInterest || null,
         specialty:   specialty    || null,
-        allergenFree: allergenFree || null,
+        allergenFree: allergenFree === true,
+        glutenFree:   glutenFree   === true,
+        nutFree:      nutFree      === true,
+        vegan:        vegan        === true,
         capacity:    capacity     || null,
         website:     website      || null,
         message:     message      || '',
@@ -607,7 +616,7 @@ async function geocodeAddress(address) {
 
 
 async function activateAccount({ app, deliveryAddress, approvedBy }) {
-  const { uid, type, name, orgName, email, specialty, allergenFree } = app;
+  const { uid, type, name, orgName, email, specialty } = app;
 
   if (!uid) throw new Error('Application has no uid — was it submitted via the new form?');
 
@@ -666,9 +675,12 @@ async function activateAccount({ app, deliveryAddress, approvedBy }) {
       specialty:    specialty
                       ? specialty.split(',').map(s => s.trim())
                       : [],
-      allergenFree: allergenFree === 'yes' || allergenFree === 'dedicated',
-      allergenNote: allergenFree || 'no',
+      allergenFree: app.allergenFree === true,
+      glutenFree:   app.glutenFree   === true,
+      nutFree:      app.nutFree       === true,
+      vegan:        app.vegan         === true,
       contact:      email,
+      contactEmail: email,
       phone:        app.phone   || '',
       address:      app.address || '',
       addressLat:   lat,
@@ -909,9 +921,16 @@ async function sendApplicationNotification(app) {
     <div class="field"><div class="label">Plan Interest</div><div class="value">${app.planInterest || 'Not sure yet'}</div></div>
   ` : '';
 
+  const dietaryOffered = [
+    app.allergenFree && 'Allergen-free',
+    app.glutenFree   && 'Gluten-free',
+    app.nutFree      && 'Nut-free',
+    app.vegan        && 'Vegan',
+  ].filter(Boolean).join(', ') || 'None';
+
   const bakerRows = app.type === 'baker' ? `
     <div class="field"><div class="label">Specialty</div><div class="value">${app.specialty || '—'}</div></div>
-    <div class="field"><div class="label">Allergen-Free</div><div class="value">${app.allergenFree || 'No'}</div></div>
+    <div class="field"><div class="label">Dietary Options</div><div class="value">${dietaryOffered}</div></div>
     <div class="field"><div class="label">Weekly Capacity</div><div class="value">${app.capacity || '—'}</div></div>
     ${app.website ? `<div class="field"><div class="label">Website/Instagram</div><div class="value"><a href="${app.website}">${app.website}</a></div></div>` : ''}
   ` : '';

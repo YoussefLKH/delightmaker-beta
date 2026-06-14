@@ -1757,11 +1757,24 @@ router.post('/import-employees',
           continue;
         }
 
-        // Build dietary flags array
+        // Build dietary flags array — normalize to the 4 supported
+        // categories (allergen-free, gluten-free, nut-free, vegan) and
+        // drop anything we don't cater to.
+        const normalizeDiet = (raw) => {
+          const t = raw.toLowerCase().replace(/[_\s]+/g, '-').trim();
+          if (/(allergen|allergy|allergies)/.test(t)) return 'allergen-free';
+          if (/(gluten|gf)/.test(t))                  return 'gluten-free';
+          if (/(nut|peanut)/.test(t))                 return 'nut-free';
+          if (/vegan/.test(t))                        return 'vegan';
+          return null;
+        };
         const dietaryFlags = dietary &&
           dietary.toLowerCase() !== 'none'
-          ? dietary.split(/[,;]/).map(d => d.trim())
-                                 .filter(Boolean)
+          ? [...new Set(
+              dietary.split(/[,;]/)
+                     .map(d => normalizeDiet(d))
+                     .filter(Boolean)
+            )]
           : [];
 
         const empData = {

@@ -135,6 +135,7 @@ router.get('/me', authenticate, async (req, res) => {
         allergenFree: !!b.allergenFree,
         glutenFree:   !!b.glutenFree,
         nutFree:      !!b.nutFree,
+        vegan:        !!b.vegan,
       };
       payload.notifications = b.notifications || {
         orderAssigned: true, weeklyDigest: true, payout: true, ccEmail: '',
@@ -220,6 +221,7 @@ router.patch('/profile', authenticate, async (req, res) => {
         allergenFree: body.allergenFree === true,
         glutenFree:   body.glutenFree === true,
         nutFree:      body.nutFree === true,
+        vegan:        body.vegan === true,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
