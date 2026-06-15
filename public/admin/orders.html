@@ -261,6 +261,18 @@
     });
 
 
+    // ── Why is this order an exception? ───────────
+    function getExceptionReason(order) {
+      const esc = s => String(s || '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (order.exceptionReason) return esc(order.exceptionReason);
+      // No reason recorded (e.g. flagged manually) — infer a sensible one
+      if (order.chargeStatus === 'failed' || order.chargeError) {
+        return 'Payment failed — could not charge the company';
+      }
+      return 'Flagged for review — needs attention';
+    }
+
     // ── Exception SLA helper ──────────────────────
     function getStuckBadge(order) {
       if (order.status !== 'exception') return '';
@@ -594,6 +606,13 @@
                 ? `<span class="refunded-chip">↩ Refunded</span>`
                 : ''}
               ${getStuckBadge(order)}
+              ${order.status === 'exception'
+                ? `<div style="margin-top:5px;font-size:0.74rem;
+                              color:#C62828;font-weight:600;line-height:1.35;
+                              max-width:240px">
+                     ⚠️ ${getExceptionReason(order)}
+                   </div>`
+                : ''}
             </td>
             <td>
               <span style="
@@ -896,9 +915,9 @@ $$
               ` : ''}
             </div>
 
-            ${order.exceptionReason ? `
+            ${order.status === 'exception' ? `
               <div class="exception-banner">
-                🚨 ${order.exceptionReason}
+                🚨 ${getExceptionReason(order)}
               </div>
             ` : ''}
           `;
