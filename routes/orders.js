@@ -2188,8 +2188,9 @@ async function chargeCompanyOffSession(orderId, order) {
       .doc(orderId)
       .update({
         status:         ORDER_STATUS.EXCEPTION,
-        exceptionReason:'Stripe charge failed: ' +
-                        err.message,
+        exceptionReason:"Payment failed — the company's card couldn't be charged, so it wasn't sent to the bakery.",
+        chargeStatus:   'failed',
+        chargeError:    err.message,
         exceptionSince: serverTimestamp(),
         flaggedAt:      serverTimestamp(),
       });

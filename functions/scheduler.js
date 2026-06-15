@@ -1030,7 +1030,7 @@ async function processOverdueOrders(results) {
 
       batch.update(doc.ref, {
         status:          ORDER_STATUS.EXCEPTION,
-        exceptionReason: `Not delivered ${GRACE_DAYS}+ day(s) after the delivery date. Was: ${order.status}`,
+        exceptionReason: 'Not marked as delivered — the delivery date passed and the bakery never confirmed it was completed.',
         flaggedAt:       serverTimestamp(),
         exceptionSince:  serverTimestamp(),
       });

@@ -262,15 +262,41 @@
 
 
     // ── Why is this order an exception? ───────────
+    // Returns a clear, specific, human sentence about the problem.
     function getExceptionReason(order) {
-      const esc = s => String(s || '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      if (order.exceptionReason) return esc(order.exceptionReason);
-      // No reason recorded (e.g. flagged manually) — infer a sensible one
-      if (order.chargeStatus === 'failed' || order.chargeError) {
-        return 'Payment failed — could not charge the company';
+      const raw = (order.exceptionReason || '').toLowerCase();
+
+      // 1) Payment problem
+      if (order.chargeStatus === 'failed' || order.chargeError ||
+          raw.includes('charge') || raw.includes('payment') ||
+          raw.includes('stripe') || raw.includes('card')) {
+        return "Payment failed — the company's card couldn't be charged, so it wasn't sent to the bakery.";
       }
-      return 'Flagged for review — needs attention';
+
+      // 2) Delivery date passed but never marked delivered
+      const dd  = order.deliveryDate;
+      const ms  = dd ? (dd._seconds ? dd._seconds * 1000
+                        : (dd.seconds ? dd.seconds * 1000
+                        : new Date(dd).getTime())) : null;
+      const pastDue = ms && ms < Date.now();
+      if (raw.includes('deliver') || raw.includes('overdue') || pastDue) {
+        return "Not marked as delivered — the delivery date passed and the bakery never confirmed it was completed.";
+      }
+
+      // 3) Couldn't be routed to a bakery
+      if (!order.bakerId || raw.includes('rout') || raw.includes('baker') ||
+          raw.includes('no active')) {
+        return "Couldn't be routed — no available bakery was assigned to this order.";
+      }
+
+      // 4) Any other stored reason — show it as-is
+      if (order.exceptionReason) {
+        return String(order.exceptionReason)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // 5) Nothing to go on
+      return "Flagged for review — open the order for details.";
     }
 
     // ── Exception SLA helper ──────────────────────
