@@ -229,16 +229,24 @@
       const ok = await confirmDialog(
         `Permanently delete the ${label} "${orgName || orgId}"?\n\n` +
         `This removes their login${isCompany ? ', employees and gifting rules' : ' and menu'}. ` +
-        `Past orders and invoices are kept for accounting. This cannot be undone.`,
+        `Past orders and invoices are kept for accounting. This cannot be undone.\n\n` +
+        `A confirmation email will be sent to the requester.`,
         '🗑️ Delete Account'
       );
       if (!ok) return;
+
+      // The contact email captured on the deletion-request ticket
+      const ticket = allTickets.find(x => x.id === ticketId);
+      const notifyEmail = ticket && ticket.reporterEmail;
 
       try {
         const endpoint = isCompany
           ? `/api/admin/companies/${orgId}`
           : `/api/admin/bakeries/${orgId}`;
-        const res = await apiCall(endpoint, { method: 'DELETE' });
+        const res = await apiCall(endpoint, {
+          method: 'DELETE',
+          body: JSON.stringify({ notifyEmail }),
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Delete failed');
 

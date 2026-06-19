@@ -28,6 +28,43 @@ function ensureAdmin(req, res) {
 }
 
 
+/* Confirmation email to a deleted account holder.
+   Only sent when a recipient email is provided (e.g. fulfilling a
+   deletion request). Awaited so it sends before the function returns. */
+function sendAccountDeletedEmail({ to, orgName }) {
+  const key = process.env.RESEND_API_KEY;
+  if (!to || !key || key === 'your_resend_key_here') return Promise.resolve();
+  const { Resend } = require('resend');
+  const resend  = new Resend(key);
+  const support = process.env.EMAIL_SUPPORT || process.env.RESEND_FROM_EMAIL || 'support@delightmaker.ca';
+  return resend.emails.send({
+    from:    `${process.env.RESEND_FROM_NAME} <${support}>`,
+    to,
+    subject: 'Your Delightmaker account has been closed',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#FFFAF5">
+        <div style="background:#1A1008;border-radius:12px 12px 0 0;padding:18px 24px;color:white;font-weight:700">🧁 Delightmaker</div>
+        <div style="background:white;border:1px solid #eee;padding:28px">
+          <h2 style="margin:0 0 10px;color:#1A1008">Your account has been closed</h2>
+          <p style="color:#6B5444;margin:0 0 16px;line-height:1.6">
+            As per your request, <strong>${orgName || 'your account'}</strong> has been removed from Delightmaker.
+            Your login no longer works and no further orders or charges will be made.
+          </p>
+          <p style="color:#6B5444;margin:0 0 16px;line-height:1.6">
+            Thank you for being part of Delightmaker — we're sorry to see you go. If you'd ever like to come
+            back, you're always welcome to apply again.
+          </p>
+          <p style="color:#8B7260;font-size:0.85rem;margin:0">
+            Think this was a mistake? Contact us right away at
+            <a href="mailto:${support}" style="color:#C4621D;font-weight:700">${support}</a>.
+          </p>
+        </div>
+        <div style="background:#F5F5F5;border:1px solid #eee;border-radius:0 0 12px 12px;padding:14px;text-align:center;font-size:0.75rem;color:#AAA">Delightmaker · Halifax, NS 🇨🇦</div>
+      </div>`,
+  }).catch(err => console.error('Account-deleted email failed:', err.message));
+}
+
+
 /* ═══════════════════════════════════════════════════
    DELETE /api/admin/companies/:id
    Hard delete a company. Cascades:
@@ -54,6 +91,12 @@ router.delete('/companies/:id',
       }
 
       const company = companyDoc.data();
+
+      // Capture a notification address BEFORE we delete anything.
+      // notifyEmail (passed when fulfilling a deletion request) wins;
+      // otherwise fall back to the company's contact email.
+      const notifyEmail = (req.body && req.body.notifyEmail) || company.contactEmail || null;
+      const shouldNotify = !!(req.body && req.body.notifyEmail);
 
       // 1) Find + delete the auth account(s) for this company
       const usersSnap = await db
@@ -107,6 +150,11 @@ router.delete('/companies/:id',
 
       console.log(`🗑️  Company deleted: ${companyId} (${company.name}) — ${usersSnap.size} users, ${employeesSnap.size} employees`);
 
+      // Confirmation email (only when fulfilling a request)
+      if (shouldNotify) {
+        await sendAccountDeletedEmail({ to: notifyEmail, orgName: company.name });
+      }
+
       return res.status(200).json({
         success: true,
         deletedUsers:     usersSnap.size,
@@ -145,6 +193,11 @@ router.delete('/bakeries/:id',
       }
 
       const bakery = bakeryDoc.data();
+
+      // Capture notification address before deleting anything
+      const notifyEmail = (req.body && req.body.notifyEmail) ||
+                          bakery.contactEmail || bakery.contact || null;
+      const shouldNotify = !!(req.body && req.body.notifyEmail);
 
       // 1) Delete auth account(s) tied to this bakery
       const usersSnap = await db
@@ -191,6 +244,10 @@ router.delete('/bakeries/:id',
       );
 
       console.log(`🗑️  Bakery deleted: ${bakeryId} (${bakery.name}) — ${usersSnap.size} users, ${productsSnap.size} products`);
+
+      if (shouldNotify) {
+        await sendAccountDeletedEmail({ to: notifyEmail, orgName: bakery.name });
+      }
 
       return res.status(200).json({
         success: true,
