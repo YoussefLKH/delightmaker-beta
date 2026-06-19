@@ -47,6 +47,7 @@
     .btn-resolve { background:#2E7D32; color:#fff; }
     .btn-reopen  { background:#F3ECE3; color:#6B5444; }
     .btn-reply   { background:#C4621D; color:#fff; text-decoration:none; display:inline-flex; align-items:center; }
+    .btn-delete-acct { background:#C62828; color:#fff; }
     .filter-tabs { display:flex; gap:8px; margin-bottom:22px; }
     .ft { padding:9px 18px; border-radius:99px; border:1.5px solid #E8DDD0; background:#fff;
       font-family:inherit; font-weight:700; font-size:0.86rem; color:#8B7260; cursor:pointer; }
@@ -188,6 +189,12 @@
             ${t.page ? `<p class="ticket-meta" style="margin-top:8px">📍 Reported from: ${esc(t.page)}</p>` : ''}
             <div class="ticket-actions">
               ${mailto ? `<a class="btn-reply" href="${mailto}">✉ Reply by email</a>` : ''}
+              ${t.deletionRequest && t.status === 'open' && (t.companyId || t.bakerId)
+                ? `<button class="btn-delete-acct"
+                           onclick="fulfillDeletion('${t.id}','${t.role}','${t.companyId || t.bakerId}','${esc(t.orgName || '').replace(/'/g, "\\'")}')">
+                     🗑️ Delete Account
+                   </button>`
+                : ''}
               ${t.status === 'open'
                 ? `<button class="btn-resolve" onclick="setStatus('${t.id}','resolved')">✓ Mark Resolved</button>`
                 : `<button class="btn-reopen" onclick="setStatus('${t.id}','open')">↩ Reopen</button>`}
@@ -210,6 +217,47 @@
         showToast(status === 'resolved' ? 'Marked resolved' : 'Reopened', 'success');
       } catch (e) {
         showToast('Failed to update ticket', 'error');
+      }
+    }
+
+    // Fulfil an account-deletion request: delete the account (cascade)
+    // then auto-resolve the ticket.
+    async function fulfillDeletion(ticketId, role, orgId, orgName) {
+      const isCompany = role === 'company_user';
+      const label = isCompany ? 'company' : 'bakery';
+
+      const ok = await confirmDialog(
+        `Permanently delete the ${label} "${orgName || orgId}"?\n\n` +
+        `This removes their login${isCompany ? ', employees and gifting rules' : ' and menu'}. ` +
+        `Past orders and invoices are kept for accounting. This cannot be undone.`,
+        '🗑️ Delete Account'
+      );
+      if (!ok) return;
+
+      try {
+        const endpoint = isCompany
+          ? `/api/admin/companies/${orgId}`
+          : `/api/admin/bakeries/${orgId}`;
+        const res = await apiCall(endpoint, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Delete failed');
+
+        // Auto-resolve the ticket
+        await apiCall(`/api/support/tickets/${ticketId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'resolved',
+            adminNote: `Account deleted on ${new Date().toLocaleString('en-CA')}`,
+          }),
+        }).catch(() => {});
+
+        const t = allTickets.find(x => x.id === ticketId);
+        if (t) { t.status = 'resolved'; t.resolvedAt = new Date().toISOString(); }
+        render();
+        showToast(`Account deleted and request resolved.`, 'success');
+      } catch (e) {
+        console.error('Fulfill deletion error:', e);
+        showToast(e.message || 'Failed to delete account', 'error');
       }
     }
   </script>
