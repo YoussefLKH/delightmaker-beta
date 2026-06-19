@@ -173,7 +173,7 @@
             <div class="ticket-top">
               <div style="flex:1;min-width:0">
                 <p class="ticket-subject">
-                  <span class="ticket-cat">${esc(t.category)}</span>${esc(t.subject)}
+                  <span class="ticket-cat"${t.deletionRequest ? ' style="background:#FFEBEE;color:#C62828"' : ''}>${t.deletionRequest ? '🗑️ ' : ''}${esc(t.category)}</span>${esc(t.subject)}
                 </p>
                 <p class="ticket-meta">
                   ${t.ref ? `<strong>${esc(t.ref)}</strong> · ` : ''}${who} · ${roleLabel} · ${when}

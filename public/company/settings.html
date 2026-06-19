@@ -197,16 +197,59 @@
 
     <!-- DANGER ZONE -->
     <div class="settings-card danger">
-      <h2 style="color:#C62828">⚠️ Delete Account</h2>
-      <p class="sub">Permanently removes your login, employees, and gifting rules. Your past orders and invoices are kept for accounting. You'd have to re-apply to return. <strong>This cannot be undone.</strong></p>
-      <div class="field">
-        <label>Type <strong>DELETE</strong> to confirm</label>
-        <input type="text" id="deleteConfirm" placeholder="DELETE" autocomplete="off"/>
-      </div>
-      <button class="btn" id="deleteAccountBtn" style="background:#C62828;color:#fff" onclick="deleteAccount()">Delete My Account</button>
+      <h2 style="color:#C62828">⚠️ Close Account</h2>
+      <p class="sub">Want to leave Delightmaker? Send us a request and we'll be in touch to confirm before anything is removed. Nothing is deleted automatically.</p>
+      <button class="btn" id="openDeleteReqBtn" style="background:#C62828;color:#fff" onclick="openDeletionModal()">Request Account Deletion</button>
     </div>
 
   </main>
+
+  <!-- DELETION REQUEST MODAL -->
+  <div id="delReqOverlay" style="display:none;position:fixed;inset:0;
+       background:rgba(20,12,6,0.5);z-index:10000;align-items:center;
+       justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:16px;max-width:460px;width:100%;
+         box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden">
+      <div style="background:#C62828;color:#fff;padding:18px 22px;
+           display:flex;align-items:center;justify-content:space-between">
+        <h3 style="margin:0;font-size:1.1rem">Request Account Deletion</h3>
+        <button onclick="closeDeletionModal()" style="background:rgba(255,255,255,.2);
+                border:none;color:#fff;width:30px;height:30px;border-radius:50%;
+                cursor:pointer;font-size:1rem">✕</button>
+      </div>
+      <div style="padding:22px">
+        <p style="font-size:0.85rem;color:#6B5444;margin:0 0 16px;line-height:1.5">
+          We're sorry to see you go. Tell us why and we'll follow up to confirm before deleting anything.
+        </p>
+        <div class="field">
+          <label>Reason for leaving</label>
+          <select id="delReason" style="width:100%;box-sizing:border-box;padding:10px 12px;
+                  font-size:0.92rem;border:1.5px solid #E8DDD0;border-radius:10px;
+                  color:#1A1008;font-family:inherit;background:#fff">
+            <option>Switching providers</option>
+            <option>Too expensive</option>
+            <option>No longer needed</option>
+            <option>Not satisfied</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Anything else? <span style="font-weight:400;color:#999">(optional)</span></label>
+          <textarea id="delDetails" rows="3" placeholder="Tell us more so we can improve…"></textarea>
+        </div>
+        <div class="field">
+          <label>Contact email</label>
+          <input type="email" id="delEmail" placeholder="you@company.com"/>
+          <span style="font-size:0.78rem;color:#8B7260">We'll reach out here to confirm.</span>
+        </div>
+        <p id="delErr" class="field-error"></p>
+      </div>
+      <div style="padding:0 22px 22px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeDeletionModal()">Cancel</button>
+        <button class="btn" id="submitDelReqBtn" style="background:#C62828;color:#fff" onclick="submitDeletionRequest()">Send Request</button>
+      </div>
+    </div>
+  </div>
 
   <script src="../js/firebase-config.js"></script>
   <script>
@@ -398,29 +441,47 @@
       }
     }
 
-    async function deleteAccount() {
-      if (document.getElementById('deleteConfirm').value.trim() !== 'DELETE') {
-        showToast('Type DELETE to confirm', 'error');
+    function openDeletionModal() {
+      document.getElementById('delErr').classList.remove('show');
+      document.getElementById('delDetails').value = '';
+      // Prefill contact email with the account email
+      document.getElementById('delEmail').value =
+        (firebase.auth().currentUser && firebase.auth().currentUser.email) || '';
+      document.getElementById('delReqOverlay').style.display = 'flex';
+    }
+    function closeDeletionModal() {
+      document.getElementById('delReqOverlay').style.display = 'none';
+    }
+
+    async function submitDeletionRequest() {
+      const reason  = document.getElementById('delReason').value;
+      const details = document.getElementById('delDetails').value.trim();
+      const email   = document.getElementById('delEmail').value.trim();
+      const err     = document.getElementById('delErr');
+      err.classList.remove('show');
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        err.textContent = 'Please enter a valid contact email.';
+        err.classList.add('show');
         return;
       }
-      const ok = await confirmDialog(
-        'This permanently deletes your account, team, and rules. Past orders/invoices are kept. This cannot be undone. Continue?',
-        '⚠️ Delete Account'
-      );
-      if (!ok) return;
 
-      const btn = document.getElementById('deleteAccountBtn');
-      btn.disabled = true; btn.textContent = 'Deleting...';
+      const btn = document.getElementById('submitDelReqBtn');
+      btn.disabled = true; btn.textContent = 'Sending…';
       try {
-        const res = await apiCall('/api/settings/account', { method: 'DELETE' });
+        const res = await apiCall('/api/support/deletion-request', {
+          method: 'POST',
+          body: JSON.stringify({ reason, details, contactEmail: email }),
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed');
-        await firebase.auth().signOut();
-        alert('Your account has been deleted.');
-        window.location.href = '/';
+        closeDeletionModal();
+        showToast(`Request sent (${data.ref}). We'll be in touch to confirm.`, 'success', 6000);
       } catch (e) {
-        showToast(e.message || 'Failed to delete account', 'error');
-        btn.disabled = false; btn.textContent = 'Delete My Account';
+        err.textContent = e.message || 'Something went wrong.';
+        err.classList.add('show');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Send Request';
       }
     }
   </script>

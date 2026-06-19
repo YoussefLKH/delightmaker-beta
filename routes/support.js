@@ -23,6 +23,12 @@ const TICKETS = 'supportTickets';
 
 const CATEGORIES = [
   'Bug', 'Billing', 'Delivery problem', 'Feature request', 'Other',
+  'Account deletion',
+];
+
+const DELETION_REASONS = [
+  'Switching providers', 'Too expensive', 'No longer needed',
+  'Not satisfied', 'Other',
 ];
 
 
@@ -175,6 +181,130 @@ router.post('/tickets', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Create support ticket error:', err);
     return res.status(500).json({ error: 'Failed to submit report' });
+  }
+});
+
+
+/* ═══════════════════════════════════════════════════
+   POST /api/support/deletion-request
+   Company user or baker — request that their account be
+   deleted. Does NOT delete anything; creates a support
+   ticket (category 'Account deletion') + emails Colton +
+   confirms to the requester. Colton fulfils it manually.
+   ═══════════════════════════════════════════════════ */
+router.post('/deletion-request', authenticate, async (req, res) => {
+  try {
+    const { role, uid, companyId, bakerId } = req.user;
+    if (role !== 'company_user' && role !== 'baker') {
+      return res.status(403).json({ error: 'Not allowed' });
+    }
+
+    let reason  = (req.body?.reason || '').trim();
+    let details = (req.body?.details || '').trim();
+    let contactEmail = (req.body?.contactEmail || '').trim().toLowerCase();
+
+    if (!DELETION_REASONS.includes(reason)) reason = 'Other';
+
+    // Resolve identity + org
+    let reporterName = '', accountEmail = '', orgName = '';
+    try {
+      const uDoc = await db.collection(COLLECTIONS.USERS).doc(uid).get();
+      if (uDoc.exists) {
+        reporterName = uDoc.data().displayName || '';
+        accountEmail = uDoc.data().email || '';
+      }
+    } catch (_) {}
+    if (!contactEmail) contactEmail = accountEmail;
+
+    try {
+      if (role === 'company_user' && companyId) {
+        const c = await db.collection(COLLECTIONS.COMPANIES).doc(companyId).get();
+        if (c.exists) orgName = c.data().name || '';
+      } else if (role === 'baker' && bakerId) {
+        const b = await db.collection(COLLECTIONS.BAKERIES).doc(bakerId).get();
+        if (b.exists) orgName = b.data().name || '';
+      }
+    } catch (_) {}
+
+    const roleLabel = role === 'company_user' ? 'Company' : 'Bakery';
+    const ref = 'DEL-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+
+    // Store as a support ticket so it shows in the Support queue
+    const ticket = {
+      ref,
+      category:      'Account deletion',
+      subject:       `Account deletion request — ${orgName || roleLabel}`,
+      description:   `Reason: ${reason}${details ? `\n\nDetails: ${details}` : ''}`,
+      page:          null,
+      status:        'open',
+      role,
+      companyId:     companyId || null,
+      bakerId:       bakerId   || null,
+      orgName:       orgName   || null,
+      reporterUid:   uid,
+      reporterName:  reporterName || null,
+      reporterEmail: contactEmail || null,
+      deletionRequest: true,
+      deletionReason:  reason,
+      adminNote:     '',
+      createdAt:     serverTimestamp(),
+      resolvedAt:    null,
+      resolvedBy:    null,
+    };
+    const docRef = await db.collection(TICKETS).add(ticket);
+
+    if (isResendConfigured() && process.env.ADMIN_EMAIL) {
+      const resend = getResend();
+
+      // Alert Colton
+      await resend.emails.send({
+        from:    `${process.env.RESEND_FROM_NAME} <${process.env.EMAIL_SUPPORT || process.env.RESEND_FROM_EMAIL}>`,
+        to:      process.env.ADMIN_EMAIL,
+        replyTo: contactEmail || undefined,
+        subject: `🗑️ Account deletion request — ${orgName || roleLabel} (${ref})`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;background:#FFFAF5">
+            <div style="background:#C62828;border-radius:12px 12px 0 0;padding:18px 24px;color:white;font-weight:700">🗑️ Account Deletion Request</div>
+            <div style="background:white;border:1px solid #eee;padding:24px">
+              <p style="margin:0 0 16px;color:#888;font-size:0.85rem">Ref <strong style="color:#2D2D2D">${ref}</strong> — nothing has been deleted. Review and action from the admin portal.</p>
+              <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+                <tr style="border-bottom:1px solid #eee"><td style="padding:7px 0;color:#888">Account</td><td style="padding:7px 0;font-weight:700;text-align:right">${esc(orgName) || '—'} (${roleLabel})</td></tr>
+                <tr style="border-bottom:1px solid #eee"><td style="padding:7px 0;color:#888">Requested by</td><td style="padding:7px 0;font-weight:600;text-align:right">${esc(reporterName) || '—'}</td></tr>
+                <tr style="border-bottom:1px solid #eee"><td style="padding:7px 0;color:#888">Contact</td><td style="padding:7px 0;font-weight:600;text-align:right">${esc(contactEmail) || '—'}</td></tr>
+                <tr style="border-bottom:1px solid #eee"><td style="padding:7px 0;color:#888">Reason</td><td style="padding:7px 0;font-weight:700;text-align:right">${esc(reason)}</td></tr>
+              </table>
+              ${details ? `<div style="background:#FFFAF5;border:1px solid #F0EBE3;border-radius:10px;padding:14px 16px;margin-top:16px;color:#444;font-size:0.92rem;white-space:pre-wrap;line-height:1.6">${esc(details)}</div>` : ''}
+              <a href="${process.env.APP_URL}/admin/${role === 'company_user' ? 'clients' : 'bakeries'}" style="display:inline-block;margin-top:20px;background:#C62828;color:white;padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:700">Review in Admin →</a>
+            </div>
+          </div>`,
+      }).catch(err => console.error('Deletion-request admin email failed:', err.message));
+
+      // Confirm to the requester
+      if (contactEmail) {
+        await resend.emails.send({
+          from:    `${process.env.RESEND_FROM_NAME} <${process.env.EMAIL_SUPPORT || process.env.RESEND_FROM_EMAIL}>`,
+          to:      contactEmail,
+          subject: `We received your account deletion request (${ref})`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#FFFAF5">
+              <div style="background:#C4621D;border-radius:12px 12px 0 0;padding:18px 24px;color:white;font-weight:700">🧁 Delightmaker</div>
+              <div style="background:white;border:1px solid #eee;padding:28px">
+                <h2 style="margin:0 0 8px;color:#1A1008">Request received</h2>
+                <p style="color:#6B5444;margin:0 0 16px;line-height:1.6">We've received your request to delete <strong>${esc(orgName) || 'your account'}</strong> (ref <strong style="color:#C4621D">${ref}</strong>). Nothing has been deleted yet — a team member will reach out to confirm before anything is removed.</p>
+                <p style="color:#8B7260;font-size:0.85rem;margin:0">Changed your mind? Just reply to this email and we'll cancel the request.</p>
+              </div>
+              <div style="background:#F5F5F5;border:1px solid #eee;border-radius:0 0 12px 12px;padding:14px;text-align:center;font-size:0.75rem;color:#AAA">Delightmaker · Halifax, NS 🇨🇦</div>
+            </div>`,
+        }).catch(err => console.error('Deletion-request confirmation email failed:', err.message));
+      }
+    }
+
+    console.log(`🗑️  Account deletion request ${ref} from ${role} (${contactEmail || uid})`);
+    return res.status(200).json({ success: true, ref, id: docRef.id });
+
+  } catch (err) {
+    console.error('Deletion-request error:', err);
+    return res.status(500).json({ error: 'Failed to submit deletion request' });
   }
 });
 
