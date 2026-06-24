@@ -556,6 +556,10 @@
         btn.disabled = false; btn.textContent = 'Send Request';
       }
     }
+
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('sidebar-open');
+    });
   </script>
 </body>
 </html>

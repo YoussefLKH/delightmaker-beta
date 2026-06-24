@@ -211,6 +211,10 @@
         btn.disabled = false; btn.textContent = 'Update Password';
       }
     }
+
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('sidebar-open');
+    });
   </script>
 </body>
 </html>

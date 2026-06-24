@@ -268,6 +268,10 @@
         showToast(e.message || 'Failed to delete account', 'error');
       }
     }
+
+    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('sidebar-open');
+    });
   </script>
 </body>
 </html>

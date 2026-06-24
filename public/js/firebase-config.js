@@ -928,6 +928,17 @@ function confirmDialog(message, title = 'Confirm') {
     });
     observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
 
+    // Open the drawer when any mobile menu button is tapped.
+    // Registered here (in firebase-config.js) so it covers every page
+    // automatically. stopImmediatePropagation prevents double-firing on
+    // pages that also wire up their own click handler.
+    document.querySelectorAll('.mobile-menu-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopImmediatePropagation();
+        sidebar.classList.toggle('sidebar-open');
+      });
+    });
+
     // Close the drawer automatically when a nav link is tapped
     sidebar.querySelectorAll('.sidebar-nav a, .nav-item').forEach(link => {
       link.addEventListener('click', () => {

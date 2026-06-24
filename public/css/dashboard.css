@@ -1981,4 +1981,73 @@
     max-width: 100%;
   }
 
+  /* Full-screen modal on very small screens */
+  .modal-overlay {
+    padding:    0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-width:     100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height:    92vh;
+  }
+
+  .modal-sm,
+  .modal-lg {
+    max-width: 100%;
+  }
+
+  /* Detail rows stack label above value */
+  .detail-field-row {
+    flex-direction: column;
+    gap:            4px;
+  }
+
+  .detail-field-value {
+    text-align: left;
+  }
+
+  /* Action buttons in tables wrap */
+  .action-btns {
+    flex-wrap: wrap;
+  }
+
+  /* Card headers allow wrapping */
+  .card-header {
+    flex-wrap: wrap;
+  }
+
+  /* Settings cards fill full width */
+  .settings-card {
+    max-width: 100% !important;
+  }
+
+  /* Table buttons: minimum touch target */
+  .btn-sm,
+  .btn-route,
+  .btn-view {
+    min-height: 36px;
+    padding:    6px 12px;
+  }
+
+  /* Confirm dialog full width */
+  .confirm-dialog {
+    padding:    20px;
+  }
+
+  .confirm-dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-dialog-actions .btn {
+    width:           100%;
+    justify-content: center;
+  }
+
+  /* Route summary grid stacks */
+  .route-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
 }

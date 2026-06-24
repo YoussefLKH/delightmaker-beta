@@ -1573,3 +1573,77 @@ input, select, textarea {
     text-align:     center;
   }
 }
+
+
+/* ── RESPONSIVE — SMALL MOBILE ────────────────────── */
+@media (max-width: 480px) {
+
+  /* Hero tighter padding */
+  .hero {
+    padding: 90px 0 60px;
+  }
+
+  .hero-headline {
+    font-size: 2rem;
+  }
+
+  .hero-subtext {
+    font-size: 0.95rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items:    stretch;
+  }
+
+  .hero-actions .btn {
+    justify-content: center;
+    text-align:      center;
+  }
+
+  .hero-trust {
+    flex-direction: column;
+    gap:            8px;
+  }
+
+  /* Section padding */
+  :root {
+    --section-pad: 48px 0;
+  }
+
+  /* Section headlines */
+  .section-headline {
+    font-size: 1.7rem;
+  }
+
+  /* Problem cards less padding */
+  .problem-card {
+    padding: 24px 20px;
+  }
+
+  /* Feature cards less padding */
+  .feature-card {
+    padding: 24px 20px;
+  }
+
+  /* Demo form */
+  .demo-form {
+    padding: 24px 20px;
+    border-radius: var(--radius-lg);
+  }
+
+  /* Footer */
+  .footer-links {
+    grid-template-columns: 1fr;
+  }
+
+  /* Navbar container padding */
+  .nav-container {
+    padding: 0 16px;
+  }
+
+  /* Container padding */
+  .container {
+    padding: 0 16px;
+  }
+}
