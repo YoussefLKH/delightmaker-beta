@@ -902,6 +902,25 @@ function confirmDialog(message, title = 'Confirm') {
 
     const closeDrawer = () => sidebar.classList.remove('sidebar-open');
 
+    // ── Single source of truth for OPENING the drawer ──
+    // A capture-phase listener on document intercepts every
+    // .mobile-menu-btn click BEFORE it reaches the button's own
+    // per-page handler. stopPropagation() then prevents that per-page
+    // handler from firing, so the drawer toggles exactly ONCE — no
+    // matter how many (or how few) handlers a given page wired up.
+    // This makes the hamburger work consistently on every tab in all
+    // three dashboards without per-page JS.
+    if (!window.__dmHamburgerBound) {
+      window.__dmHamburgerBound = true;
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest && e.target.closest('.mobile-menu-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        const sb = document.querySelector('.sidebar');
+        if (sb) sb.classList.toggle('sidebar-open');
+      }, true); // <-- capture phase
+    }
+
     // Tap backdrop to close
     backdrop.addEventListener('click', closeDrawer);
 
@@ -927,17 +946,6 @@ function confirmDialog(message, title = 'Confirm') {
       backdrop.classList.toggle('show', open);
     });
     observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
-
-    // Open the drawer when any mobile menu button is tapped.
-    // Registered here (in firebase-config.js) so it covers every page
-    // automatically. stopImmediatePropagation prevents double-firing on
-    // pages that also wire up their own click handler.
-    document.querySelectorAll('.mobile-menu-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopImmediatePropagation();
-        sidebar.classList.toggle('sidebar-open');
-      });
-    });
 
     // Close the drawer automatically when a nav link is tapped
     sidebar.querySelectorAll('.sidebar-nav a, .nav-item').forEach(link => {
